@@ -14,6 +14,28 @@ This creates symlinks from `~/.claude/commands` and `~/.claude/hooks` to this re
 
 ---
 
+## Philosophy: Parallel Agentic Development
+
+This setup enables a specific approach to AI-assisted development:
+
+1. **Parallel by default** — Multiple Claude sessions work simultaneously on independent tasks, each in isolated git worktrees. No waiting for one task to finish before starting another.
+
+2. **Orchestrator + Workers** — One session orients and identifies parallelizable work; worker sessions execute discrete tasks. The orchestrator sees the big picture, workers focus deeply.
+
+3. **Task isolation** — Each task gets its own branch/worktree, preventing conflicts and enabling clean PRs. No merge hell, no stepping on each other's work.
+
+4. **Bounded autonomy** — Claude can work autonomously (ralph mode) but within bounds: clear acceptance criteria, test-driven completion, iteration limits. Autonomy with guardrails.
+
+5. **Handoffs over context bloat** — When context grows large, hand off to a fresh session rather than degrading quality. Fresh context beats exhausted context.
+
+6. **Tests as the contract** — "Done" means tests pass. No subjective completion criteria. The code proves itself.
+
+7. **Human remains in control** — Clarifying questions before implementation, PR approval, task prioritization stays with human. AI executes, human directs.
+
+8. **Session summaries for coordination** — Detailed output enables asynchronous coordination between sessions. Each session leaves breadcrumbs for the next.
+
+---
+
 ## Setting Up a New Project
 
 To enable the beads workflow in a new project:
