@@ -5,7 +5,7 @@ Custom commands and hooks for Claude Code, designed for the **beads** task manag
 ## Quick Install
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/claude-config.git ~/Code/claude-config
+git clone https://github.com/josephneumann/claude-config.git ~/Code/claude-config
 cd ~/Code/claude-config
 ./install.sh
 ```
@@ -304,7 +304,7 @@ Pass work between sessions when context grows too large:
 
 1. **Clone the repo:**
    ```bash
-   git clone https://github.com/YOUR_USERNAME/claude-config.git ~/Code/claude-config
+   git clone https://github.com/josephneumann/claude-config.git ~/Code/claude-config
    ```
 
 2. **Run the installer:**
@@ -384,7 +384,7 @@ These commands are designed for a specific workflow and require additional tools
 
 ### Required
 
-- **[beads](https://github.com/YOUR_USERNAME/beads)** (`bd`) - Task management CLI
+- **[beads](https://github.com/josephneumann/beads)** (`bd`) - Task management CLI
   - All commands use `bd` for task tracking, dependencies, and sync
   - Install beads and configure it for your project before using these commands
   - Run `bd init` in your project to set up beads
