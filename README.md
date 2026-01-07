@@ -14,7 +14,42 @@ This creates symlinks from `~/.claude/commands` and `~/.claude/hooks` to this re
 
 ---
 
+## Setting Up a New Project
+
+To enable the beads workflow in a new project:
+
+1. **Copy the CLAUDE.md template:**
+   ```bash
+   cp ~/Code/claude-config/CLAUDE.template.md /path/to/your/project/CLAUDE.md
+   ```
+
+2. **Fill in project-specific sections:**
+   - Project Summary
+   - Development commands
+   - Critical Rules
+   - CLI Commands
+   - Architecture
+   - Key Design Decisions
+
+3. **Initialize beads:**
+   ```bash
+   cd /path/to/your/project
+   bd init
+   ```
+
+4. **Start using the workflow:**
+   ```
+   /orient
+   /start-task <task-id>
+   ```
+
+The template includes the full Agent Workflow Skills documentation, so Claude will understand the beads workflow in any project that uses it.
+
+---
+
 ## Commands Reference
+
+> **Full documentation:** See [CLAUDE.template.md](./CLAUDE.template.md) for comprehensive command docs, ralph-loop best practices, and workflow examples.
 
 ### `/orient`
 

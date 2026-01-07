@@ -1,0 +1,252 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+<!--
+  HOW TO USE THIS TEMPLATE:
+  1. Copy this file to your project root as CLAUDE.md
+  2. Fill in the [PLACEHOLDER] sections with project-specific info
+  3. Keep the "Agent Workflow Skills" section as-is (or remove if not using beads)
+  4. Delete this comment block
+-->
+
+## Project Summary
+
+[PLACEHOLDER: 2-3 sentences describing your project. What does it do? What problem does it solve?]
+
+See `docs/PROJECT_SPEC.md` for the complete specification and implementation plan.
+
+## Development
+
+```bash
+[PLACEHOLDER: Your development commands]
+# Examples:
+# uv sync                    # Install dependencies
+# uv run pytest              # Run tests
+# pnpm install && pnpm dev   # Node.js project
+# cargo build                # Rust project
+```
+
+## Critical Rules
+
+[PLACEHOLDER: Project-specific rules that Claude must always follow]
+
+<!-- Examples:
+- **NEVER edit pyproject.toml directly** — Always use `uv add <package>`
+- **Always run tests before committing** — `uv run pytest`
+- **Follow conventional commits** — `feat:`, `fix:`, `docs:`, etc.
+-->
+
+## Commands
+
+```bash
+[PLACEHOLDER: Main CLI commands for your project]
+# Examples:
+# uv run python -m myapp serve     # Start server
+# uv run python -m myapp migrate   # Run migrations
+```
+
+## Architecture
+
+```
+[PLACEHOLDER: Directory structure]
+# Example:
+# myapp/
+# ├── cli.py          # CLI entry point
+# ├── config.py       # Configuration
+# ├── db/             # Database layer
+# ├── api/            # API endpoints
+# └── utils/          # Utilities
+```
+
+**Stack**: [PLACEHOLDER: Python 3.12+, FastAPI, SQLite, etc.]
+
+## Key Design Decisions
+
+[PLACEHOLDER: Important architectural decisions]
+
+<!-- Examples:
+- **Highly selective**: Quality over quantity in recommendations
+- **Paper trade first**: All recommendations logged before real money
+- **LLM suggestions require approval**: Human confirms before activation
+-->
+
+---
+
+## Agent Workflow Skills
+
+This project uses custom Claude Code skills for multi-agent task management with beads (`bd`). Tasks can run in **manual mode** (interactive) or **ralph mode** (autonomous iteration until tests pass).
+
+---
+
+### `/orient` — Project Orientation
+
+Builds project context and identifies parallelizable work. Use at session start.
+
+1. Reads core docs (CLAUDE.md, AGENTS.md, PROJECT_SPEC.md)
+2. Reviews beads task state (`bd list`, `bd ready`, dependencies)
+3. Outputs orientation report with recommended parallel work streams
+
+---
+
+### `/start-task <task-id> [flags]` — Start Working on a Task
+
+Sets up isolated environment for a beads task. Two modes available:
+
+| Mode | Command | Behavior |
+|------|---------|----------|
+| **Manual** | `/start-task <id>` | Interactive implementation with human guidance |
+| **Ralph** | `/start-task <id> --ralph` | Autonomous loop until tests pass |
+
+**Setup (both modes):**
+1. Validates task, creates git worktree, sets `BEADS_NO_DAEMON=1`
+2. Claims task (`bd update --status in_progress`)
+3. Asks clarifying questions before implementation
+4. Waits for "Ready to begin?" confirmation
+
+**Flags:**
+| Flag | Description |
+|------|-------------|
+| `--handoff "<text>"` | Context from previous session |
+| `--ralph` | Enable autonomous ralph-loop mode |
+| `--max-iterations N` | Ralph iteration limit (default: 10) |
+
+**Examples:**
+```bash
+/start-task 46j.1                                       # Manual mode
+/start-task 46j.1 --handoff "Use PriceCache for OHLCV"  # Manual + handoff context
+/start-task 46j.1 --ralph                               # Ralph mode (10 iterations max)
+/start-task 46j.1 --ralph --max-iterations 50           # Ralph mode (50 iterations)
+/start-task 46j.1 --ralph --handoff "Use 3% tolerance"  # Ralph + handoff context
+```
+
+---
+
+### Ralph-Loop Mode (Autonomous Implementation)
+
+When `--ralph` is used, after setup and Q&A confirmation:
+
+1. **Loop activates** — Claude implements iteratively, running tests frequently
+2. **Success** — When all tests pass, outputs `<promise>ALL TESTS PASSING</promise>`
+3. **Exit** — Loop ends, prompts "Run `/finish-task <id>`"
+4. **Max iterations** — If limit reached, outputs handoff command for new session
+
+**Best Practices for Ralph Mode:**
+
+| Do | Don't |
+|----|-------|
+| Use for well-defined implementation tasks | Use for research or exploration |
+| Ensure task has clear acceptance criteria | Use for tasks requiring design decisions |
+| Start with existing test patterns to follow | Use for greenfield without test examples |
+| Set realistic `--max-iterations` (10-30) | Set unlimited iterations |
+| Answer clarifying questions thoroughly | Rush through the Q&A step |
+
+**Good ralph candidates:**
+- Adding a new module following existing patterns
+- Implementing a feature with clear spec
+- Bug fixes with reproducible test cases
+- Database schema additions with defined fields
+
+**Poor ralph candidates:**
+- Research tasks (no clear "done" state)
+- UI/UX work (subjective success criteria)
+- Architecture decisions (need human judgment)
+- Tasks requiring external API exploration
+
+**Completion signal:**
+```
+<promise>ALL TESTS PASSING</promise>
+```
+Only output when tests show 0 failures. Never output false promises to escape the loop.
+
+---
+
+### `/finish-task <task-id>` — Complete a Task
+
+Closes out a task with full verification. **Work is NOT complete until git push succeeds.**
+
+1. Verifies task state and worktree location
+2. Runs tests — **must pass to continue**
+3. Reviews/updates documentation if needed
+4. Creates follow-up issues for any remaining work (`bd create`)
+5. Commits with conventional format + `Closes: <task-id>`
+6. Syncs beads (`bd sync`), pushes to remote
+7. Closes task (`bd close <task-id>`)
+8. Creates PR (`gh pr create`)
+9. Offers to merge PR (squash) and cleanup worktree
+10. Outputs detailed session summary for orchestrating agents
+
+**Critical:** Tests must pass before closing. Never close a task with failing tests.
+
+---
+
+### `/handoff-task <task-id>` — Generate Handoff Context
+
+Generates session-specific context to pass to another agent session.
+
+1. Validates task exists
+2. Reads task scope (title, dependencies, priority)
+3. Summarizes decisions, gotchas, and recommendations from current session
+4. Outputs copy-pasteable `/start-task` command with `--handoff` context
+
+**Output format:**
+```
+==============================================
+HANDOFF: <task-id>
+==============================================
+Task: <title>
+Priority: <priority>
+
+To start this task in a new session, run:
+/start-task <task-id> --handoff "<context>"
+==============================================
+```
+
+**Use case:** When an orchestrating session identifies work for a parallel worker, or when handing off incomplete work to a new session.
+
+---
+
+### `/summarize-session <task-id>` — Session Summary (Read-only)
+
+Generates detailed summary without committing, pushing, or closing. Useful for progress check-ins.
+
+1. Gathers context (task state, git status, recent commits)
+2. Identifies files created/modified
+3. Checks test status
+4. Outputs structured summary for orchestrating agents
+
+**Output includes:** Task overview, implementation summary, files changed, tests, git activity, dependencies unblocked, architectural notes, handoff context.
+
+---
+
+### Workflow Examples
+
+**Manual parallel workflow:**
+```
+Session A (Orchestrator):   /orient → identifies 46j.1, 46j.2, 46j.3
+Session B (Worker):         /start-task 46j.1 → implement → /finish-task 46j.1
+Session C (Worker):         /start-task 46j.2 → implement → /finish-task 46j.2
+```
+
+**Ralph autonomous workflow:**
+```
+Session B (Worker):
+  /start-task 46j.1 --ralph
+  → Setup completes, Q&A answered
+  → "Ready to begin?" confirmed
+  → Ralph loop runs autonomously
+  → Tests pass → "Run /finish-task 46j.1"
+  /finish-task 46j.1
+```
+
+**Ralph with handoff (max iterations reached):**
+```
+Session B:
+  /start-task 46j.1 --ralph --max-iterations 20
+  → Loop hits 20 iterations without tests passing
+  → Outputs: /start-task 46j.1 --ralph --handoff "Continued from ralph-loop..."
+
+Session C (new session):
+  /start-task 46j.1 --ralph --handoff "Continued from ralph-loop..."
+  → Continues work with previous context
+```
