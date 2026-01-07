@@ -1,0 +1,57 @@
+#!/bin/bash
+# Claude Config Installation Script
+# Creates symlinks from ~/.claude/ to this repo
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CLAUDE_DIR="$HOME/.claude"
+
+echo "Installing Claude config from: $SCRIPT_DIR"
+echo "Target directory: $CLAUDE_DIR"
+echo ""
+
+# Create ~/.claude if it doesn't exist
+mkdir -p "$CLAUDE_DIR"
+
+# Function to create symlink with backup
+create_symlink() {
+    local source="$1"
+    local target="$2"
+    local name="$(basename "$target")"
+
+    if [ -L "$target" ]; then
+        # Already a symlink - check if it points to the right place
+        current_target="$(readlink "$target")"
+        if [ "$current_target" = "$source" ]; then
+            echo "✓ $name already linked correctly"
+            return 0
+        else
+            echo "→ $name symlink exists but points elsewhere, updating..."
+            rm "$target"
+        fi
+    elif [ -d "$target" ]; then
+        # Directory exists - back it up
+        backup="${target}.backup.$(date +%Y%m%d-%H%M%S)"
+        echo "→ Backing up existing $name to $backup"
+        mv "$target" "$backup"
+    elif [ -e "$target" ]; then
+        # Something else exists
+        echo "✗ $target exists and is not a directory or symlink"
+        return 1
+    fi
+
+    ln -s "$source" "$target"
+    echo "✓ Linked $name → $source"
+}
+
+# Create symlinks
+create_symlink "$SCRIPT_DIR/commands" "$CLAUDE_DIR/commands"
+create_symlink "$SCRIPT_DIR/hooks" "$CLAUDE_DIR/hooks"
+
+echo ""
+echo "Installation complete!"
+echo ""
+echo "Verify with:"
+echo "  ls -la ~/.claude/commands"
+echo "  ls -la ~/.claude/hooks"
