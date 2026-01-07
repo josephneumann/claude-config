@@ -345,10 +345,43 @@ The installer:
 
 ## Prerequisites
 
-These commands assume you have:
-- **beads** (`bd`) - Task management CLI
-- **git** - With worktree support
-- **gh** - GitHub CLI (for PR creation)
+These commands are designed for a specific workflow and require additional tools to be set up.
+
+### Required
+
+- **[beads](https://github.com/YOUR_USERNAME/beads)** (`bd`) - Task management CLI
+  - All commands use `bd` for task tracking, dependencies, and sync
+  - Install beads and configure it for your project before using these commands
+  - Run `bd init` in your project to set up beads
+
+- **git** - With worktree support (standard in modern git)
+  - `/start-task` creates isolated worktrees for each task
+  - `/finish-task` handles commits, pushes, and worktree cleanup
+
+- **gh** - [GitHub CLI](https://cli.github.com/)
+  - Used by `/finish-task` to create pull requests
+  - Install: `brew install gh` (macOS) or see [installation docs](https://github.com/cli/cli#installation)
+  - Authenticate: `gh auth login`
+
+### Optional (for Ralph Loop workflow)
+
+- **ralph-loop plugin** - Claude Code plugin for autonomous implementation loops
+  - Required only if using `/start-task --ralph`
+  - The plugin iterates until tests pass or max iterations reached
+  - Install from the Claude Code plugin marketplace: `ralph-loop`
+  - The `beads-ralph-stop.sh` hook works alongside this plugin
+
+### Claude Code Setup
+
+1. **Install Claude Code** - These are Claude Code slash commands, not standalone scripts
+2. **Run the installer** - `./install.sh` creates symlinks so Claude Code finds the commands
+3. **Verify** - In Claude Code, type `/orient` to test
+
+### Without These Prerequisites
+
+- **Without beads:** Commands will fail on `bd` calls. You'd need to remove/replace beads references.
+- **Without gh:** `/finish-task` won't create PRs. You can create them manually.
+- **Without ralph-loop plugin:** Don't use the `--ralph` flag. Standard workflow still works.
 
 ---
 
