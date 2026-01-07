@@ -34,6 +34,10 @@ This setup enables a specific approach to AI-assisted development:
 
 8. **Session summaries for coordination** — Detailed output enables asynchronous coordination between sessions. Each session leaves breadcrumbs for the next.
 
+9. **Context window discipline** — No single task should exhaust the context window. If you're compacting, something is wrong. Best results come when <50% of context is used. Break big tasks into smaller ones.
+
+10. **Routine tasks become skills** — Anything you do repeatedly should be codified as a skill or automation. The commands in this repo exist because the workflow is routine. Your project-specific routines deserve the same treatment.
+
 ---
 
 ## Setting Up a New Project
