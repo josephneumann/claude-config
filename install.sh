@@ -49,9 +49,30 @@ create_symlink() {
 create_symlink "$SCRIPT_DIR/commands" "$CLAUDE_DIR/commands"
 create_symlink "$SCRIPT_DIR/hooks" "$CLAUDE_DIR/hooks"
 
+# Add bin/ to PATH via .zshrc
+BIN_DIR="$SCRIPT_DIR/bin"
+ZSHRC="$HOME/.zshrc"
+
+if [ -d "$BIN_DIR" ]; then
+    if ! grep -q "claude-config/bin" "$ZSHRC" 2>/dev/null; then
+        echo "" >> "$ZSHRC"
+        echo "# Claude config bin utilities" >> "$ZSHRC"
+        echo "export PATH=\"$BIN_DIR:\$PATH\"" >> "$ZSHRC"
+        echo "" >> "$ZSHRC"
+        echo "# Worker management aliases" >> "$ZSHRC"
+        echo 'alias mp-attach="tmux -CC attach -t mp-workers"' >> "$ZSHRC"
+        echo 'alias mp-list="tmux list-windows -t mp-workers 2>/dev/null || echo \"No active workers\""' >> "$ZSHRC"
+        echo 'mp-kill() { tmux kill-window -t "mp-workers:$1"; }' >> "$ZSHRC"
+        echo "✓ Added bin/ to PATH in ~/.zshrc"
+    else
+        echo "✓ bin/ already in PATH"
+    fi
+fi
+
 echo ""
 echo "Installation complete!"
 echo ""
 echo "Verify with:"
 echo "  ls -la ~/.claude/commands"
 echo "  ls -la ~/.claude/hooks"
+echo "  which mp-spawn  # (after sourcing ~/.zshrc)"
