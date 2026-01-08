@@ -80,18 +80,15 @@ Proceed? (Workers will spawn in iTerm2 tabs)
 
 ## Step 4: Spawn Workers
 
-After confirmation, for each task run:
+After confirmation, for each task run mp-spawn using the Bash tool:
 
 ```bash
-mp-spawn <task-id> --dir "$(pwd)" --ralph --handoff "<context>"
+source ~/.zshrc && mp-spawn <task-id> --dir "$(pwd)" --ralph --handoff "<context>"
 ```
 
-If `--no-ralph` was specified:
-```bash
-mp-spawn <task-id> --dir "$(pwd)" --handoff "<context>"
-```
+If `--no-ralph` was specified, omit the `--ralph` flag.
 
-Run these commands sequentially (each spawn is fast, tmux handles parallelism).
+Each mp-spawn call opens a new iTerm2 tab via AppleScript. Run them sequentially.
 
 ## Step 5: Post-Spawn Guidance
 
@@ -100,14 +97,9 @@ After all workers are spawned, output:
 ```
 Dispatched N workers successfully.
 
-To view workers:
-  mp-attach          # Attach to worker session (Cmd+1/2/3 to switch tabs)
-  mp-list            # List active workers
+Workers are running in separate iTerm2 tabs. Switch to iTerm2 (Cmd+Tab) and use Cmd+1/2/3 to navigate between tabs.
 
-To kill a worker:
-  mp-kill <short-id> # e.g., mp-kill ajq
-
-Workers are running in isolated worktrees. Each will:
+Each worker will:
 1. Set up the task environment
 2. Ask clarifying questions (if any)
 3. Begin implementation (ralph mode)
