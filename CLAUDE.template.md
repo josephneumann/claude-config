@@ -325,7 +325,7 @@ These shell utilities support the multi-agent workflow. They are installed via t
 
 ### `mp-spawn` — Spawn a Worker
 
-Spawns a Claude Code worker in an iTerm2 tab (via tmux -CC integration).
+Spawns a Claude Code worker in a new iTerm2 tab (via AppleScript).
 
 ```bash
 mp-spawn <task-id> [options]
@@ -343,16 +343,9 @@ mp-spawn MoneyPrinter-ajq --ralph
 mp-spawn MoneyPrinter-ajq --dir "$(pwd)" --handoff "Use PriceCache pattern"
 ```
 
-### Worker Management Aliases
-
-```bash
-mp-attach   # Attach to worker session (tmux -CC attach -t mp-workers)
-mp-list     # List active worker windows
-mp-kill ajq # Kill worker by task short ID
-```
-
 ### iTerm2 Integration
 
-- Uses `tmux -CC` mode so tmux windows become native iTerm2 tabs
+- Uses AppleScript to create new iTerm2 tabs directly
+- Works from within Claude Code (non-interactive terminal)
 - Switch between workers with `Cmd+1/2/3` or `Cmd+Shift+[/]`
-- Session persists if iTerm2 closes — reattach with `mp-attach`
+- Each tab is named with the task short ID (e.g., "ajq")
