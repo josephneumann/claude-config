@@ -127,24 +127,12 @@ START_CMD="/start-task ${TASK_ID}"
 # ============================================
 echo "Opening iTerm2 tab for $TASK_ID..."
 
-# Write command and args to temp files to avoid all escaping issues
-ARGS_FILE=$(mktemp /tmp/mp-spawn-args.XXXXXX)
-echo "$WORKTREE_PATH" > "$ARGS_FILE"
-echo "$START_CMD" >> "$ARGS_FILE"
+# Write command to temp file (avoids escaping issues in AppleScript)
+CMD_FILE=$(mktemp /tmp/mp-spawn-cmd.XXXXXX)
+echo "$START_CMD" > "$CMD_FILE"
 
-# Create launcher script that reads from the args file
-LAUNCHER=$(mktemp /tmp/mp-spawn-launcher.XXXXXX.sh)
-cat > "$LAUNCHER" << LAUNCHER_EOF
-#!/bin/bash
-ARGS_FILE="$ARGS_FILE"
-WORKTREE=\$(sed -n '1p' "\$ARGS_FILE")
-CMD=\$(sed -n '2p' "\$ARGS_FILE")
-rm -f "\$ARGS_FILE" "\$0"
-cd "\$WORKTREE" && BEADS_NO_DAEMON=1 exec claude -p "\$CMD"
-LAUNCHER_EOF
-chmod +x "$LAUNCHER"
-
-# Use osascript to open a new iTerm2 tab
+# Use osascript to open a new iTerm2 tab, start claude interactively, then send command
+# The interactive shell already has PATH set up from .zshrc
 osascript \
   -e 'tell application "iTerm2"' \
   -e '    activate' \
@@ -155,13 +143,17 @@ osascript \
   -e '        create tab with default profile' \
   -e '        tell current session' \
   -e "            set name to \"${TASK_SHORT}\"" \
-  -e "            write text \"${LAUNCHER}\"" \
+  -e "            write text \"cd '${WORKTREE_PATH}' && BEADS_NO_DAEMON=1 claude\"" \
   -e '        end tell' \
   -e '    end tell' \
   -e 'end tell'
 
+# Copy command to clipboard - user pastes after trust prompt
+cat "$CMD_FILE" | pbcopy
+rm -f "$CMD_FILE"
+
 echo ""
 echo "Worker spawned for $TASK_ID"
-echo "Command: $START_CMD"
+echo "Command copied to clipboard: $START_CMD"
 echo ""
-echo "Switch to iTerm2 to see the worker (Cmd+Tab)"
+echo "Switch to iTerm2, answer trust prompt, then Cmd+V to paste the command"
