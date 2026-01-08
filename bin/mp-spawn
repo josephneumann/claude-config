@@ -1,0 +1,157 @@
+#!/bin/bash
+set -e
+
+# ============================================
+# mp-spawn: Spawn Claude Code worker in iTerm2
+# Uses tmux -CC for native tab integration
+# ============================================
+
+usage() {
+  cat <<EOF
+Usage: mp-spawn <task-id> [options]
+
+Options:
+  --dir /path/to/project  Project directory (default: current directory)
+  --handoff "text"        Handoff context from previous session
+  --ralph                 Enable autonomous ralph-loop mode
+  --max-iterations N      Max ralph iterations (default: 10)
+  --help                  Show this help
+
+Examples:
+  mp-spawn MoneyPrinter-ajq
+  mp-spawn MoneyPrinter-ajq --dir /Users/jneumann/Code/MoneyPrinter
+  mp-spawn MoneyPrinter-ajq --ralph --handoff "Use existing patterns"
+EOF
+  exit 1
+}
+
+# Parse arguments
+TASK_ID=""
+PROJECT_DIR=""
+HANDOFF=""
+RALPH=""
+MAX_ITER=""
+
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --dir)
+      PROJECT_DIR="$2"
+      shift 2
+      ;;
+    --handoff)
+      HANDOFF="$2"
+      shift 2
+      ;;
+    --ralph)
+      RALPH="--ralph"
+      shift
+      ;;
+    --max-iterations)
+      MAX_ITER="--max-iterations $2"
+      shift 2
+      ;;
+    --help|-h)
+      usage
+      ;;
+    -*)
+      echo "Unknown option: $1"
+      usage
+      ;;
+    *)
+      if [[ -z "$TASK_ID" ]]; then
+        TASK_ID="$1"
+      fi
+      shift
+      ;;
+  esac
+done
+
+[[ -z "$TASK_ID" ]] && usage
+
+# ============================================
+# Project directory: use --dir or default to pwd
+# ============================================
+if [[ -z "$PROJECT_DIR" ]]; then
+  PROJECT_DIR="$(pwd)"
+fi
+
+# Resolve to absolute path
+PROJECT_DIR="$(cd "$PROJECT_DIR" && pwd)"
+
+# Verify it's a git repo with beads
+if [[ ! -d "$PROJECT_DIR/.git" ]]; then
+  echo "Error: $PROJECT_DIR is not a git repository"
+  exit 1
+fi
+
+if [[ ! -d "$PROJECT_DIR/.beads" ]]; then
+  echo "Warning: $PROJECT_DIR has no .beads directory"
+fi
+
+echo "Project: $PROJECT_DIR"
+
+# ============================================
+# Create git worktree for isolation
+# ============================================
+TASK_SHORT=$(echo "$TASK_ID" | cut -d'-' -f2)
+WORKTREE_PATH="${PROJECT_DIR}-${TASK_SHORT}"
+BRANCH_NAME="${TASK_ID}-work"
+
+echo "Setting up worktree at $WORKTREE_PATH..."
+
+cd "$PROJECT_DIR"
+
+# Create worktree if it doesn't exist
+if [[ ! -d "$WORKTREE_PATH" ]]; then
+  # Try to create new branch, or use existing
+  if git show-ref --verify --quiet "refs/heads/${BRANCH_NAME}"; then
+    git worktree add "$WORKTREE_PATH" "$BRANCH_NAME"
+  else
+    git worktree add "$WORKTREE_PATH" -b "$BRANCH_NAME"
+  fi
+  echo "Created worktree: $WORKTREE_PATH"
+else
+  echo "Using existing worktree: $WORKTREE_PATH"
+fi
+
+# ============================================
+# Build the /start-task command
+# ============================================
+START_CMD="/start-task ${TASK_ID}"
+[[ -n "$RALPH" ]] && START_CMD+=" ${RALPH}"
+[[ -n "$MAX_ITER" ]] && START_CMD+=" ${MAX_ITER}"
+[[ -n "$HANDOFF" ]] && START_CMD+=" --handoff \"${HANDOFF}\""
+
+# Full command to run in the worker
+WORKER_CMD="cd '${WORKTREE_PATH}' && BEADS_NO_DAEMON=1 claude -p '${START_CMD}'"
+
+# ============================================
+# tmux session management
+# ============================================
+SESSION_NAME="mp-workers"
+
+# Check if we're already in a tmux -CC session
+if [[ -n "$TMUX" ]]; then
+  # Already in tmux, just create a new window
+  tmux new-window -n "$TASK_SHORT" "$WORKER_CMD"
+  echo "Created window '$TASK_SHORT' in current session"
+else
+  # Check if session exists
+  if tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
+    # Session exists, create window and attach with -CC
+    tmux new-window -t "$SESSION_NAME" -n "$TASK_SHORT" "$WORKER_CMD"
+    echo "Created window '$TASK_SHORT' in session '$SESSION_NAME'"
+    echo ""
+    echo "Attach with: tmux -CC attach -t $SESSION_NAME"
+  else
+    # Create new session with -CC (iTerm2 integration)
+    echo "Creating new tmux session '$SESSION_NAME' with iTerm2 integration..."
+    tmux -CC new-session -d -s "$SESSION_NAME" -n "$TASK_SHORT" "$WORKER_CMD"
+    echo ""
+    echo "Attach with: tmux -CC attach -t $SESSION_NAME"
+  fi
+fi
+
+echo ""
+echo "Worker spawned for $TASK_ID"
+echo "Command: $START_CMD"

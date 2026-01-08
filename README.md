@@ -10,7 +10,7 @@ cd ~/Code/claude-config
 ./install.sh
 ```
 
-This creates symlinks from `~/.claude/commands` and `~/.claude/hooks` to this repo.
+This creates symlinks from `~/.claude/commands` and `~/.claude/hooks` to this repo, and adds `bin/` utilities to your PATH.
 
 ---
 
@@ -100,6 +100,43 @@ The template includes the full Agent Workflow Skills documentation, so Claude wi
 - Task overview (open, ready, in-progress)
 - Critical path analysis
 - Recommended parallel work streams with `/start-task` commands
+
+---
+
+### `/dispatch`
+
+**Purpose:** Spawn parallel Claude Code workers for multiple beads tasks.
+
+**What it does:**
+1. Identifies tasks to dispatch (from args or `bd ready`)
+2. Generates handoff context for each task
+3. Shows summary and asks for confirmation
+4. Runs `mp-spawn` for each task (creates worktrees, spawns workers)
+5. Provides guidance on attaching to workers
+
+**Usage:**
+```bash
+# Auto-select 3 ready tasks (default)
+/dispatch --count 3
+
+# Specific tasks
+/dispatch MoneyPrinter-ajq MoneyPrinter-4b3 MoneyPrinter-235
+
+# With custom handoff context
+/dispatch MoneyPrinter-ajq:"Use PriceCache pattern"
+
+# Manual mode (no ralph-loop)
+/dispatch MoneyPrinter-ajq --no-ralph
+```
+
+**After dispatch:**
+```bash
+mp-attach   # Attach to worker session (Cmd+1/2/3 to switch)
+mp-list     # List active workers
+mp-kill ajq # Kill a worker
+```
+
+**When to use:** From an orchestrator session to spawn parallel workers for independent tasks.
 
 ---
 
@@ -227,6 +264,60 @@ The template includes the full Agent Workflow Skills documentation, so Claude wi
 
 ---
 
+## Bin Utilities Reference
+
+Shell utilities for orchestrating parallel Claude workers.
+
+### `mp-spawn`
+
+**Purpose:** Spawn a Claude Code worker in a new iTerm2 tab (via tmux -CC integration).
+
+**What it does:**
+1. Creates a git worktree for task isolation
+2. Starts a new tmux window with iTerm2 native tab integration
+3. Launches Claude Code with `/start-task` and all provided options
+4. Sets `BEADS_NO_DAEMON=1` to prevent daemon conflicts
+
+**Usage:**
+```bash
+mp-spawn <task-id> [options]
+
+Options:
+  --dir /path/to/project  Project directory (default: current directory)
+  --handoff "text"        Handoff context from previous session
+  --ralph                 Enable autonomous ralph-loop mode
+  --max-iterations N      Max ralph iterations (default: 10)
+```
+
+**Examples:**
+```bash
+# From within a project directory
+mp-spawn MoneyPrinter-ajq
+
+# With ralph-loop for autonomous implementation
+mp-spawn MoneyPrinter-ajq --ralph
+
+# With handoff context
+mp-spawn MoneyPrinter-ajq --ralph --handoff "Use PriceCache pattern for OHLCV data"
+
+# Orchestrator passing explicit directory
+mp-spawn MoneyPrinter-ajq --dir "$(pwd)" --ralph
+```
+
+**Helper aliases** (added to ~/.zshrc by install.sh):
+```bash
+mp-attach   # Attach to worker session (tmux -CC attach -t mp-workers)
+mp-list     # List active worker windows
+mp-kill ajq # Kill worker by task short ID
+```
+
+**iTerm2 Integration:**
+- Uses `tmux -CC` mode so tmux windows become native iTerm2 tabs
+- Switch between workers with `Cmd+1/2/3` or `Cmd+Shift+[/]`
+- Session persists if iTerm2 closes — reattach with `mp-attach`
+
+---
+
 ## Workflow Examples
 
 ### 1. Single-Session Workflow
@@ -339,16 +430,24 @@ Pass work between sessions when context grows too large:
    ./install.sh
    ```
 
-3. **Verify:**
+3. **Source your shell config:**
+   ```bash
+   source ~/.zshrc
+   ```
+
+4. **Verify:**
    ```bash
    ls -la ~/.claude/commands  # Should show symlink
    ls -la ~/.claude/hooks     # Should show symlink
+   which mp-spawn             # Should show path to bin/mp-spawn
    ```
 
 The installer:
 - Creates `~/.claude/` if needed
 - Backs up existing directories (if any)
 - Creates symlinks to the repo
+- Adds `bin/` to PATH in `~/.zshrc`
+- Adds worker management aliases (`mp-attach`, `mp-list`, `mp-kill`)
 - Is idempotent (safe to run multiple times)
 
 ---
@@ -423,6 +522,11 @@ These commands are designed for a specific workflow and require additional tools
   - Used by `/finish-task` to create pull requests
   - Install: `brew install gh` (macOS) or see [installation docs](https://github.com/cli/cli#installation)
   - Authenticate: `gh auth login`
+
+- **tmux** - Terminal multiplexer (for `mp-spawn` worker management)
+  - Used by `mp-spawn` to create isolated worker sessions
+  - Install: `brew install tmux` (macOS)
+  - Works with iTerm2's native tmux integration (`tmux -CC`)
 
 ### Optional (for Ralph Loop workflow)
 
