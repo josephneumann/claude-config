@@ -97,7 +97,13 @@ After all workers are spawned, output:
 ```
 Dispatched N workers successfully.
 
-Workers are running in separate iTerm2 tabs. Switch to iTerm2 (Cmd+Tab) and use Cmd+1/2/3 to navigate between tabs.
+For each worker tab:
+1. Switch to iTerm2 (Cmd+Tab)
+2. Answer the trust prompt for the worktree directory
+3. Paste the command (Cmd+V) — it's on your clipboard
+4. Press Enter to start
+
+Use Cmd+1/2/3 to navigate between worker tabs.
 
 Each worker will:
 1. Set up the task environment
@@ -113,7 +119,7 @@ You can continue working in this orchestrator session while workers execute.
 - **mp-spawn not found**: Tell user to run `source ~/.zshrc` or check installation
 - **No ready tasks**: Suggest running `/orient` first to identify work
 - **Task doesn't exist**: Skip it, warn the user, continue with valid tasks
-- **tmux not installed**: Tell user to install with `brew install tmux`
+- **iTerm2 not available**: Tell user mp-spawn requires iTerm2 on macOS
 - **All tasks invalid**: Abort with clear error message
 
 ## Examples

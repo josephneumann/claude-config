@@ -58,11 +58,6 @@ if [ -d "$BIN_DIR" ]; then
         echo "" >> "$ZSHRC"
         echo "# Claude config bin utilities" >> "$ZSHRC"
         echo "export PATH=\"$BIN_DIR:\$PATH\"" >> "$ZSHRC"
-        echo "" >> "$ZSHRC"
-        echo "# Worker management aliases" >> "$ZSHRC"
-        echo 'alias mp-attach="tmux -CC attach -t mp-workers"' >> "$ZSHRC"
-        echo 'alias mp-list="tmux list-windows -t mp-workers 2>/dev/null || echo \"No active workers\""' >> "$ZSHRC"
-        echo 'mp-kill() { tmux kill-window -t "mp-workers:$1"; }' >> "$ZSHRC"
         echo "✓ Added bin/ to PATH in ~/.zshrc"
     else
         echo "✓ bin/ already in PATH"
