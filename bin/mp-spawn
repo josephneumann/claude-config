@@ -3,7 +3,7 @@ set -e
 
 # ============================================
 # mp-spawn: Spawn Claude Code worker in iTerm2
-# Uses tmux -CC for native tab integration
+# Uses AppleScript to create new iTerm2 tabs
 # ============================================
 
 usage() {
@@ -122,36 +122,46 @@ START_CMD="/start-task ${TASK_ID}"
 [[ -n "$MAX_ITER" ]] && START_CMD+=" ${MAX_ITER}"
 [[ -n "$HANDOFF" ]] && START_CMD+=" --handoff \"${HANDOFF}\""
 
-# Full command to run in the worker
-WORKER_CMD="cd '${WORKTREE_PATH}' && BEADS_NO_DAEMON=1 claude -p '${START_CMD}'"
-
 # ============================================
-# tmux session management
+# Open new iTerm2 tab via AppleScript
 # ============================================
-SESSION_NAME="mp-workers"
+echo "Opening iTerm2 tab for $TASK_ID..."
 
-# Check if we're already in a tmux -CC session
-if [[ -n "$TMUX" ]]; then
-  # Already in tmux, just create a new window
-  tmux new-window -n "$TASK_SHORT" "$WORKER_CMD"
-  echo "Created window '$TASK_SHORT' in current session"
-else
-  # Check if session exists
-  if tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
-    # Session exists, create window and attach with -CC
-    tmux new-window -t "$SESSION_NAME" -n "$TASK_SHORT" "$WORKER_CMD"
-    echo "Created window '$TASK_SHORT' in session '$SESSION_NAME'"
-    echo ""
-    echo "Attach with: tmux -CC attach -t $SESSION_NAME"
-  else
-    # Create new session with -CC (iTerm2 integration)
-    echo "Creating new tmux session '$SESSION_NAME' with iTerm2 integration..."
-    tmux -CC new-session -d -s "$SESSION_NAME" -n "$TASK_SHORT" "$WORKER_CMD"
-    echo ""
-    echo "Attach with: tmux -CC attach -t $SESSION_NAME"
-  fi
-fi
+# Write command and args to temp files to avoid all escaping issues
+ARGS_FILE=$(mktemp /tmp/mp-spawn-args.XXXXXX)
+echo "$WORKTREE_PATH" > "$ARGS_FILE"
+echo "$START_CMD" >> "$ARGS_FILE"
+
+# Create launcher script that reads from the args file
+LAUNCHER=$(mktemp /tmp/mp-spawn-launcher.XXXXXX.sh)
+cat > "$LAUNCHER" << LAUNCHER_EOF
+#!/bin/bash
+ARGS_FILE="$ARGS_FILE"
+WORKTREE=\$(sed -n '1p' "\$ARGS_FILE")
+CMD=\$(sed -n '2p' "\$ARGS_FILE")
+rm -f "\$ARGS_FILE" "\$0"
+cd "\$WORKTREE" && BEADS_NO_DAEMON=1 exec claude -p "\$CMD"
+LAUNCHER_EOF
+chmod +x "$LAUNCHER"
+
+# Use osascript to open a new iTerm2 tab
+osascript \
+  -e 'tell application "iTerm2"' \
+  -e '    activate' \
+  -e '    if (count of windows) = 0 then' \
+  -e '        create window with default profile' \
+  -e '    end if' \
+  -e '    tell current window' \
+  -e '        create tab with default profile' \
+  -e '        tell current session' \
+  -e "            set name to \"${TASK_SHORT}\"" \
+  -e "            write text \"${LAUNCHER}\"" \
+  -e '        end tell' \
+  -e '    end tell' \
+  -e 'end tell'
 
 echo ""
 echo "Worker spawned for $TASK_ID"
 echo "Command: $START_CMD"
+echo ""
+echo "Switch to iTerm2 to see the worker (Cmd+Tab)"
