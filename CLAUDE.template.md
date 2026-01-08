@@ -73,6 +73,32 @@ See `docs/PROJECT_SPEC.md` for the complete specification and implementation pla
 
 ---
 
+## Philosophy: Parallel Agentic Development
+
+This project uses a specific approach to AI-assisted development:
+
+1. **Parallel by default** — Multiple Claude sessions work simultaneously on independent tasks, each in isolated git worktrees.
+
+2. **Orchestrator + Workers** — One session orients and identifies parallelizable work; worker sessions execute discrete tasks. The orchestrator sees the big picture, workers focus deeply.
+
+3. **Task isolation** — Each task gets its own branch/worktree, preventing conflicts and enabling clean PRs.
+
+4. **Bounded autonomy** — Claude can work autonomously (ralph mode) but within bounds: clear acceptance criteria, test-driven completion, iteration limits.
+
+5. **Handoffs over context bloat** — When context grows large, hand off to a fresh session rather than degrading quality.
+
+6. **Tests as the contract** — "Done" means tests pass. No subjective completion criteria.
+
+7. **Human remains in control** — Clarifying questions before implementation, PR approval, task prioritization stays with human.
+
+8. **Session summaries for coordination** — Detailed output enables asynchronous coordination between sessions.
+
+9. **Context window discipline** — No single task should exhaust the context window. Break big tasks into smaller ones.
+
+10. **Routine tasks become skills** — Anything you do repeatedly should be codified as a skill or automation.
+
+---
+
 ## Agent Workflow Skills
 
 This project uses custom Claude Code skills for multi-agent task management with beads (`bd`). Tasks can run in **manual mode** (interactive) or **ralph mode** (autonomous iteration until tests pass).
@@ -86,6 +112,34 @@ Builds project context and identifies parallelizable work. Use at session start.
 1. Reads core docs (CLAUDE.md, AGENTS.md, PROJECT_SPEC.md)
 2. Reviews beads task state (`bd list`, `bd ready`, dependencies)
 3. Outputs orientation report with recommended parallel work streams
+
+---
+
+### `/dispatch` — Spawn Parallel Workers
+
+Spawns multiple Claude Code workers for parallel task execution. Use from an orchestrator session.
+
+**Usage:**
+```bash
+/dispatch --count 3                              # Auto-select 3 ready tasks
+/dispatch MoneyPrinter-ajq MoneyPrinter-4b3      # Specific tasks
+/dispatch MoneyPrinter-ajq:"Use PriceCache"      # With custom handoff context
+/dispatch MoneyPrinter-ajq --no-ralph            # Manual mode (no ralph-loop)
+```
+
+**What it does:**
+1. Identifies tasks (from args or `bd ready`)
+2. Generates handoff context for each task
+3. Shows summary and asks for confirmation
+4. Runs `mp-spawn` for each task (creates worktrees, spawns workers in iTerm2 tabs)
+5. Provides guidance on attaching to workers
+
+**After dispatch:**
+```bash
+mp-attach   # Attach to worker session (Cmd+1/2/3 to switch tabs)
+mp-list     # List active workers
+mp-kill ajq # Kill a worker by short ID
+```
 
 ---
 
@@ -250,3 +304,55 @@ Session C (new session):
   /start-task 46j.1 --ralph --handoff "Continued from ralph-loop..."
   → Continues work with previous context
 ```
+
+**Orchestrator dispatch workflow:**
+```
+Session A (Orchestrator):
+  /orient                           # Identify ready work
+  /dispatch --count 3 --ralph       # Spawn 3 workers
+  → Workers spawn in iTerm2 tabs
+  → Orchestrator continues other work
+
+  mp-attach                         # Check on workers
+  → Cmd+1/2/3 to switch between worker tabs
+```
+
+---
+
+## Shell Utilities
+
+These shell utilities support the multi-agent workflow. They are installed via the `claude-config` repo's `install.sh`.
+
+### `mp-spawn` — Spawn a Worker
+
+Spawns a Claude Code worker in an iTerm2 tab (via tmux -CC integration).
+
+```bash
+mp-spawn <task-id> [options]
+
+Options:
+  --dir /path/to/project  Project directory (default: current directory)
+  --handoff "text"        Handoff context from previous session
+  --ralph                 Enable autonomous ralph-loop mode
+  --max-iterations N      Max ralph iterations (default: 10)
+```
+
+**Examples:**
+```bash
+mp-spawn MoneyPrinter-ajq --ralph
+mp-spawn MoneyPrinter-ajq --dir "$(pwd)" --handoff "Use PriceCache pattern"
+```
+
+### Worker Management Aliases
+
+```bash
+mp-attach   # Attach to worker session (tmux -CC attach -t mp-workers)
+mp-list     # List active worker windows
+mp-kill ajq # Kill worker by task short ID
+```
+
+### iTerm2 Integration
+
+- Uses `tmux -CC` mode so tmux windows become native iTerm2 tabs
+- Switch between workers with `Cmd+1/2/3` or `Cmd+Shift+[/]`
+- Session persists if iTerm2 closes — reattach with `mp-attach`
