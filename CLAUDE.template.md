@@ -135,11 +135,10 @@ Spawns multiple Claude Code workers for parallel task execution. Use from an orc
 5. Provides guidance on attaching to workers
 
 **After dispatch:**
-```bash
-mp-attach   # Attach to worker session (Cmd+1/2/3 to switch tabs)
-mp-list     # List active workers
-mp-kill ajq # Kill a worker by short ID
-```
+1. Switch to iTerm2 (`Cmd+Tab`)
+2. Answer the trust prompt for each worktree
+3. Paste the command (`Cmd+V`) and press Enter
+4. Use `Cmd+1/2/3` to navigate between worker tabs
 
 ---
 
@@ -311,10 +310,8 @@ Session A (Orchestrator):
   /orient                           # Identify ready work
   /dispatch --count 3 --ralph       # Spawn 3 workers
   → Workers spawn in iTerm2 tabs
-  → Orchestrator continues other work
-
-  mp-attach                         # Check on workers
-  → Cmd+1/2/3 to switch between worker tabs
+  → Switch to iTerm2, paste commands, answer trust prompts
+  → Use Cmd+1/2/3 to switch between worker tabs
 ```
 
 ---
@@ -343,9 +340,15 @@ mp-spawn MoneyPrinter-ajq --ralph
 mp-spawn MoneyPrinter-ajq --dir "$(pwd)" --handoff "Use PriceCache pattern"
 ```
 
+**After spawn:**
+1. Switch to iTerm2 (`Cmd+Tab`)
+2. Answer the trust prompt for the worktree directory
+3. Paste the command (`Cmd+V`) — it's already on your clipboard
+4. Press Enter to start the task
+
 ### iTerm2 Integration
 
 - Uses AppleScript to create new iTerm2 tabs directly
-- Works from within Claude Code (non-interactive terminal)
+- Copies `/start-task` command to clipboard (paste after trust prompt)
 - Switch between workers with `Cmd+1/2/3` or `Cmd+Shift+[/]`
 - Each tab is named with the task short ID (e.g., "ajq")

@@ -130,11 +130,10 @@ The template includes the full Agent Workflow Skills documentation, so Claude wi
 ```
 
 **After dispatch:**
-```bash
-mp-attach   # Attach to worker session (Cmd+1/2/3 to switch)
-mp-list     # List active workers
-mp-kill ajq # Kill a worker
-```
+1. Switch to iTerm2 (`Cmd+Tab`)
+2. Answer the trust prompt for each worktree
+3. Paste the command (`Cmd+V`) and press Enter
+4. Use `Cmd+1/2/3` to navigate between worker tabs
 
 **When to use:** From an orchestrator session to spawn parallel workers for independent tasks.
 
@@ -270,13 +269,14 @@ Shell utilities for orchestrating parallel Claude workers.
 
 ### `mp-spawn`
 
-**Purpose:** Spawn a Claude Code worker in a new iTerm2 tab (via tmux -CC integration).
+**Purpose:** Spawn a Claude Code worker in a new iTerm2 tab.
 
 **What it does:**
 1. Creates a git worktree for task isolation
-2. Starts a new tmux window with iTerm2 native tab integration
-3. Launches Claude Code with `/start-task` and all provided options
-4. Sets `BEADS_NO_DAEMON=1` to prevent daemon conflicts
+2. Opens a new iTerm2 tab via AppleScript
+3. Starts Claude Code interactively with `BEADS_NO_DAEMON=1`
+4. Copies the `/start-task` command to your clipboard
+5. You paste the command after answering the trust prompt
 
 **Usage:**
 ```bash
@@ -304,17 +304,16 @@ mp-spawn MoneyPrinter-ajq --ralph --handoff "Use PriceCache pattern for OHLCV da
 mp-spawn MoneyPrinter-ajq --dir "$(pwd)" --ralph
 ```
 
-**Helper aliases** (added to ~/.zshrc by install.sh):
-```bash
-mp-attach   # Attach to worker session (tmux -CC attach -t mp-workers)
-mp-list     # List active worker windows
-mp-kill ajq # Kill worker by task short ID
-```
+**After spawn:**
+1. Switch to iTerm2 (`Cmd+Tab`)
+2. Answer the trust prompt for the worktree directory
+3. Paste the command (`Cmd+V`) — it's already on your clipboard
+4. Press Enter to start the task
 
 **iTerm2 Integration:**
-- Uses `tmux -CC` mode so tmux windows become native iTerm2 tabs
+- Uses AppleScript to create new iTerm2 tabs directly
+- Each tab is named with the task short ID (e.g., "ajq")
 - Switch between workers with `Cmd+1/2/3` or `Cmd+Shift+[/]`
-- Session persists if iTerm2 closes — reattach with `mp-attach`
 
 ---
 
@@ -447,7 +446,6 @@ The installer:
 - Backs up existing directories (if any)
 - Creates symlinks to the repo
 - Adds `bin/` to PATH in `~/.zshrc`
-- Adds worker management aliases (`mp-attach`, `mp-list`, `mp-kill`)
 - Is idempotent (safe to run multiple times)
 
 ---
@@ -523,10 +521,10 @@ These commands are designed for a specific workflow and require additional tools
   - Install: `brew install gh` (macOS) or see [installation docs](https://github.com/cli/cli#installation)
   - Authenticate: `gh auth login`
 
-- **tmux** - Terminal multiplexer (for `mp-spawn` worker management)
-  - Used by `mp-spawn` to create isolated worker sessions
-  - Install: `brew install tmux` (macOS)
-  - Works with iTerm2's native tmux integration (`tmux -CC`)
+- **iTerm2** - Terminal emulator for macOS (for `mp-spawn` worker management)
+  - Used by `mp-spawn` to create worker tabs via AppleScript
+  - Download: [iterm2.com](https://iterm2.com/)
+  - Must grant Accessibility permissions for AppleScript automation
 
 ### Optional (for Ralph Loop workflow)
 
