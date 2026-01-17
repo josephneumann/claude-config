@@ -131,8 +131,10 @@ Spawns multiple Claude Code workers for parallel task execution. Use from an orc
 1. Identifies tasks (from args or `bd ready`)
 2. Generates handoff context for each task
 3. Shows summary and asks for confirmation
-4. Runs `mp-spawn` for each task (creates worktrees, spawns workers in iTerm2 tabs)
+4. Runs `mp-spawn` for each task (spawns workers in iTerm2 tabs)
 5. Provides guidance on attaching to workers
+
+**Note:** Worktrees are created by `/start-task`, not by `mp-spawn` or `/dispatch`.
 
 **After dispatch:**
 1. Switch to iTerm2 (`Cmd+Tab`)
@@ -226,10 +228,12 @@ Closes out a task with full verification. **Work is NOT complete until git push 
 6. Syncs beads (`bd sync`), pushes to remote
 7. Closes task (`bd close <task-id>`)
 8. Creates PR (`gh pr create`)
-9. Offers to merge PR (squash) and cleanup worktree
+9. Offers to merge PR (squash) and cleanup worktree (using absolute paths)
 10. Outputs detailed session summary for orchestrating agents
 
 **Critical:** Tests must pass before closing. Never close a task with failing tests.
+
+**Worktree Cleanup:** Uses absolute paths to safely change to main repo before removing worktree, preventing "Path does not exist" errors.
 
 ---
 
@@ -324,6 +328,8 @@ These shell utilities support the multi-agent workflow. They are installed via t
 
 Spawns a Claude Code worker in a new iTerm2 tab (via AppleScript).
 
+**Note:** `mp-spawn` does NOT create worktrees. It launches Claude in the main project directory, and `/start-task` handles worktree creation for task isolation.
+
 ```bash
 mp-spawn <task-id> [options]
 
@@ -342,9 +348,9 @@ mp-spawn MoneyPrinter-ajq --dir "$(pwd)" --handoff "Use PriceCache pattern"
 
 **After spawn:**
 1. Switch to iTerm2 (`Cmd+Tab`)
-2. Answer the trust prompt for the worktree directory
+2. Answer the trust prompt for the project directory
 3. Paste the command (`Cmd+V`) — it's already on your clipboard
-4. Press Enter to start the task
+4. Press Enter — `/start-task` will create the worktree and set up isolation
 
 ### iTerm2 Integration
 

@@ -3,7 +3,7 @@ set -e
 
 # ============================================
 # mp-spawn: Spawn Claude Code worker in iTerm2
-# Uses AppleScript to create new iTerm2 tabs
+# Worktree creation is handled by /start-task
 # ============================================
 
 usage() {
@@ -91,32 +91,9 @@ fi
 echo "Project: $PROJECT_DIR"
 
 # ============================================
-# Create git worktree for isolation
-# ============================================
-TASK_SHORT=$(echo "$TASK_ID" | cut -d'-' -f2)
-WORKTREE_PATH="${PROJECT_DIR}-${TASK_SHORT}"
-BRANCH_NAME="${TASK_ID}-work"
-
-echo "Setting up worktree at $WORKTREE_PATH..."
-
-cd "$PROJECT_DIR"
-
-# Create worktree if it doesn't exist
-if [[ ! -d "$WORKTREE_PATH" ]]; then
-  # Try to create new branch, or use existing
-  if git show-ref --verify --quiet "refs/heads/${BRANCH_NAME}"; then
-    git worktree add "$WORKTREE_PATH" "$BRANCH_NAME"
-  else
-    git worktree add "$WORKTREE_PATH" -b "$BRANCH_NAME"
-  fi
-  echo "Created worktree: $WORKTREE_PATH"
-else
-  echo "Using existing worktree: $WORKTREE_PATH"
-fi
-
-# ============================================
 # Build the /start-task command
 # ============================================
+TASK_SHORT=$(echo "$TASK_ID" | cut -d'-' -f2)
 START_CMD="/start-task ${TASK_ID}"
 [[ -n "$RALPH" ]] && START_CMD+=" ${RALPH}"
 [[ -n "$MAX_ITER" ]] && START_CMD+=" ${MAX_ITER}"
@@ -131,8 +108,8 @@ echo "Opening iTerm2 tab for $TASK_ID..."
 CMD_FILE=$(mktemp /tmp/mp-spawn-cmd.XXXXXX)
 echo "$START_CMD" > "$CMD_FILE"
 
-# Use osascript to open a new iTerm2 tab, start claude interactively, then send command
-# The interactive shell already has PATH set up from .zshrc
+# Use osascript to open a new iTerm2 tab, start claude in the project dir
+# /start-task will handle worktree creation
 osascript \
   -e 'tell application "iTerm2"' \
   -e '    activate' \
@@ -143,7 +120,7 @@ osascript \
   -e '        create tab with default profile' \
   -e '        tell current session' \
   -e "            set name to \"${TASK_SHORT}\"" \
-  -e "            write text \"cd '${WORKTREE_PATH}' && BEADS_NO_DAEMON=1 claude\"" \
+  -e "            write text \"cd '${PROJECT_DIR}' && claude\"" \
   -e '        end tell' \
   -e '    end tell' \
   -e 'end tell'

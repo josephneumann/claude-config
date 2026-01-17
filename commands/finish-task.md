@@ -157,32 +157,52 @@ If user approves, proceed to step 11. If user declines, leave the PR open for ma
 
 ## 11. Merge PR and Cleanup Worktree
 
-**IMPORTANT**: Must clean up worktree BEFORE deleting the branch (git can't delete a branch checked out in a worktree).
+**IMPORTANT**: Must use absolute paths and cd to main repo BEFORE removing worktree.
 
 ```bash
-# Store branch name before leaving worktree
+# Store paths using absolute references BEFORE any directory changes
+WORKTREE_PATH=$(pwd)
 BRANCH_NAME=$(git branch --show-current)
+MAIN_REPO=$(git worktree list | grep '\[main\]' | awk '{print $1}')
+PROJECT_NAME=$(basename "$MAIN_REPO")
 
-# Return to main repo
-cd ../<PROJECT_NAME>
+echo "Worktree: $WORKTREE_PATH"
+echo "Main repo: $MAIN_REPO"
+echo "Branch: $BRANCH_NAME"
+```
 
-# Remove the worktree (this "un-checks-out" the branch)
-git worktree remove ../<PROJECT_NAME>-$ARGUMENTS --force
+**CRITICAL**: Change to main repo FIRST, then remove worktree:
 
-# Now merge the PR (branch deletion will work since it's no longer checked out)
+```bash
+# FIRST: Change to main repo (must succeed before removing worktree)
+cd "$MAIN_REPO"
+
+# Verify we're in main repo
+pwd
+git branch --show-current  # Should show 'main'
+
+# NOW safe to remove the worktree
+git worktree remove "$WORKTREE_PATH" --force
+
+# Merge the PR (use --repo flag to be explicit)
 gh pr merge --squash --delete-branch
 
-# Pull the merged changes to main
+# Pull the merged changes
 git pull
 
-# Verify worktree is gone
+# Verify cleanup
 git worktree list
 ```
 
 If `gh pr merge` fails with "already merged", just delete the branch manually:
 ```bash
-git branch -d $BRANCH_NAME
-git push origin --delete $BRANCH_NAME
+git branch -d "$BRANCH_NAME" 2>/dev/null || true
+git push origin --delete "$BRANCH_NAME" 2>/dev/null || true
+```
+
+**If you get "Path does not exist" errors**: Your shell's CWD was deleted. Run:
+```bash
+cd "$MAIN_REPO"  # or: cd /Users/jneumann/Code/<project>
 ```
 
 ## 12. Session Summary
