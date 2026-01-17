@@ -111,8 +111,10 @@ The template includes the full Agent Workflow Skills documentation, so Claude wi
 1. Identifies tasks to dispatch (from args or `bd ready`)
 2. Generates handoff context for each task
 3. Shows summary and asks for confirmation
-4. Runs `mp-spawn` for each task (creates worktrees, spawns workers)
+4. Runs `mp-spawn` for each task (spawns workers in iTerm2 tabs)
 5. Provides guidance on attaching to workers
+
+**Note:** Worktrees are created by `/start-task`, not by `mp-spawn` or `/dispatch`.
 
 **Usage:**
 ```bash
@@ -186,7 +188,7 @@ The template includes the full Agent Workflow Skills documentation, so Claude wi
 6. Syncs beads and pushes to remote
 7. Closes the task (`bd close`)
 8. Creates a pull request
-9. Optionally merges PR and cleans up worktree
+9. Optionally merges PR and cleans up worktree (using absolute paths)
 10. Outputs a detailed **Session Summary**
 
 **Example:**
@@ -195,6 +197,8 @@ The template includes the full Agent Workflow Skills documentation, so Claude wi
 ```
 
 **Critical:** Tests must pass before the task can be finished. The command will stop if tests fail.
+
+**Worktree Cleanup:** The command uses absolute paths to safely change to the main repo before removing the worktree, preventing "Path does not exist" errors.
 
 ---
 
@@ -272,11 +276,12 @@ Shell utilities for orchestrating parallel Claude workers.
 **Purpose:** Spawn a Claude Code worker in a new iTerm2 tab.
 
 **What it does:**
-1. Creates a git worktree for task isolation
-2. Opens a new iTerm2 tab via AppleScript
-3. Starts Claude Code interactively with `BEADS_NO_DAEMON=1`
-4. Copies the `/start-task` command to your clipboard
-5. You paste the command after answering the trust prompt
+1. Opens a new iTerm2 tab via AppleScript
+2. Starts Claude Code in the project directory
+3. Copies the `/start-task` command to your clipboard
+4. You paste the command after answering the trust prompt
+
+**Note:** `mp-spawn` does NOT create worktrees. Worktree creation is handled entirely by `/start-task` for simplicity and to avoid duplication issues.
 
 **Usage:**
 ```bash
@@ -306,9 +311,9 @@ mp-spawn MoneyPrinter-ajq --dir "$(pwd)" --ralph
 
 **After spawn:**
 1. Switch to iTerm2 (`Cmd+Tab`)
-2. Answer the trust prompt for the worktree directory
+2. Answer the trust prompt for the project directory
 3. Paste the command (`Cmd+V`) — it's already on your clipboard
-4. Press Enter to start the task
+4. Press Enter — `/start-task` will create the worktree and set up isolation
 
 **iTerm2 Integration:**
 - Uses AppleScript to create new iTerm2 tabs directly
