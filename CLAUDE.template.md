@@ -239,10 +239,13 @@ Closes out a task with full verification. **Work is NOT complete until git push 
 8. Creates PR (`gh pr create`)
 9. Offers to merge PR (squash) and cleanup worktree (using absolute paths)
 10. Outputs detailed session summary for orchestrating agents
+11. Persists summary to `session_summaries/<taskid>_YYMMDD-HHMMSS.txt`
 
 **Critical:** Tests must pass before closing. Never close a task with failing tests.
 
 **Worktree Cleanup:** Uses absolute paths to safely change to main repo before removing worktree, preventing "Path does not exist" errors.
+
+**Persistent Output:** Summary is written to `session_summaries/` in project root (gitignored). Orchestrators can read completed work context directly from disk.
 
 ---
 
@@ -280,8 +283,11 @@ Generates detailed summary without committing, pushing, or closing. Useful for p
 2. Identifies files created/modified
 3. Checks test status
 4. Outputs structured summary for orchestrating agents
+5. Persists summary to `session_summaries/<taskid>_YYMMDD-HHMMSS.txt`
 
 **Output includes:** Task overview, implementation summary, files changed, tests, git activity, dependencies unblocked, architectural notes, handoff context.
+
+**Persistent Output:** Summary is written to `session_summaries/` in project root (gitignored). Orchestrators can read completed work context directly from disk.
 
 ---
 
