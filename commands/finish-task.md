@@ -311,3 +311,39 @@ END SESSION SUMMARY
 ```
 
 This format ensures orchestrating agents have full context to coordinate parallel work and make informed decisions about task assignment.
+
+## 13. Persist Summary to Disk
+
+Write the summary to a file so orchestrating agents can read it directly from disk.
+
+```bash
+# Get project root (handles worktrees correctly - use main repo if in worktree)
+PROJECT_ROOT=$(git worktree list | grep '\[main\]' | awk '{print $1}')
+if [ -z "$PROJECT_ROOT" ]; then
+  PROJECT_ROOT=$(git rev-parse --show-toplevel)
+fi
+
+# Create directory if needed
+mkdir -p "$PROJECT_ROOT/session_summaries"
+
+# Add to .gitignore if not present
+if ! grep -q "^session_summaries/$" "$PROJECT_ROOT/.gitignore" 2>/dev/null; then
+  echo "session_summaries/" >> "$PROJECT_ROOT/.gitignore"
+fi
+
+# Generate filename with timestamp
+TIMESTAMP=$(date +%y%m%d-%H%M%S)
+SUMMARY_FILE="$PROJECT_ROOT/session_summaries/$ARGUMENTS_${TIMESTAMP}.txt"
+```
+
+Write the summary content using a heredoc:
+
+```bash
+cat > "$SUMMARY_FILE" <<'SUMMARY_EOF'
+<paste the full session summary content here>
+SUMMARY_EOF
+
+echo "Summary written to: $SUMMARY_FILE"
+```
+
+**Important:** The summary file allows orchestrators to asynchronously review completed work without needing the worker session to remain active.

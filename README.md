@@ -260,6 +260,63 @@ The template includes the full Agent Workflow Skills documentation, so Claude wi
 
 ---
 
+## Session Summaries (Persistent Output)
+
+Both `/summarize-session` and `/finish-task` write their session summaries to disk, enabling orchestrators to read completed work context asynchronously.
+
+### Storage Location
+
+Summaries are stored in the project root:
+
+```
+project-root/
+├── session_summaries/          # Created automatically, gitignored
+│   ├── MoneyPrinter-ajq_260117-143052.txt
+│   ├── MoneyPrinter-4b3_260117-151230.txt
+│   └── ...
+├── .gitignore                  # Contains session_summaries/
+└── ...
+```
+
+### Filename Format
+
+```
+<taskid>_YYMMDD-HHMMSS.txt
+```
+
+- `taskid`: The beads task ID (e.g., `MoneyPrinter-ajq`)
+- `YYMMDD`: Date in year-month-day format
+- `HHMMSS`: Time in hour-minute-second format
+
+Example: `MoneyPrinter-ajq_260117-143052.txt` (task ajq, Jan 17 2026, 2:30:52 PM)
+
+### Orchestrator Usage
+
+Orchestrators can discover and read completed work:
+
+```bash
+# List recent summaries (sorted by modification time)
+ls -lt session_summaries/
+
+# Read a specific summary
+cat session_summaries/MoneyPrinter-ajq_260117-143052.txt
+
+# Find summaries for a specific task
+ls session_summaries/*ajq*
+
+# Find summaries from today
+ls session_summaries/*$(date +%y%m%d)*
+```
+
+### Automatic Gitignore
+
+The commands automatically add `session_summaries/` to `.gitignore` if not present. This ensures:
+- Summaries don't clutter git history
+- Each machine maintains its own local summary archive
+- No conflicts between parallel workers writing summaries
+
+---
+
 ## Hooks Reference
 
 ### `beads-ralph-stop.sh`
