@@ -16,15 +16,15 @@ Options:
   --ralph                 Enable autonomous ralph-loop mode
   --max-iterations N      Max ralph iterations (default: 10)
   --skip-permissions      Skip all permission prompts (--dangerously-skip-permissions)
+  --chrome                Enable Chrome browser tools (--chrome)
+  --no-chrome             Disable Chrome browser tools
   --help                  Show this help
-
-Note: --chrome is always enabled by default for all workers.
 
 Examples:
   mp-spawn MoneyPrinter-ajq
   mp-spawn MoneyPrinter-ajq --dir /Users/jneumann/Code/MoneyPrinter
   mp-spawn MoneyPrinter-ajq --ralph --handoff "Use existing patterns"
-  mp-spawn MoneyPrinter-ajq --ralph --skip-permissions
+  mp-spawn MoneyPrinter-ajq --ralph --skip-permissions --chrome
 EOF
   exit 1
 }
@@ -36,6 +36,7 @@ HANDOFF=""
 RALPH=""
 MAX_ITER=""
 SKIP_PERMS=""
+CHROME=""
 
 while [[ $# -gt 0 ]]; do
   case $1 in
@@ -57,6 +58,14 @@ while [[ $# -gt 0 ]]; do
       ;;
     --skip-permissions)
       SKIP_PERMS="--dangerously-skip-permissions"
+      shift
+      ;;
+    --chrome)
+      CHROME="--chrome"
+      shift
+      ;;
+    --no-chrome)
+      CHROME=""
       shift
       ;;
     --help|-h)
@@ -118,10 +127,11 @@ CMD_FILE=$(mktemp /tmp/mp-spawn-cmd.XXXXXX)
 echo "$START_CMD" > "$CMD_FILE"
 
 # Build claude command with flags
-CLAUDE_CMD="claude --chrome"
+CLAUDE_CMD="claude"
+[[ -n "$CHROME" ]] && CLAUDE_CMD="$CLAUDE_CMD $CHROME"
 [[ -n "$SKIP_PERMS" ]] && CLAUDE_CMD="$CLAUDE_CMD $SKIP_PERMS"
 
-# Use osascript to open a new iTerm2 tab, start claude in the project dir
+# Use osascript to open a new iTerm2 tab, cd to project dir, and start claude
 # /start-task will handle worktree creation
 osascript \
   -e 'tell application "iTerm2"' \
@@ -133,17 +143,33 @@ osascript \
   -e '        create tab with default profile' \
   -e '        tell current session' \
   -e "            set name to \"${TASK_SHORT}\"" \
-  -e "            write text \"cd '${PROJECT_DIR}' && ${CLAUDE_CMD}\"" \
+  -e "            write text \"cd '${PROJECT_DIR}'\"" \
   -e '        end tell' \
   -e '    end tell' \
   -e 'end tell'
 
-# Copy command to clipboard - user pastes after trust prompt
+# Wait for cd to complete
+sleep 1
+
+# Now start claude in the new tab
+osascript \
+  -e 'tell application "iTerm2"' \
+  -e '    tell current window' \
+  -e '        tell current session' \
+  -e "            write text \"${CLAUDE_CMD}\"" \
+  -e '        end tell' \
+  -e '    end tell' \
+  -e 'end tell'
+
+# Copy command to clipboard - user pastes after claude starts
 cat "$CMD_FILE" | pbcopy
 rm -f "$CMD_FILE"
+
+# Wait for claude to start before returning
+sleep 2
 
 echo ""
 echo "Worker spawned for $TASK_ID"
 echo "Command copied to clipboard: $START_CMD"
 echo ""
-echo "Switch to iTerm2, answer trust prompt, then Cmd+V to paste the command"
+echo "Switch to iTerm2 and paste (Cmd+V) when Claude Code is ready"
