@@ -15,12 +15,16 @@ Options:
   --handoff "text"        Handoff context from previous session
   --ralph                 Enable autonomous ralph-loop mode
   --max-iterations N      Max ralph iterations (default: 10)
+  --skip-permissions      Skip all permission prompts (--dangerously-skip-permissions)
   --help                  Show this help
+
+Note: --chrome is always enabled by default for all workers.
 
 Examples:
   mp-spawn MoneyPrinter-ajq
   mp-spawn MoneyPrinter-ajq --dir /Users/jneumann/Code/MoneyPrinter
   mp-spawn MoneyPrinter-ajq --ralph --handoff "Use existing patterns"
+  mp-spawn MoneyPrinter-ajq --ralph --skip-permissions
 EOF
   exit 1
 }
@@ -31,6 +35,7 @@ PROJECT_DIR=""
 HANDOFF=""
 RALPH=""
 MAX_ITER=""
+SKIP_PERMS=""
 
 while [[ $# -gt 0 ]]; do
   case $1 in
@@ -49,6 +54,10 @@ while [[ $# -gt 0 ]]; do
     --max-iterations)
       MAX_ITER="--max-iterations $2"
       shift 2
+      ;;
+    --skip-permissions)
+      SKIP_PERMS="--dangerously-skip-permissions"
+      shift
       ;;
     --help|-h)
       usage
@@ -108,6 +117,10 @@ echo "Opening iTerm2 tab for $TASK_ID..."
 CMD_FILE=$(mktemp /tmp/mp-spawn-cmd.XXXXXX)
 echo "$START_CMD" > "$CMD_FILE"
 
+# Build claude command with flags
+CLAUDE_CMD="claude --chrome"
+[[ -n "$SKIP_PERMS" ]] && CLAUDE_CMD="$CLAUDE_CMD $SKIP_PERMS"
+
 # Use osascript to open a new iTerm2 tab, start claude in the project dir
 # /start-task will handle worktree creation
 osascript \
@@ -120,7 +133,7 @@ osascript \
   -e '        create tab with default profile' \
   -e '        tell current session' \
   -e "            set name to \"${TASK_SHORT}\"" \
-  -e "            write text \"cd '${PROJECT_DIR}' && claude\"" \
+  -e "            write text \"cd '${PROJECT_DIR}' && ${CLAUDE_CMD}\"" \
   -e '        end tell' \
   -e '    end tell' \
   -e 'end tell'

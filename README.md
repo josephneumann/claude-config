@@ -110,11 +110,15 @@ The template includes the full Agent Workflow Skills documentation, so Claude wi
 **What it does:**
 1. Identifies tasks to dispatch (from args or `bd ready`)
 2. Generates handoff context for each task
-3. Shows summary and asks for confirmation
+3. Shows summary and asks for confirmation (including skip-permissions option)
 4. Runs `mp-spawn` for each task (spawns workers in iTerm2 tabs)
 5. Provides guidance on attaching to workers
 
 **Note:** Worktrees are created by `/start-task`, not by `mp-spawn` or `/dispatch`.
+
+**Confirmation flow:**
+- Confirms dispatch of N workers
+- Asks whether to use `--skip-permissions` (recommended for ralph mode autonomous workers)
 
 **Usage:**
 ```bash
@@ -131,7 +135,12 @@ The template includes the full Agent Workflow Skills documentation, so Claude wi
 /dispatch MoneyPrinter-ajq --no-ralph
 ```
 
-**After dispatch:**
+**After dispatch (with skip-permissions):**
+1. Switch to iTerm2 (`Cmd+Tab`)
+2. Paste the command (`Cmd+V`) and press Enter
+3. Use `Cmd+1/2/3` to navigate between worker tabs
+
+**After dispatch (without skip-permissions):**
 1. Switch to iTerm2 (`Cmd+Tab`)
 2. Answer the trust prompt for each worktree
 3. Paste the command (`Cmd+V`) and press Enter
@@ -277,9 +286,9 @@ Shell utilities for orchestrating parallel Claude workers.
 
 **What it does:**
 1. Opens a new iTerm2 tab via AppleScript
-2. Starts Claude Code in the project directory
+2. Starts Claude Code with `--chrome` enabled by default
 3. Copies the `/start-task` command to your clipboard
-4. You paste the command after answering the trust prompt
+4. You paste the command after the worker starts
 
 **Note:** `mp-spawn` does NOT create worktrees. Worktree creation is handled entirely by `/start-task` for simplicity and to avoid duplication issues.
 
@@ -292,6 +301,9 @@ Options:
   --handoff "text"        Handoff context from previous session
   --ralph                 Enable autonomous ralph-loop mode
   --max-iterations N      Max ralph iterations (default: 10)
+  --skip-permissions      Skip all permission prompts (uses --dangerously-skip-permissions)
+
+Note: --chrome is always enabled by default for all workers.
 ```
 
 **Examples:**
@@ -305,11 +317,19 @@ mp-spawn MoneyPrinter-ajq --ralph
 # With handoff context
 mp-spawn MoneyPrinter-ajq --ralph --handoff "Use PriceCache pattern for OHLCV data"
 
+# Fully autonomous workers (no permission prompts)
+mp-spawn MoneyPrinter-ajq --ralph --skip-permissions
+
 # Orchestrator passing explicit directory
-mp-spawn MoneyPrinter-ajq --dir "$(pwd)" --ralph
+mp-spawn MoneyPrinter-ajq --dir "$(pwd)" --ralph --skip-permissions
 ```
 
-**After spawn:**
+**After spawn (with --skip-permissions):**
+1. Switch to iTerm2 (`Cmd+Tab`)
+2. Paste the command (`Cmd+V`) — it's already on your clipboard
+3. Press Enter — worker starts immediately without trust prompts
+
+**After spawn (without --skip-permissions):**
 1. Switch to iTerm2 (`Cmd+Tab`)
 2. Answer the trust prompt for the project directory
 3. Paste the command (`Cmd+V`) — it's already on your clipboard
