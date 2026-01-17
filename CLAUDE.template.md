@@ -130,13 +130,22 @@ Spawns multiple Claude Code workers for parallel task execution. Use from an orc
 **What it does:**
 1. Identifies tasks (from args or `bd ready`)
 2. Generates handoff context for each task
-3. Shows summary and asks for confirmation
+3. Shows summary and asks for confirmation (including skip-permissions option)
 4. Runs `mp-spawn` for each task (spawns workers in iTerm2 tabs)
 5. Provides guidance on attaching to workers
 
 **Note:** Worktrees are created by `/start-task`, not by `mp-spawn` or `/dispatch`.
 
-**After dispatch:**
+**Confirmation flow:**
+- Confirms dispatch of N workers
+- Asks whether to use `--skip-permissions` (recommended for ralph mode autonomous workers)
+
+**After dispatch (with skip-permissions):**
+1. Switch to iTerm2 (`Cmd+Tab`)
+2. Paste the command (`Cmd+V`) and press Enter
+3. Use `Cmd+1/2/3` to navigate between worker tabs
+
+**After dispatch (without skip-permissions):**
 1. Switch to iTerm2 (`Cmd+Tab`)
 2. Answer the trust prompt for each worktree
 3. Paste the command (`Cmd+V`) and press Enter
@@ -338,15 +347,24 @@ Options:
   --handoff "text"        Handoff context from previous session
   --ralph                 Enable autonomous ralph-loop mode
   --max-iterations N      Max ralph iterations (default: 10)
+  --skip-permissions      Skip all permission prompts (uses --dangerously-skip-permissions)
+
+Note: --chrome is always enabled by default for all workers.
 ```
 
 **Examples:**
 ```bash
 mp-spawn MoneyPrinter-ajq --ralph
 mp-spawn MoneyPrinter-ajq --dir "$(pwd)" --handoff "Use PriceCache pattern"
+mp-spawn MoneyPrinter-ajq --ralph --skip-permissions  # Fully autonomous
 ```
 
-**After spawn:**
+**After spawn (with --skip-permissions):**
+1. Switch to iTerm2 (`Cmd+Tab`)
+2. Paste the command (`Cmd+V`) — it's already on your clipboard
+3. Press Enter — worker starts immediately without trust prompts
+
+**After spawn (without --skip-permissions):**
 1. Switch to iTerm2 (`Cmd+Tab`)
 2. Answer the trust prompt for the project directory
 3. Paste the command (`Cmd+V`) — it's already on your clipboard
@@ -355,6 +373,6 @@ mp-spawn MoneyPrinter-ajq --dir "$(pwd)" --handoff "Use PriceCache pattern"
 ### iTerm2 Integration
 
 - Uses AppleScript to create new iTerm2 tabs directly
-- Copies `/start-task` command to clipboard (paste after trust prompt)
+- Copies `/start-task` command to clipboard (paste after worker starts)
 - Switch between workers with `Cmd+1/2/3` or `Cmd+Shift+[/]`
 - Each tab is named with the task short ID (e.g., "ajq")

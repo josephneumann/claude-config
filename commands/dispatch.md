@@ -72,9 +72,15 @@ Ready to dispatch N workers:
    Mode: ralph
 
 ...
-
-Proceed? (Workers will spawn in iTerm2 tabs)
 ```
+
+**Then use AskUserQuestion to confirm dispatch and permissions:**
+
+Ask the user with these questions:
+1. "Confirm dispatch of N workers?" - Options: "Yes, dispatch" / "No, cancel"
+2. "Use --skip-permissions for autonomous workers?" - Options: "Yes (recommended for ralph mode)" / "No (require manual approval)"
+
+If the user confirms dispatch AND selects "Yes" for skip-permissions, pass `--skip-permissions` to each `mp-spawn` call.
 
 **Wait for explicit user confirmation before proceeding.**
 
@@ -83,19 +89,44 @@ Proceed? (Workers will spawn in iTerm2 tabs)
 After confirmation, for each task run mp-spawn using the Bash tool:
 
 ```bash
-source ~/.zshrc && mp-spawn <task-id> --dir "$(pwd)" --ralph --handoff "<context>"
+source ~/.zshrc && mp-spawn <task-id> --dir "$(pwd)" --ralph --handoff "<context>" --skip-permissions
 ```
 
-If `--no-ralph` was specified, omit the `--ralph` flag.
+**Flags to include:**
+- Always include `--ralph` unless `--no-ralph` was specified
+- Include `--skip-permissions` if user confirmed "Yes" for skip-permissions in step 3
+- Note: `--chrome` is always enabled by default in mp-spawn
 
 Each mp-spawn call opens a new iTerm2 tab via AppleScript. Run them sequentially.
 
 ## Step 5: Post-Spawn Guidance
 
-After all workers are spawned, output:
+After all workers are spawned, output the appropriate guidance based on whether skip-permissions was enabled:
 
+**If skip-permissions was enabled:**
 ```
-Dispatched N workers successfully.
+Dispatched N workers with --skip-permissions (autonomous mode).
+
+For each worker tab:
+1. Switch to iTerm2 (Cmd+Tab)
+2. Paste the command (Cmd+V) — it's on your clipboard
+3. Press Enter to start
+
+Workers will run autonomously without permission prompts.
+Use Cmd+1/2/3 to navigate between worker tabs.
+
+Each worker will:
+1. Set up the task environment
+2. Ask clarifying questions (if any)
+3. Begin implementation (ralph mode)
+4. Output "/finish-task <id>" when tests pass
+
+You can continue working in this orchestrator session while workers execute.
+```
+
+**If skip-permissions was NOT enabled:**
+```
+Dispatched N workers (manual approval mode).
 
 For each worker tab:
 1. Switch to iTerm2 (Cmd+Tab)
