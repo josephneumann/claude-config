@@ -13,12 +13,16 @@ Arguments: `$ARGUMENTS`
 
 Parse the following patterns:
 - `--count N` — Auto-select N ready tasks from `bd ready`
-- `--ralph` (default) — Enable ralph-loop for autonomous work
+- `--ralph` — Enable ralph-loop for autonomous work (prompted, default: enabled)
 - `--no-ralph` — Disable ralph-loop (manual mode)
+- `--chrome` — Enable Chrome browser tools (prompted, default: enabled)
+- `--no-chrome` — Disable Chrome browser tools
+- `--skip-permissions` — Skip permission prompts (prompted, default: enabled)
+- `--no-skip-permissions` — Require manual approval for operations
 - `<task-id>` — Specific task to dispatch
 - `<task-id>:"context"` — Task with custom handoff context (e.g., `MoneyPrinter-ajq:"Use PriceCache"`)
 
-If no arguments provided, default to `--count 3 --ralph`.
+If no arguments provided, default to `--count 3`.
 
 ## Step 1: Identify Tasks
 
@@ -56,7 +60,7 @@ Example handoff contexts:
 - "Follow the pattern in backtesting/cache.py for data storage"
 - "Depends on completed MoneyPrinter-xyz, can use its output"
 
-## Step 3: Confirm Dispatch
+## Step 3: Confirm Dispatch and Options
 
 Present a summary to the user:
 
@@ -65,81 +69,89 @@ Ready to dispatch N workers:
 
 1. <task-id> (P2 <type>): <title>
    Handoff: "<generated or provided context>"
-   Mode: ralph
 
 2. <task-id> (P1 <type>): <title>
    Handoff: "<generated or provided context>"
-   Mode: ralph
 
 ...
 ```
 
-**Then use AskUserQuestion to confirm dispatch and permissions:**
+**Then use AskUserQuestion to confirm dispatch and configure options:**
 
 Ask the user with these questions:
-1. "Confirm dispatch of N workers?" - Options: "Yes, dispatch" / "No, cancel"
-2. "Use --skip-permissions for autonomous workers?" - Options: "Yes (recommended for ralph mode)" / "No (require manual approval)"
 
-If the user confirms dispatch AND selects "Yes" for skip-permissions, pass `--skip-permissions` to each `mp-spawn` call.
+1. "Confirm dispatch of N workers?"
+   - Options: "Yes, dispatch" / "No, cancel"
+   - multiSelect: false
+
+2. "Select worker options (all recommended for autonomous work):"
+   - Options:
+     - "Ralph mode (Recommended)" - "Autonomous iteration until tests pass"
+     - "Chrome tools (Recommended)" - "Enable browser automation capabilities"
+     - "Skip permissions (Recommended)" - "No manual approval prompts during execution"
+   - multiSelect: true
+   - NOTE: All three should be pre-selected/recommended by default
 
 **Wait for explicit user confirmation before proceeding.**
 
-## Step 4: Spawn Workers
+If user selects "No, cancel" for question 1, abort dispatch.
 
-After confirmation, for each task run mp-spawn using the Bash tool:
+## Step 4: Spawn Workers ONE AT A TIME
 
+**CRITICAL: Spawn workers sequentially, waiting for user confirmation between each.**
+
+For each task:
+
+1. **Spawn the worker** using mp-spawn:
 ```bash
-source ~/.zshrc && mp-spawn <task-id> --dir "$(pwd)" --ralph --handoff "<context>" --skip-permissions
+source ~/.zshrc && mp-spawn <task-id> --dir "$(pwd)" [--ralph] [--chrome] [--skip-permissions] --handoff "<context>"
 ```
 
-**Flags to include:**
-- Always include `--ralph` unless `--no-ralph` was specified
-- Include `--skip-permissions` if user confirmed "Yes" for skip-permissions in step 3
-- Note: `--chrome` is always enabled by default in mp-spawn
+Include flags based on user's selections from Step 3:
+- Include `--ralph` if "Ralph mode" was selected
+- Include `--chrome` if "Chrome tools" was selected
+- Include `--skip-permissions` if "Skip permissions" was selected
 
-Each mp-spawn call opens a new iTerm2 tab via AppleScript. Run them sequentially.
-
-## Step 5: Post-Spawn Guidance
-
-After all workers are spawned, output the appropriate guidance based on whether skip-permissions was enabled:
-
-**If skip-permissions was enabled:**
+2. **Output the command** that was copied to clipboard:
 ```
-Dispatched N workers with --skip-permissions (autonomous mode).
+Worker 1/N spawned: <task-id>
+Command on clipboard: /start-task <task-id> --ralph --handoff "..."
 
-For each worker tab:
-1. Switch to iTerm2 (Cmd+Tab)
-2. Paste the command (Cmd+V) — it's on your clipboard
-3. Press Enter to start
+→ Switch to iTerm2 and paste (Cmd+V) when Claude Code is ready
+```
 
-Workers will run autonomously without permission prompts.
+3. **Use AskUserQuestion to confirm before spawning next worker:**
+
+Ask: "Pasted command for <task-id>. Ready for next worker?"
+- Options: "Yes, spawn next" / "Retry this worker" / "Stop dispatching"
+- multiSelect: false
+
+4. **Handle response:**
+   - "Yes, spawn next" → Continue to next task
+   - "Retry this worker" → Re-run mp-spawn for this task
+   - "Stop dispatching" → End dispatch early, report which workers were spawned
+
+5. **Repeat for each remaining task**
+
+## Step 5: Post-Spawn Summary
+
+After all workers are spawned (or dispatch stopped early), provide a summary:
+
+```
+Dispatch complete: N/M workers spawned
+
+Active workers:
+1. <task-id>: <title> — Tab 1
+2. <task-id>: <title> — Tab 2
+...
+
+Worker tabs are named by task short ID (e.g., "6iw", "wpn").
 Use Cmd+1/2/3 to navigate between worker tabs.
 
 Each worker will:
-1. Set up the task environment
+1. Set up the task environment (git worktree)
 2. Ask clarifying questions (if any)
-3. Begin implementation (ralph mode)
-4. Output "/finish-task <id>" when tests pass
-
-You can continue working in this orchestrator session while workers execute.
-```
-
-**If skip-permissions was NOT enabled:**
-```
-Dispatched N workers (manual approval mode).
-
-For each worker tab:
-1. Switch to iTerm2 (Cmd+Tab)
-2. Answer the trust prompt for the worktree directory
-3. Paste the command (Cmd+V) — it's on your clipboard
-4. Press Enter to start
-
-Use Cmd+1/2/3 to navigate between worker tabs.
-
-Each worker will:
-1. Set up the task environment
-2. Ask clarifying questions (if any)
-3. Begin implementation (ralph mode)
+3. Begin implementation [ralph mode if enabled]
 4. Output "/finish-task <id>" when tests pass
 
 You can continue working in this orchestrator session while workers execute.
@@ -152,12 +164,18 @@ You can continue working in this orchestrator session while workers execute.
 - **Task doesn't exist**: Skip it, warn the user, continue with valid tasks
 - **iTerm2 not available**: Tell user mp-spawn requires iTerm2 on macOS
 - **All tasks invalid**: Abort with clear error message
+- **User stops early**: Report which workers were successfully spawned
 
 ## Examples
 
-**Auto-select 3 tasks:**
+**Auto-select 3 tasks (default):**
 ```
-/dispatch --count 3
+/dispatch
+```
+
+**Auto-select specific count:**
+```
+/dispatch --count 5
 ```
 
 **Specific tasks:**
@@ -170,7 +188,12 @@ You can continue working in this orchestrator session while workers execute.
 /dispatch MoneyPrinter-ajq:"Use existing ticker format"
 ```
 
-**Manual mode (no ralph):**
+**Explicit manual mode (no ralph):**
 ```
 /dispatch MoneyPrinter-ajq --no-ralph
+```
+
+**Explicit no chrome:**
+```
+/dispatch --count 2 --no-chrome
 ```
