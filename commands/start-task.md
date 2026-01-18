@@ -9,19 +9,15 @@ You are starting work on a beads task. Follow this checklist precisely.
 
 ## 0. Parse Arguments
 
-The command format is: `/start-task <task-id> [--ralph] [--max-iterations N] [--handoff "<context>"]`
+The command format is: `/start-task <task-id> [--handoff "<context>"]`
 
 Parse `$ARGUMENTS` to extract:
 - `task_id`: The beads task ID (everything before any flags)
-- `ralph_mode`: boolean (true if `--ralph` present)
-- `max_iterations`: integer (default: 10, only used if ralph_mode is true)
 - `handoff_context`: Optional inline handoff text (content in quotes after `--handoff` flag)
 
 Examples:
-- `/start-task MoneyPrinter-46j.1` → task_id = `MoneyPrinter-46j.1`, ralph_mode = false
-- `/start-task MoneyPrinter-46j.1 --ralph` → ralph_mode = true, max_iterations = 10
-- `/start-task MoneyPrinter-46j.1 --ralph --max-iterations 50` → ralph_mode = true, max_iterations = 50
-- `/start-task MoneyPrinter-46j.1 --ralph --handoff "Use 3% tolerance"` → ralph_mode = true, handoff_context = "Use 3% tolerance"
+- `/start-task MoneyPrinter-46j.1` → task_id = `MoneyPrinter-46j.1`
+- `/start-task MoneyPrinter-46j.1 --handoff "Use 3% tolerance"` → with handoff context
 
 ## 0.5 Display Handoff Context (if provided)
 
@@ -154,62 +150,3 @@ Example questions to consider:
 Once all ambiguities are resolved and you have clear requirements, ask: "Ready to begin implementation?"
 
 Only start coding after the user confirms.
-
-## 11.5 Ralph Loop Activation (if --ralph)
-
-If `ralph_mode` is true, after the user confirms "Ready to begin implementation?":
-
-1. **Create beads-ralph state file** for the custom stop hook:
-   ```bash
-   mkdir -p .claude
-   cat > .claude/beads-ralph.local.md <<EOF
-   ---
-   beads_task_id: "<task_id>"
-   task_title: "<title from bd show>"
-   started_at: "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-   ---
-   EOF
-   ```
-
-2. **Build the ralph-loop prompt** from the task description:
-   ```
-   BEADS TASK: <task_id>
-   TITLE: <title>
-
-   DESCRIPTION:
-   <full description from bd show>
-
-   CLARIFICATIONS FROM USER:
-   <any decisions or preferences from the Q&A in step 10>
-
-   YOUR MISSION:
-   Implement this task. Run tests frequently with `uv run pytest`.
-
-   SUCCESS CONDITION:
-   When ALL tests pass (0 failures), output:
-   <promise>ALL TESTS PASSING</promise>
-
-   STRATEGY:
-   1. Read existing code to understand patterns
-   2. Implement incrementally
-   3. Run `uv run pytest` after each significant change
-   4. Fix any failures before continuing
-   5. Only output the promise when tests show 0 failed
-
-   IMPORTANT: Only output <promise>ALL TESTS PASSING</promise> when `uv run pytest` shows:
-   - 0 failed
-   - N passed (where N > 0)
-   ```
-
-3. **Invoke ralph-loop** to start the autonomous implementation loop:
-   ```
-   /ralph-loop "<prompt>" --max-iterations <max_iterations> --completion-promise "ALL TESTS PASSING"
-   ```
-
-   **Note**: This invokes the ralph-loop plugin. The loop will:
-   - Continue iterating until tests pass (promise is output)
-   - Or stop at max_iterations (default: 10)
-   - On success: Output "Run `/finish-task <task_id>`"
-   - On max iterations: Output handoff command for a new session
-
-4. **After ralph-loop completes**, the custom stop hook (`beads-ralph-stop.sh`) will output guidance on next steps.

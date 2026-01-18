@@ -13,8 +13,6 @@ Usage: mp-spawn <task-id> [options]
 Options:
   --dir /path/to/project  Project directory (default: current directory)
   --handoff "text"        Handoff context from previous session
-  --ralph                 Enable autonomous ralph-loop mode
-  --max-iterations N      Max ralph iterations (default: 10)
   --skip-permissions      Skip all permission prompts (--dangerously-skip-permissions)
   --chrome                Enable Chrome browser tools (--chrome)
   --no-chrome             Disable Chrome browser tools
@@ -23,8 +21,8 @@ Options:
 Examples:
   mp-spawn MoneyPrinter-ajq
   mp-spawn MoneyPrinter-ajq --dir /Users/jneumann/Code/MoneyPrinter
-  mp-spawn MoneyPrinter-ajq --ralph --handoff "Use existing patterns"
-  mp-spawn MoneyPrinter-ajq --ralph --skip-permissions --chrome
+  mp-spawn MoneyPrinter-ajq --handoff "Use existing patterns"
+  mp-spawn MoneyPrinter-ajq --skip-permissions --chrome
 EOF
   exit 1
 }
@@ -33,8 +31,6 @@ EOF
 TASK_ID=""
 PROJECT_DIR=""
 HANDOFF=""
-RALPH=""
-MAX_ITER=""
 SKIP_PERMS=""
 CHROME=""
 
@@ -46,14 +42,6 @@ while [[ $# -gt 0 ]]; do
       ;;
     --handoff)
       HANDOFF="$2"
-      shift 2
-      ;;
-    --ralph)
-      RALPH="--ralph"
-      shift
-      ;;
-    --max-iterations)
-      MAX_ITER="--max-iterations $2"
       shift 2
       ;;
     --skip-permissions)
@@ -113,8 +101,6 @@ echo "Project: $PROJECT_DIR"
 # ============================================
 TASK_SHORT=$(echo "$TASK_ID" | cut -d'-' -f2)
 START_CMD="/start-task ${TASK_ID}"
-[[ -n "$RALPH" ]] && START_CMD+=" ${RALPH}"
-[[ -n "$MAX_ITER" ]] && START_CMD+=" ${MAX_ITER}"
 [[ -n "$HANDOFF" ]] && START_CMD+=" --handoff \"${HANDOFF}\""
 
 # ============================================
