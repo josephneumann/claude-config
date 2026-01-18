@@ -13,8 +13,6 @@ Arguments: `$ARGUMENTS`
 
 Parse the following patterns:
 - `--count N` — Auto-select N ready tasks from `bd ready`
-- `--ralph` — Enable ralph-loop for autonomous work (prompted, default: enabled)
-- `--no-ralph` — Disable ralph-loop (manual mode)
 - `--chrome` — Enable Chrome browser tools (prompted, default: enabled)
 - `--no-chrome` — Disable Chrome browser tools
 - `--skip-permissions` — Skip permission prompts (prompted, default: enabled)
@@ -84,13 +82,12 @@ Ask the user with these questions:
    - Options: "Yes, dispatch" / "No, cancel"
    - multiSelect: false
 
-2. "Select worker options (all recommended for autonomous work):"
+2. "Select worker options (recommended for autonomous work):"
    - Options:
-     - "Ralph mode (Recommended)" - "Autonomous iteration until tests pass"
      - "Chrome tools (Recommended)" - "Enable browser automation capabilities"
      - "Skip permissions (Recommended)" - "No manual approval prompts during execution"
    - multiSelect: true
-   - NOTE: All three should be pre-selected/recommended by default
+   - NOTE: Both should be pre-selected/recommended by default
 
 **Wait for explicit user confirmation before proceeding.**
 
@@ -104,18 +101,17 @@ For each task:
 
 1. **Spawn the worker** using mp-spawn:
 ```bash
-source ~/.zshrc && mp-spawn <task-id> --dir "$(pwd)" [--ralph] [--chrome] [--skip-permissions] --handoff "<context>"
+source ~/.zshrc && mp-spawn <task-id> --dir "$(pwd)" [--chrome] [--skip-permissions] --handoff "<context>"
 ```
 
 Include flags based on user's selections from Step 3:
-- Include `--ralph` if "Ralph mode" was selected
 - Include `--chrome` if "Chrome tools" was selected
 - Include `--skip-permissions` if "Skip permissions" was selected
 
 2. **Output the command** that was copied to clipboard:
 ```
 Worker 1/N spawned: <task-id>
-Command on clipboard: /start-task <task-id> --ralph --handoff "..."
+Command on clipboard: /start-task <task-id> --handoff "..."
 
 → Switch to iTerm2 and paste (Cmd+V) when Claude Code is ready
 ```
@@ -151,7 +147,7 @@ Use Cmd+1/2/3 to navigate between worker tabs.
 Each worker will:
 1. Set up the task environment (git worktree)
 2. Ask clarifying questions (if any)
-3. Begin implementation [ralph mode if enabled]
+3. Begin implementation
 4. Output "/finish-task <id>" when tests pass
 
 You can continue working in this orchestrator session while workers execute.
@@ -186,11 +182,6 @@ You can continue working in this orchestrator session while workers execute.
 **With custom handoff:**
 ```
 /dispatch MoneyPrinter-ajq:"Use existing ticker format"
-```
-
-**Explicit manual mode (no ralph):**
-```
-/dispatch MoneyPrinter-ajq --no-ralph
 ```
 
 **Explicit no chrome:**

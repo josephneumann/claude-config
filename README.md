@@ -24,7 +24,7 @@ This setup enables a specific approach to AI-assisted development:
 
 3. **Task isolation** — Each task gets its own branch/worktree, preventing conflicts and enabling clean PRs. No merge hell, no stepping on each other's work.
 
-4. **Bounded autonomy** — Claude can work autonomously (ralph mode) but within bounds: clear acceptance criteria, test-driven completion, iteration limits. Autonomy with guardrails.
+4. **Bounded autonomy** — Claude works autonomously but within bounds: clear acceptance criteria, test-driven completion. Autonomy with guardrails.
 
 5. **Handoffs over context bloat** — When context grows large, hand off to a fresh session rather than degrading quality. Fresh context beats exhausted context.
 
@@ -75,7 +75,7 @@ The template includes the full Agent Workflow Skills documentation, so Claude wi
 
 ## Commands Reference
 
-> **Full documentation:** See [CLAUDE.template.md](./CLAUDE.template.md) for comprehensive command docs, ralph-loop best practices, and workflow examples.
+> **Full documentation:** See [CLAUDE.template.md](./CLAUDE.template.md) for comprehensive command docs and workflow examples.
 
 ### `/orient`
 
@@ -118,7 +118,7 @@ The template includes the full Agent Workflow Skills documentation, so Claude wi
 
 **Confirmation flow:**
 - Confirms dispatch of N workers
-- Asks whether to use `--skip-permissions` (recommended for ralph mode autonomous workers)
+- Asks whether to use `--skip-permissions` (recommended for autonomous workers)
 
 **Usage:**
 ```bash
@@ -130,9 +130,6 @@ The template includes the full Agent Workflow Skills documentation, so Claude wi
 
 # With custom handoff context
 /dispatch MoneyPrinter-ajq:"Use PriceCache pattern"
-
-# Manual mode (no ralph-loop)
-/dispatch MoneyPrinter-ajq --no-ralph
 ```
 
 **After dispatch (with skip-permissions):**
@@ -150,6 +147,36 @@ The template includes the full Agent Workflow Skills documentation, so Claude wi
 
 ---
 
+### `/init-prd [path]`
+
+**Purpose:** Initialize a project with beads tasks from a PROJECT_SPEC.md or PRD document.
+
+**What it does:**
+1. Sets up project if needed (CLAUDE.md, bd init)
+2. Finds and reads PROJECT_SPEC.md (or specified path)
+3. Asks clarifying questions to resolve ambiguities
+4. Extracts epics, features, tasks, and research items
+5. Infers dependencies from document structure
+6. Shows proposed tasks for approval
+7. Creates tasks via beads CLI
+
+**Options:**
+- `--dry-run` — Preview tasks without creating
+- `--append` — Add to existing beads state
+- `--skip-setup` — Skip CLAUDE.md and bd init checks
+
+**Examples:**
+```bash
+/init-prd                    # Full setup + parse PROJECT_SPEC.md
+/init-prd docs/SPEC.md       # Custom path
+/init-prd --dry-run          # Preview only
+/init-prd --skip-setup       # Skip project setup, just parse PRD
+```
+
+**When to use:** At the start of a new project to bootstrap tasks from a PRD or specification document.
+
+---
+
 ### `/start-task <task-id>`
 
 **Purpose:** Start working on a beads task with proper isolation and context.
@@ -164,17 +191,12 @@ The template includes the full Agent Workflow Skills documentation, so Claude wi
 7. Asks clarifying questions before implementation
 
 **Options:**
-- `--ralph` - Enable autonomous implementation with ralph-loop
-- `--max-iterations N` - Max ralph-loop iterations (default: 10)
 - `--handoff "<context>"` - Inline context from a previous session
 
 **Examples:**
 ```bash
 # Standard start
 /start-task MoneyPrinter-46j.1
-
-# With ralph-loop for autonomous implementation
-/start-task MoneyPrinter-46j.1 --ralph
 
 # With handoff context from another session
 /start-task MoneyPrinter-46j.1 --handoff "Use 3% tolerance for price matching"
@@ -317,22 +339,6 @@ The commands automatically add `session_summaries/` to `.gitignore` if not prese
 
 ---
 
-## Hooks Reference
-
-### `beads-ralph-stop.sh`
-
-**Purpose:** Auto-handoff when ralph-loop reaches max iterations.
-
-**When it runs:** Automatically triggered when a ralph-loop session ends.
-
-**Behavior:**
-- If tests are passing: Outputs "Run `/finish-task <id>`"
-- If tests not passing: Outputs a `/start-task --ralph --handoff` command for continuation
-
-**You don't invoke this directly** - it runs automatically as part of the ralph-loop workflow.
-
----
-
 ## Bin Utilities Reference
 
 Shell utilities for orchestrating parallel Claude workers.
@@ -356,8 +362,6 @@ mp-spawn <task-id> [options]
 Options:
   --dir /path/to/project  Project directory (default: current directory)
   --handoff "text"        Handoff context from previous session
-  --ralph                 Enable autonomous ralph-loop mode
-  --max-iterations N      Max ralph iterations (default: 10)
   --skip-permissions      Skip all permission prompts (uses --dangerously-skip-permissions)
 
 Note: --chrome is always enabled by default for all workers.
@@ -368,17 +372,14 @@ Note: --chrome is always enabled by default for all workers.
 # From within a project directory
 mp-spawn MoneyPrinter-ajq
 
-# With ralph-loop for autonomous implementation
-mp-spawn MoneyPrinter-ajq --ralph
-
 # With handoff context
-mp-spawn MoneyPrinter-ajq --ralph --handoff "Use PriceCache pattern for OHLCV data"
+mp-spawn MoneyPrinter-ajq --handoff "Use PriceCache pattern for OHLCV data"
 
 # Fully autonomous workers (no permission prompts)
-mp-spawn MoneyPrinter-ajq --ralph --skip-permissions
+mp-spawn MoneyPrinter-ajq --skip-permissions
 
 # Orchestrator passing explicit directory
-mp-spawn MoneyPrinter-ajq --dir "$(pwd)" --ralph --skip-permissions
+mp-spawn MoneyPrinter-ajq --dir "$(pwd)" --skip-permissions
 ```
 
 **After spawn (with --skip-permissions):**
@@ -450,30 +451,7 @@ Run multiple tasks simultaneously in separate Claude sessions:
 
 Each session works in its own git worktree - no conflicts.
 
-### 3. Ralph Loop Workflow
-
-Autonomous implementation with automatic test-driven iteration:
-
-```bash
-# Start with ralph-loop enabled
-/start-task beads-abc123 --ralph
-
-# Claude will:
-# 1. Understand the task
-# 2. Ask clarifying questions
-# 3. Start ralph-loop when ready
-# 4. Iterate until tests pass (or max iterations)
-
-# On success: "Run /finish-task beads-abc123"
-# On max iterations: Outputs handoff command for continuation
-```
-
-**With custom iteration limit:**
-```bash
-/start-task beads-abc123 --ralph --max-iterations 50
-```
-
-### 4. Handoff Workflow
+### 3. Handoff Workflow
 
 Pass work between sessions when context grows too large:
 
@@ -608,14 +586,6 @@ These commands are designed for a specific workflow and require additional tools
   - Download: [iterm2.com](https://iterm2.com/)
   - Must grant Accessibility permissions for AppleScript automation
 
-### Optional (for Ralph Loop workflow)
-
-- **ralph-loop plugin** - Claude Code plugin for autonomous implementation loops
-  - Required only if using `/start-task --ralph`
-  - The plugin iterates until tests pass or max iterations reached
-  - Install from the Claude Code plugin marketplace: `ralph-loop`
-  - The `beads-ralph-stop.sh` hook works alongside this plugin
-
 ### Claude Code Setup
 
 1. **Install Claude Code** - These are Claude Code slash commands, not standalone scripts
@@ -626,7 +596,6 @@ These commands are designed for a specific workflow and require additional tools
 
 - **Without beads:** Commands will fail on `bd` calls. You'd need to remove/replace beads references.
 - **Without gh:** `/finish-task` won't create PRs. You can create them manually.
-- **Without ralph-loop plugin:** Don't use the `--ralph` flag. Standard workflow still works.
 
 ---
 
