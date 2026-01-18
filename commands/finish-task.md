@@ -1,6 +1,6 @@
 ---
 description: Complete a beads task - run checks, commit, push, close issue, cleanup worktree, generate session summary
-allowed-tools: Read, Bash, Glob, Grep, Edit, Write
+allowed-tools: Read, Bash, Glob, Grep, Edit, Write, Skill
 ---
 
 # Finish Beads Task: $ARGUMENTS
@@ -149,9 +149,71 @@ EOF
 )"
 ```
 
-After the PR is created, **ask the user**:
+## 10a. Code Review and Auto-Fix
 
-"PR created: <URL>. Would you like me to merge it and clean up the worktree?"
+Run automated code review on the PR:
+
+```
+/code-review
+```
+
+The code review will:
+- Check CLAUDE.md compliance
+- Scan for obvious bugs in changed lines
+- Analyze git history for context
+- Post findings as PR comment (only issues with confidence ≥80)
+
+### If Issues Found
+
+For each issue reported in the PR comment:
+
+1. **Identify the issue** - Read the PR comment, note the file path and line range
+2. **Read the context** - Use `gh pr diff` or read the file directly
+3. **Implement fix** - Make the minimal change to address the issue
+4. **Verify** - Ensure the fix doesn't introduce new problems
+
+After fixing all issues:
+
+```bash
+# Run tests to verify fixes
+uv run pytest  # or pnpm test / make run-checks
+
+# Commit the fixes
+git add -A
+git commit -m "$(cat <<'EOF'
+fix: address code review findings
+
+- <brief list of issues fixed>
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+EOF
+)"
+
+# Push updates
+git push
+```
+
+Re-run code review to verify:
+
+```
+/code-review
+```
+
+**Iteration limit:** Maximum 3 review cycles. If issues persist after 3 attempts:
+- List remaining unresolved issues
+- Ask user: "Code review found issues I couldn't automatically resolve: <list>. Proceed with merge anyway, or address manually?"
+
+### If No Issues Found
+
+Proceed directly to merge decision.
+
+### Merge Decision
+
+After code review passes (or user approves despite issues):
+
+"PR created: <URL>. Code review [passed / fixed N issues / has N unresolved issues]. Would you like me to merge it and clean up the worktree?"
 
 If user approves, proceed to step 11. If user declines, leave the PR open for manual review and skip to step 12.
 

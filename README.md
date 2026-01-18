@@ -219,8 +219,11 @@ The template includes the full Agent Workflow Skills documentation, so Claude wi
 6. Syncs beads and pushes to remote
 7. Closes the task (`bd close`)
 8. Creates a pull request
-9. Optionally merges PR and cleans up worktree (using absolute paths)
-10. Outputs a detailed **Session Summary**
+9. Runs automated code review (`/code-review`) and auto-fixes issues
+10. Optionally merges PR and cleans up worktree (using absolute paths)
+11. Outputs a detailed **Session Summary**
+
+**Code Review:** After PR creation, runs `/code-review` which posts findings to the PR. High-confidence issues (≥80) are automatically fixed, committed, and pushed. Maximum 3 review cycles before asking user for guidance.
 
 **Example:**
 ```
