@@ -78,6 +78,63 @@ bd show <task_id>
 
 Look at the "Blocked by" section. If this task has unmet dependencies, warn the user and ask if they want to proceed anyway.
 
+## 5.5 Research Phase (Conditional)
+
+Before implementation, determine if research is needed based on task characteristics.
+
+### High-Risk Indicators (Research First)
+
+Research is recommended when the task involves:
+- **Security**: authentication, authorization, encryption, secrets
+- **Payments**: billing, subscriptions, transactions, financial data
+- **External APIs**: third-party integrations, webhooks, OAuth
+- **Data migrations**: schema changes, data transformations
+- **New frameworks/libraries**: unfamiliar dependencies
+
+### Research Agents to Consider
+
+1. **framework-docs-researcher**
+   - Read: `~/.claude/agents/research/framework-docs-researcher.md`
+   - Use when: Task involves libraries or frameworks
+   - Checks: Documentation, deprecation warnings, best practices
+
+2. **learnings-researcher**
+   - Read: `~/.claude/agents/research/learnings-researcher.md`
+   - Use when: `docs/solutions/` exists in the project
+   - Searches: Prior solutions, gotchas, patterns from past work
+
+3. **best-practices-researcher**
+   - Read: `~/.claude/agents/research/best-practices-researcher.md`
+   - Use when: Architectural decisions needed
+   - Provides: Industry best practices, pattern recommendations
+
+### Launch Research (if needed)
+
+```
+Use Task tool with subagent_type=general-purpose:
+
+Task: [appropriate-researcher]
+- Read agent definition from ~/.claude/agents/research/
+- Provide task context and requirements
+- Return: Relevant findings, recommendations, warnings
+```
+
+### Skip Research If
+
+- Internal refactoring only (no new patterns)
+- Strong patterns already documented in CLAUDE.md
+- Established team conventions for this type of work
+- Simple bug fix with clear scope
+
+### Document Research Findings
+
+If research was conducted, update the task:
+```bash
+bd update <task_id> --notes "Research: <brief summary of findings>"
+```
+
+---
+
 ## 6. Create Git Worktree
 
 Determine the project directory name (e.g., `MoneyPrinter`). Create a worktree:

@@ -46,8 +46,12 @@ create_symlink() {
 }
 
 # Create symlinks
+create_symlink "$SCRIPT_DIR/CLAUDE.md" "$CLAUDE_DIR/CLAUDE.md"
 create_symlink "$SCRIPT_DIR/commands" "$CLAUDE_DIR/commands"
 create_symlink "$SCRIPT_DIR/hooks" "$CLAUDE_DIR/hooks"
+create_symlink "$SCRIPT_DIR/agents" "$CLAUDE_DIR/agents"
+create_symlink "$SCRIPT_DIR/skills" "$CLAUDE_DIR/skills"
+create_symlink "$SCRIPT_DIR/docs" "$CLAUDE_DIR/docs"
 
 # Add bin/ to PATH via .zshrc
 BIN_DIR="$SCRIPT_DIR/bin"
@@ -68,6 +72,10 @@ echo ""
 echo "Installation complete!"
 echo ""
 echo "Verify with:"
+echo "  ls -la ~/.claude/CLAUDE.md"
 echo "  ls -la ~/.claude/commands"
 echo "  ls -la ~/.claude/hooks"
+echo "  ls -la ~/.claude/agents"
+echo "  ls -la ~/.claude/skills"
+echo "  ls -la ~/.claude/docs"
 echo "  which mp-spawn  # (after sourcing ~/.zshrc)"

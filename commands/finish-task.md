@@ -151,26 +151,26 @@ EOF
 
 ## 10a. Code Review and Auto-Fix
 
-Run automated code review on the PR:
+Run automated code review on the PR using parallel specialized reviewers:
 
 ```
-/code-review
+/multi-review
 ```
 
-The code review will:
-- Check CLAUDE.md compliance
-- Scan for obvious bugs in changed lines
-- Analyze git history for context
-- Post findings as PR comment (only issues with confidence ≥80)
+The multi-review will:
+- Launch 3-5 specialized review agents in parallel (simplicity, patterns, security, performance, architecture)
+- Select relevant reviewers based on change types
+- Aggregate findings by severity (Critical > Important > Suggestion)
+- Filter to high-confidence (≥80%) issues
+- Offer auto-fix for fixable issues
 
 ### If Issues Found
 
-For each issue reported in the PR comment:
+For each Critical or Important issue:
 
-1. **Identify the issue** - Read the PR comment, note the file path and line range
-2. **Read the context** - Use `gh pr diff` or read the file directly
-3. **Implement fix** - Make the minimal change to address the issue
-4. **Verify** - Ensure the fix doesn't introduce new problems
+1. **Review the finding** - Note the file, line, and reviewer that flagged it
+2. **Implement fix** - Make the minimal change to address the issue
+3. **Verify** - Ensure the fix doesn't introduce new problems
 
 After fixing all issues:
 
@@ -195,10 +195,10 @@ EOF
 git push
 ```
 
-Re-run code review to verify:
+Re-run review if significant changes were made:
 
 ```
-/code-review
+/multi-review
 ```
 
 **Iteration limit:** Maximum 3 review cycles. If issues persist after 3 attempts:

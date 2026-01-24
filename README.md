@@ -10,7 +10,15 @@ cd ~/Code/claude-config
 ./install.sh
 ```
 
-This creates symlinks from `~/.claude/commands` and `~/.claude/hooks` to this repo, and adds `bin/` utilities to your PATH.
+This creates symlinks from `~/.claude/` to this repo:
+- `CLAUDE.md` - Global workflow guidance (read by all projects)
+- `commands/` - Slash commands for the beads workflow
+- `hooks/` - Event hooks for Claude Code
+- `agents/` - Specialized agent definitions for research and review
+- `skills/` - Auto-invocable skills (compound learning, multi-review)
+- `docs/` - Global learnings and solutions (shared across projects)
+
+Also adds `bin/` utilities to your PATH.
 
 ---
 
@@ -42,40 +50,33 @@ This setup enables a specific approach to AI-assisted development:
 
 ## Setting Up a New Project
 
-To enable the beads workflow in a new project:
+Workflow docs are loaded globally from `~/.claude/CLAUDE.md`. Projects only need their own `CLAUDE.md` for project-specific details.
 
-1. **Copy the CLAUDE.md template:**
-   ```bash
-   cp ~/Code/claude-config/CLAUDE.template.md /path/to/your/project/CLAUDE.md
-   ```
+1. **Create project CLAUDE.md** with just:
+   - Project summary (what it does)
+   - Development commands (`uv run pytest`, `pnpm dev`, etc.)
+   - Critical rules (project-specific constraints)
+   - Architecture overview
 
-2. **Fill in project-specific sections:**
-   - Project Summary
-   - Development commands
-   - Critical Rules
-   - CLI Commands
-   - Architecture
-   - Key Design Decisions
-
-3. **Initialize beads:**
+2. **Initialize beads:**
    ```bash
    cd /path/to/your/project
    bd init
    ```
 
-4. **Start using the workflow:**
+3. **Start using the workflow:**
    ```
    /orient
    /start-task <task-id>
    ```
 
-The template includes the full Agent Workflow Skills documentation, so Claude will understand the beads workflow in any project that uses it.
+Workflow guidance (commands, skills, philosophy) comes automatically from the global config.
 
 ---
 
 ## Commands Reference
 
-> **Full documentation:** See [CLAUDE.template.md](./CLAUDE.template.md) for comprehensive command docs and workflow examples.
+> **Full documentation:** Command and skill definitions in `commands/` and `skills/` are the canonical source. See [CLAUDE.md](./CLAUDE.md) for the global workflow reference.
 
 ### `/orient`
 
@@ -219,11 +220,11 @@ The template includes the full Agent Workflow Skills documentation, so Claude wi
 6. Syncs beads and pushes to remote
 7. Closes the task (`bd close`)
 8. Creates a pull request
-9. Runs automated code review (`/code-review`) and auto-fixes issues
+9. Runs automated code review (`/multi-review`) and auto-fixes issues
 10. Optionally merges PR and cleans up worktree (using absolute paths)
 11. Outputs a detailed **Session Summary**
 
-**Code Review:** After PR creation, runs `/code-review` which posts findings to the PR. High-confidence issues (≥80) are automatically fixed, committed, and pushed. Maximum 3 review cycles before asking user for guidance.
+**Code Review:** After PR creation, runs `/multi-review` which launches parallel specialized reviewers. High-confidence issues (≥80%) are automatically fixed, committed, and pushed. Maximum 3 review cycles before asking user for guidance.
 
 **Example:**
 ```
@@ -339,6 +340,92 @@ The commands automatically add `session_summaries/` to `.gitignore` if not prese
 - Summaries don't clutter git history
 - Each machine maintains its own local summary archive
 - No conflicts between parallel workers writing summaries
+
+---
+
+## Skills Reference
+
+Skills are auto-invocable capabilities that Claude can use proactively based on context.
+
+### `/compound`
+
+**Purpose:** Capture learnings after solving a problem, creating institutional knowledge.
+
+**Triggers:**
+- Explicit invocation with `/compound`
+- Phrases like "that worked", "fixed it", "figured it out"
+- After successful debugging sessions
+
+**What it does:**
+1. Asks clarifying questions about the problem and solution
+2. Searches for existing similar solutions in `docs/solutions/`
+3. Creates a documented solution with proper schema
+4. Offers to add reminders to CLAUDE.md or create follow-up tasks
+
+**Output:** Creates a markdown file in `docs/solutions/[category]/` with:
+- YAML frontmatter (module, problem_type, root_cause, severity)
+- Symptom description
+- Investigation notes
+- Root cause analysis
+- Solution details
+- Prevention recommendations
+
+---
+
+### `/multi-review`
+
+**Purpose:** Comprehensive code review using multiple specialized agents in parallel.
+
+**Triggers:**
+- Explicit invocation with `/multi-review`
+- Requests for "thorough review" or "full code review"
+
+**What it does:**
+1. Identifies changed files from git
+2. Selects appropriate review agents based on change types
+3. Launches 3-5 parallel review agents
+4. Aggregates findings by severity (Critical > Important > Suggestion)
+5. Filters to high-confidence (≥80%) issues
+6. Offers auto-fix for fixable issues
+
+**Review Agents:**
+| Agent | Focus | When Used |
+|-------|-------|-----------|
+| code-simplicity-reviewer | YAGNI, complexity | Always |
+| pattern-recognition-specialist | Anti-patterns, conventions | Always |
+| security-sentinel | OWASP Top 10, auth, secrets | Auth/security changes |
+| performance-oracle | N+1 queries, caching, memory | Data operations |
+| architecture-strategist | SOLID, design patterns | Structural changes |
+
+---
+
+## Agents Reference
+
+Agent definitions live in `agents/` and are used by skills and commands.
+
+### Research Agents
+
+Used by `/orient` and `/start-task` to gather context before implementation.
+
+| Agent | Purpose | Used By |
+|-------|---------|---------|
+| `repo-research-analyst` | Map architecture, conventions | `/orient` Phase 1.5 |
+| `git-history-analyzer` | Historical context, contributors | `/orient` Phase 1.5 |
+| `framework-docs-researcher` | Library docs, deprecation checks | `/start-task` Step 5.5 |
+| `learnings-researcher` | Search docs/solutions/ | `/start-task` Step 5.5 |
+| `best-practices-researcher` | External best practices | `/start-task` Step 5.5 |
+
+### Review Agents
+
+Used by `/multi-review` for specialized code review.
+
+| Agent | Focus |
+|-------|-------|
+| `code-simplicity-reviewer` | YAGNI, minimize complexity |
+| `security-sentinel` | OWASP Top 10, vulnerabilities |
+| `performance-oracle` | N+1 queries, memory, caching |
+| `pattern-recognition-specialist` | Anti-patterns, conventions |
+| `architecture-strategist` | SOLID, design alignment |
 
 ---
 
@@ -501,6 +588,8 @@ Pass work between sessions when context grows too large:
    ```bash
    ls -la ~/.claude/commands  # Should show symlink
    ls -la ~/.claude/hooks     # Should show symlink
+   ls -la ~/.claude/agents    # Should show symlink
+   ls -la ~/.claude/skills    # Should show symlink
    which mp-spawn             # Should show path to bin/mp-spawn
    ```
 
@@ -513,7 +602,7 @@ The installer:
 
 ---
 
-## Adding New Commands or Hooks
+## Adding New Commands, Skills, or Hooks
 
 ### Adding a Command
 
@@ -534,18 +623,31 @@ The installer:
    Instructions for Claude...
    ```
 
-3. Commit and push:
+3. Commit and push — available immediately as `/my-new-command`
+
+### Adding a Skill
+
+Skills support auto-invocation based on context (commands require explicit `/invoke`).
+
+1. Create a new directory in `skills/`:
    ```bash
-   cd ~/Code/claude-config
-   git add commands/my-new-command.md
-   git commit -m "Add my-new-command"
-   git push
+   mkdir ~/Code/claude-config/skills/my-skill
+   vim ~/Code/claude-config/skills/my-skill/SKILL.md
    ```
 
-4. Use immediately:
+2. Use the SKILL.md format:
+   ```markdown
+   ---
+   name: my-skill
+   description: "This skill should be used when..."
+   ---
+
+   # My Skill
+
+   Instructions for Claude...
    ```
-   /my-new-command arg1 arg2
-   ```
+
+3. Commit and push — available as `/my-skill` and auto-invoked when description matches
 
 ### Adding a Hook
 
@@ -555,12 +657,7 @@ The installer:
    chmod +x ~/Code/claude-config/hooks/my-hook.sh
    ```
 
-2. Commit and push:
-   ```bash
-   git add hooks/my-hook.sh
-   git commit -m "Add my-hook"
-   git push
-   ```
+2. Commit and push
 
 ---
 

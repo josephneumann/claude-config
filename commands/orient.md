@@ -55,6 +55,56 @@ Map out:
 - Configuration files
 - Build/deployment setup
 
+## Phase 1.5: Deep Research (Parallel)
+
+When the project has significant complexity or unfamiliar patterns, run these research agents in parallel using the Task tool to build deeper context:
+
+### Research Agents
+
+1. **repo-research-analyst**
+   - Read agent definition: `~/.claude/agents/research/repo-research-analyst.md`
+   - Input: Project root path, file structure from Phase 1
+   - Output: Convention guide, architecture map, code style patterns
+   - Use when: New to the codebase, unfamiliar framework, or complex architecture
+
+2. **git-history-analyzer**
+   - Read agent definition: `~/.claude/agents/research/git-history-analyzer.md`
+   - Input: Git repository path
+   - Output: Contributor expertise areas, decision patterns, hot spots
+   - Use when: Need to understand who knows what, or why decisions were made
+
+### Launch Pattern
+
+```
+Use Task tool with subagent_type=general-purpose to run research agents in parallel:
+
+Task 1: repo-research-analyst
+- Read ~/.claude/agents/research/repo-research-analyst.md
+- Analyze project structure and conventions
+- Return: architecture summary, conventions guide
+
+Task 2: git-history-analyzer
+- Read ~/.claude/agents/research/git-history-analyzer.md
+- Analyze git history for patterns
+- Return: contributor map, decision patterns
+```
+
+### Incorporate Findings
+
+Add research findings to the "CONTEXT FOR NEW SESSIONS" section of the orientation report:
+- Key conventions discovered
+- Architecture patterns identified
+- Expert contributors for different areas
+- Historical decisions that inform current work
+
+### Skip Research If
+
+- Already familiar with the codebase
+- Small/simple project with clear structure
+- Time-sensitive orientation (defer to later)
+
+---
+
 ## Phase 2: Task State Analysis
 
 ### 2.1 Beads Overview

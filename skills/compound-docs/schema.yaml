@@ -1,0 +1,118 @@
+# Schema for docs/solutions/ documents
+# Used by /compound and compound-docs skills for validation
+
+required:
+  - scope
+  - module
+  - date
+  - problem_type
+  - symptoms
+  - root_cause
+  - severity
+
+fields:
+  scope:
+    type: enum
+    description: "Where this learning is stored and applies"
+    values:
+      - project    # Project-specific, stored in ./docs/solutions/
+      - global     # Cross-project, stored in ~/.claude/docs/solutions/
+
+
+  module:
+    type: string
+    description: "The affected module or area of the codebase"
+    examples:
+      - authentication
+      - database
+      - api
+      - frontend
+      - cli
+
+  date:
+    type: string
+    format: "YYYY-MM-DD"
+    description: "Date the solution was documented"
+
+  problem_type:
+    type: enum
+    description: "Category of the problem"
+    values:
+      - build-error      # Compilation, bundling, dependency issues
+      - test-failure     # Test suite failures
+      - runtime-error    # Exceptions, crashes at runtime
+      - performance      # Slow operations, memory issues
+      - database         # Query issues, migrations, data integrity
+      - security         # Vulnerabilities, auth issues
+      - integration      # Third-party API, service communication
+      - logic-error      # Incorrect business logic
+      - workflow         # Development process, tooling issues
+
+  symptoms:
+    type: array
+    items: string
+    description: "Observable symptoms of the problem"
+    min_items: 1
+
+  root_cause:
+    type: enum
+    description: "Underlying cause of the problem"
+    values:
+      - missing-dependency     # Package not installed or wrong version
+      - config-error           # Configuration mistake
+      - race-condition         # Timing/concurrency issue
+      - incorrect-assumption   # Wrong understanding of behavior
+      - api-change             # External API changed
+      - missing-validation     # Input not validated
+      - resource-exhaustion    # Memory, connections, etc.
+      - logic-flaw             # Bug in business logic
+      - documentation-gap      # Missing or wrong docs
+      - other                  # Doesn't fit other categories
+
+  severity:
+    type: enum
+    description: "Impact severity of the problem"
+    values:
+      - critical   # Production outage, data loss, security breach
+      - high       # Major feature broken, significant user impact
+      - medium     # Feature degraded, workaround exists
+      - low        # Minor issue, cosmetic, edge case
+
+  tags:
+    type: array
+    items: string
+    required: false
+    description: "Additional searchable tags"
+
+  related:
+    type: array
+    items: string
+    required: false
+    description: "Links to related solutions, issues, or PRs"
+
+  prevention:
+    type: array
+    items: string
+    required: false
+    description: "Steps to prevent recurrence"
+
+# Directory mapping based on problem_type
+category_dirs:
+  build-error: build-errors/
+  test-failure: test-failures/
+  runtime-error: runtime-errors/
+  performance: performance/
+  database: database/
+  security: security/
+  integration: integration/
+  logic-error: logic-errors/
+  workflow: workflow/
+
+# Filename pattern
+filename_pattern: "[symptom-slug]-[module]-YYYYMMDD.md"
+filename_rules:
+  - All lowercase
+  - Hyphens for word separation
+  - Symptom keyword first (most searchable term)
+  - Module second (provides context)
+  - Date last (enables versioning)
