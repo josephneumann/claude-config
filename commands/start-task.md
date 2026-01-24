@@ -177,33 +177,99 @@ bd update <task_id> --status in_progress
 bd sync
 ```
 
-## 9. Summarize the Task
+## 9. Assess Task Size
 
-Provide a summary:
-- Task title and description
-- Key acceptance criteria
-- Files likely to be created/modified
-- Suggested approach
+**Philosophy: Task-sized work** — Tasks should fit comfortably in context.
 
-## 10. Clarify Before Starting
+Now that you can see the codebase, evaluate whether this task is appropriately sized:
 
-**CRITICAL**: Before writing any code, use the `AskUserQuestion` tool to resolve ambiguities. Ask as many follow-up questions as needed to reach clarity on:
+**Signs the task is too large:**
+- Multiple independent features bundled together
+- Requires changes across 10+ files
+- Has vague scope like "refactor the entire X system"
+- You anticipate needing a handoff mid-task
 
-- Unclear requirements or acceptance criteria
+**If too large**, present options to the user:
+
+```
+This task seems large for a single session. Options:
+
+1. **Break it down** — I'll create subtasks and we pick one to start
+2. **Proceed anyway** — Work on it knowing we may need a handoff
+3. **Scope it down** — Redefine acceptance criteria to a smaller slice
+
+Which approach?
+```
+
+**If user chooses "Break it down":**
+```bash
+# Create subtasks
+bd create --title="Subtask: <part 1>" --type=task --priority=<same>
+bd create --title="Subtask: <part 2>" --type=task --priority=<same>
+
+# Link to parent
+bd dep add <subtask-id> <parent-task-id>
+
+# Unclaim the parent (it's now a container)
+bd update <parent-task-id> --status open
+```
+
+Then ask: "Which subtask should we work on? I'll switch to that task."
+
+If they pick a subtask, **start over from step 1** with the subtask ID. The current worktree can be reused or removed.
+
+**If appropriately sized**, continue to step 10.
+
+## 10. Define Acceptance Criteria
+
+**Philosophy: Bounded autonomy** — Define "done" before coding.
+
+Work with the user to establish clear acceptance criteria. Use `AskUserQuestion` to confirm:
+
+```
+Before I start, let me confirm the acceptance criteria:
+
+1. [ ] <functional requirement 1>
+2. [ ] <functional requirement 2>
+3. [ ] <edge case or constraint>
+4. [ ] Tests pass (always required)
+
+Is this complete? Anything to add or change?
+```
+
+**Good acceptance criteria are:**
+- **Specific** — "User can log in with email/password" not "authentication works"
+- **Testable** — Can be verified with a test or clear manual check
+- **Bounded** — Clear what's in scope and what's not
+
+Record the agreed criteria:
+```bash
+bd update <task_id> --notes "Acceptance: <brief summary of criteria>"
+```
+
+## 11. Clarify Ambiguities
+
+**CRITICAL**: Before writing any code, use `AskUserQuestion` to resolve any remaining ambiguities:
+
 - Implementation approach if multiple valid options exist
-- Edge cases or error handling expectations
+- Edge cases not covered by acceptance criteria
 - Integration points with existing code
-- Testing expectations
+- Testing strategy
 
-Keep asking until you have a clear picture of what "done" looks like. Do NOT proceed with assumptions - get explicit confirmation.
+Keep asking until you have a clear picture. Do NOT proceed with assumptions.
 
-Example questions to consider:
+Example questions:
 - "The task mentions X but doesn't specify Y - which approach do you prefer?"
 - "Should this handle edge case Z, or is that out of scope?"
 - "I see two ways to implement this: A or B. Do you have a preference?"
 
-## 11. Begin Implementation
+## 12. Begin Implementation
 
-Once all ambiguities are resolved and you have clear requirements, ask: "Ready to begin implementation?"
+Once:
+- Task is appropriately sized (or user approved proceeding)
+- Acceptance criteria are defined
+- Ambiguities are resolved
+
+Ask: "Ready to begin implementation?"
 
 Only start coding after the user confirms.

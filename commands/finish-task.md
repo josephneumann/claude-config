@@ -21,7 +21,23 @@ Confirm:
 - You're in the correct worktree
 - All changes are visible
 
-## 2. Run Quality Gates
+## 2. Verify Acceptance Criteria
+
+**Philosophy: Bounded autonomy** — Verify the task achieved what it set out to do.
+
+From the `bd show` output above, check for recorded acceptance criteria (in notes or description). Verify each is met:
+```
+Acceptance Criteria Check:
+- [x] <criterion 1> — Implemented in <file>
+- [x] <criterion 2> — Verified by <test>
+- [x] Tests pass
+```
+
+If any criterion is NOT met, either:
+1. Complete the missing work before proceeding
+2. Create a follow-up task for deferred items and note the reason
+
+## 3. Run Quality Gates
 
 Run appropriate tests for the project:
 
@@ -38,7 +54,7 @@ make run-checks
 
 **If tests fail, STOP.** Fix the issues before proceeding. Do NOT close a task with failing tests.
 
-## 3. Review and Update Documentation
+## 4. Review and Update Documentation
 
 Before committing, review whether documentation needs updates:
 
@@ -49,7 +65,7 @@ Before committing, review whether documentation needs updates:
 
 Update any documentation that is now stale or incomplete due to your changes. Keep updates minimal and focused - only document what changed.
 
-## 4. File Follow-up Issues
+## 5. File Follow-up Issues
 
 If there's remaining work, TODOs, or improvements discovered during implementation:
 
@@ -59,7 +75,7 @@ bd create "Follow-up: <description>"
 
 Do this BEFORE closing the main task so nothing is lost.
 
-## 5. Commit All Changes
+## 6. Commit All Changes
 
 ```bash
 git add -A
@@ -83,7 +99,7 @@ EOF
 )"
 ```
 
-## 6. Sync Beads (Pre-Push)
+## 7. Sync Beads (Pre-Push)
 
 Sync beads before pushing to pull any remote changes:
 
@@ -91,7 +107,7 @@ Sync beads before pushing to pull any remote changes:
 bd sync
 ```
 
-## 7. Push to Remote
+## 8. Push to Remote
 
 ```bash
 git push -u origin $(git branch --show-current)
@@ -99,7 +115,7 @@ git push -u origin $(git branch --show-current)
 
 **If push fails, resolve and retry.** Do NOT proceed until push succeeds.
 
-## 8. Close the Task and Final Sync
+## 9. Close the Task and Final Sync
 
 ```bash
 bd close $ARGUMENTS --reason="Completed. See branch $(git branch --show-current)."
@@ -108,7 +124,7 @@ bd sync
 
 **CRITICAL**: The final `bd sync` ensures the task closure is pushed to the remote. Without this, other agents won't see the task is complete.
 
-## 9. Verify Everything is Synced
+## 10. Verify Everything is Synced
 
 ```bash
 git status
@@ -121,7 +137,7 @@ Confirm:
 - Task status is `closed`
 - `bd sync` shows "no changes" or "already up to date"
 
-## 10. Create Pull Request
+## 11. Create Pull Request
 
 Create a PR for the completed work:
 
@@ -149,7 +165,7 @@ EOF
 )"
 ```
 
-## 10a. Code Review and Auto-Fix
+## 11a. Code Review and Auto-Fix
 
 Run automated code review on the PR using parallel specialized reviewers:
 
@@ -215,9 +231,9 @@ After code review passes (or user approves despite issues):
 
 "PR created: <URL>. Code review [passed / fixed N issues / has N unresolved issues]. Would you like me to merge it and clean up the worktree?"
 
-If user approves, proceed to step 11. If user declines, leave the PR open for manual review and skip to step 12.
+If user approves, proceed to step 12. If user declines, leave the PR open for manual review and skip to step 13.
 
-## 11. Merge PR and Cleanup Worktree
+## 12. Merge PR and Cleanup Worktree
 
 **IMPORTANT**: Must use absolute paths and cd to main repo BEFORE removing worktree.
 
@@ -267,7 +283,7 @@ git push origin --delete "$BRANCH_NAME" 2>/dev/null || true
 cd "$MAIN_REPO"  # or: cd /Users/jneumann/Code/<project>
 ```
 
-## 12. Session Summary
+## 13. Session Summary
 
 **IMPORTANT**: Output a detailed session summary for orchestrating agents. This summary will be consumed by a coordinating agent to track progress across multiple parallel work sessions. Be verbose and thorough.
 
@@ -374,7 +390,7 @@ END SESSION SUMMARY
 
 This format ensures orchestrating agents have full context to coordinate parallel work and make informed decisions about task assignment.
 
-## 13. Persist Summary to Disk
+## 14. Persist Summary to Disk
 
 Write the summary to a file so orchestrating agents can read it directly from disk.
 
