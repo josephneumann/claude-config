@@ -422,6 +422,10 @@ cat > "$SUMMARY_FILE" <<'SUMMARY_EOF'
 SUMMARY_EOF
 
 echo "Summary written to: $SUMMARY_FILE"
+
+# Copy summary to clipboard for easy pasting
+cat "$SUMMARY_FILE" | pbcopy
+echo "Summary copied to clipboard"
 ```
 
-**Important:** The summary file allows orchestrators to asynchronously review completed work without needing the worker session to remain active.
+**Important:** The summary file allows orchestrators to asynchronously review completed work without needing the worker session to remain active. The summary is also copied to clipboard for easy sharing with the orchestrator.
