@@ -259,31 +259,40 @@ END ORIENTATION REPORT
 
 ## Phase 5: Ready for Action
 
-After presenting the orientation report, summarize the actionable next steps:
+After presenting the orientation report, **ALWAYS offer `/dispatch` as the primary action when there are 2+ ready tasks.**
 
-"Orientation complete. To start parallel work, open new Claude sessions and run:
-
-```
-/start-task <task-id-1>   # <brief description>
-/start-task <task-id-2>   # <brief description>
-/start-task <task-id-3>   # <brief description>
-```
-
-Each session will:
-1. Create a git worktree for isolation
-2. Disable beads daemon mode
-3. Claim the task
-4. Begin implementation
-
-When a task is complete, run `/finish-task <task-id>` to close out properly.
+Present the following call-to-action:
 
 ---
 
-What would you like to do in THIS session?
+"Orientation complete. **Recommended next step:**
 
-1. **Deep dive** - Explore a specific task or area in more detail
-2. **Start working** - Pick one of the recommended tasks with `/start-task <id>`
-3. **Review** - Look at specific code, tests, or documentation
-4. **Coordinate** - Help manage the parallel work as tasks complete"
+```
+/dispatch
+```
+
+This will spawn parallel Claude Code workers for the ready tasks. Each worker will:
+1. Auto-receive their task assignment via the handoff queue
+2. Create a git worktree for isolation
+3. Run `/start-task <task-id>` automatically
+4. Work autonomously until completion
+
+You stay in THIS session as the orchestrator to coordinate as workers complete.
+
+---
+
+**Alternative options:**
+
+1. **Dispatch workers** - Run `/dispatch` to spawn parallel workers (RECOMMENDED)
+2. **Manual parallel** - Open separate terminals and run `/start-task <id>` in each
+3. **Work solo** - Pick one task with `/start-task <id>` in this session
+4. **Deep dive** - Explore a specific task or area in more detail
+5. **Coordinate** - Help manage existing parallel work as tasks complete
+
+What would you like to do?"
+
+---
+
+**CRITICAL**: You MUST present `/dispatch` prominently. Do not bury it in a list of options. The whole point of orientation is to enable parallel execution via dispatch.
 
 Await user direction before taking action.
