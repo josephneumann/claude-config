@@ -122,9 +122,17 @@ Workflow guidance (commands, skills, philosophy) comes automatically from the gl
 
 **Automated handoff flow:**
 - `/dispatch` writes handoff context to `pending_handoffs/<task-id>.txt`
-- `mp-spawn` sets `WORKER_TASK_ID` environment variable
-- SessionStart hook reads the handoff file and displays it to Claude
+- `/dispatch` appends task ID to `pending_handoffs/.queue`
+- `mp-spawn` creates signal file `pending_handoffs/.spawn-<timestamp>-<pid>`
+- `mp-spawn` spawns Claude in a new iTerm2 tab
+- SessionStart hook claims signal file (atomic delete) — no signal = manual session, exit silently
+- Hook pops task from `.queue` (mkdir-based locking) and displays handoff
 - Claude sees the instruction to execute `/start-task`
+
+This signal + queue mechanism ensures:
+- Each worker gets exactly one task (FIFO order)
+- Manual sessions never grab queued tasks (no signal file)
+- Interrupted dispatch leaves no stale state (signals tied to actual spawns)
 
 **Confirmation flow:**
 - Confirms dispatch of N workers
@@ -448,17 +456,23 @@ Shell utilities for orchestrating parallel Claude workers.
 
 **What it does:**
 1. Opens a new iTerm2 tab via AppleScript
-2. Sets `WORKER_TASK_ID` environment variable for the task
+2. Creates signal file `pending_handoffs/.spawn-<timestamp>-<pid>`
 3. Starts Claude Code (with `--chrome` enabled by default)
-4. SessionStart hook automatically loads handoff context from `pending_handoffs/`
+4. SessionStart hook claims signal and loads handoff context from queue
 
 **Note:** `mp-spawn` does NOT create worktrees. Worktree creation is handled entirely by `/start-task` for simplicity and to avoid duplication issues.
 
 **Automated handoff mechanism:**
-- `mp-spawn` sets `WORKER_TASK_ID=<task-id>` when starting Claude
-- The SessionStart hook (`load-worker-handoff.sh`) checks for this env var
-- If set, it reads `pending_handoffs/<task-id>.txt` and displays the context
+- `/dispatch` writes handoff files AND appends task IDs to `pending_handoffs/.queue`
+- `mp-spawn` creates signal file, then spawns Claude
+- SessionStart hook claims signal (atomic delete) — no signal = manual session
+- Hook pops task from `.queue` (mkdir-based locking) and displays handoff
 - Claude sees the handoff + instruction to execute `/start-task`
+
+This signal + queue approach ensures:
+- Reliable task assignment even if workers spawn simultaneously
+- Manual sessions never grab queued tasks
+- Interrupted dispatch leaves no stale state
 
 **Usage:**
 ```bash

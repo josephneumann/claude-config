@@ -121,7 +121,7 @@ Used by `/multi-review` for specialized parallel review:
 
 # Parallel sessions (orchestrator)
 /orient → /dispatch --count 3
-# Workers auto-receive handoff context and execute /start-task
+# Workers auto-receive handoff via queue mechanism (see below)
 
 # Handoff (context full)
 /handoff-task <id> → new session → /start-task <id> --handoff "..."
@@ -133,6 +133,32 @@ Used by `/multi-review` for specialized parallel review:
 worker: /finish-task <id> → summary written to session_summaries/
 orchestrator: /reconcile-summary → auto-discovers summaries → update beads
 ```
+
+---
+
+## Automated Worker Handoff
+
+When `/dispatch` spawns workers, they automatically receive their task context:
+
+1. **`/dispatch` writes two files per task:**
+   - `pending_handoffs/<task-id>.txt` — Full handoff content
+   - `pending_handoffs/.queue` — Task ID appended (FIFO order)
+
+2. **`mp-spawn` creates a signal file** just before starting Claude:
+   - `pending_handoffs/.spawn-<timestamp>-<pid>`
+
+3. **SessionStart hook runs on every Claude session:**
+   - No signal file? → Exit silently (manual session)
+   - Signal exists? → Claim it (atomic delete), pop task from queue, show handoff
+
+4. **Worker sees:** Task context + instruction to run `/start-task <task-id>`
+
+**Key points:**
+- Manual sessions never grab queued tasks (no signal = no action)
+- Signal files are created by mp-spawn, not dispatch (tied to actual spawns)
+- Concurrent workers are safe (mkdir-based locking on queue, atomic signal claim)
+- FIFO ordering ensures tasks are assigned in dispatch order
+- Interrupted dispatch leaves no stale state (signals only exist for actual spawns)
 
 ---
 

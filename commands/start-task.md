@@ -232,10 +232,15 @@ Before I start, let me confirm the acceptance criteria:
 1. [ ] <functional requirement 1>
 2. [ ] <functional requirement 2>
 3. [ ] <edge case or constraint>
-4. [ ] Tests pass (always required)
+4. [ ] Tests pass
+5. [ ] /finish-task run (creates PR, session summary, closes task)
 
 Is this complete? Anything to add or change?
 ```
+
+**IMPORTANT**: Items 4 and 5 are ALWAYS required and non-negotiable:
+- **Tests pass** — Code must be verified working
+- **`/finish-task` run** — The session is not complete without this. It creates the PR, generates a session summary for the orchestrator, and closes the task. Skipping this breaks the coordination workflow.
 
 **Good acceptance criteria are:**
 - **Specific** — "User can log in with email/password" not "authentication works"

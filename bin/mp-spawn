@@ -12,16 +12,17 @@ Usage: mp-spawn <task-id> [options]
 
 Options:
   --dir /path/to/project  Project directory (default: current directory)
-  --handoff "text"        Handoff context from previous session
   --skip-permissions      Skip all permission prompts (--dangerously-skip-permissions)
   --chrome                Enable Chrome browser tools (--chrome)
   --no-chrome             Disable Chrome browser tools
   --help                  Show this help
 
+Note: Handoff context is passed via pending_handoffs/<task-id>.txt files,
+written by /dispatch before spawning. The --handoff flag is deprecated.
+
 Examples:
   mp-spawn MoneyPrinter-ajq
   mp-spawn MoneyPrinter-ajq --dir /Users/jneumann/Code/MoneyPrinter
-  mp-spawn MoneyPrinter-ajq --handoff "Use existing patterns"
   mp-spawn MoneyPrinter-ajq --skip-permissions --chrome
 EOF
   exit 1
@@ -111,8 +112,9 @@ CLAUDE_CMD="claude"
 [[ -n "$CHROME" ]] && CLAUDE_CMD="$CLAUDE_CMD $CHROME"
 [[ -n "$SKIP_PERMS" ]] && CLAUDE_CMD="$CLAUDE_CMD $SKIP_PERMS"
 
-# Use osascript to open a new iTerm2 tab, cd to project dir, set env var, and start claude
-# The WORKER_TASK_ID env var triggers the SessionStart hook to load handoff context
+# Use osascript to open a new iTerm2 tab, cd to project dir, and start claude
+# After tab is ready, we create a signal file and start claude
+# The SessionStart hook claims the signal and processes the queue
 # /start-task will handle worktree creation
 osascript \
   -e 'tell application "iTerm2"' \
@@ -141,12 +143,19 @@ osascript \
   -e '    end tell' \
   -e 'end tell'
 
-# Start claude with WORKER_TASK_ID set - the SessionStart hook will read this
+# Create spawn signal file - this tells the hook this is a worker session
+# The hook will claim this signal (delete it) and process the queue
+# Signal filename includes timestamp and PID for uniqueness
+mkdir -p "$PROJECT_DIR/pending_handoffs"
+SPAWN_SIGNAL="$PROJECT_DIR/pending_handoffs/.spawn-$(date +%s)-$$"
+touch "$SPAWN_SIGNAL"
+
+# Start claude - the SessionStart hook will see the signal and process queue
 osascript \
   -e 'tell application "iTerm2"' \
   -e '    tell current window' \
   -e '        tell current session' \
-  -e "            write text \"WORKER_TASK_ID='${TASK_ID}' ${CLAUDE_CMD}\"" \
+  -e "            write text \"${CLAUDE_CMD}\"" \
   -e '        end tell' \
   -e '    end tell' \
   -e 'end tell'
@@ -156,6 +165,6 @@ sleep 2
 
 echo ""
 echo "Worker spawned for $TASK_ID"
-echo "Environment: WORKER_TASK_ID=$TASK_ID"
+echo "Signal: $SPAWN_SIGNAL"
 echo ""
-echo "The worker will automatically receive handoff context via SessionStart hook."
+echo "The worker will claim the signal and pop its task from the queue on startup."
