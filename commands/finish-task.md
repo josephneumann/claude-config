@@ -283,7 +283,17 @@ git push origin --delete "$BRANCH_NAME" 2>/dev/null || true
 cd "$MAIN_REPO"  # or: cd /Users/jneumann/Code/<project>
 ```
 
-## 13. Session Summary
+## 13. Re-Read Original Task Spec
+
+**CRITICAL**: Before writing the session summary, re-read the original task specification to accurately identify divergences:
+
+```bash
+bd show $ARGUMENTS
+```
+
+Save this output mentally - you'll compare it against your implementation when writing the SPEC DIVERGENCES section. Don't rely on memory; divergences are easy to miss without explicit comparison.
+
+## 14. Session Summary
 
 **IMPORTANT**: Output a detailed session summary for orchestrating agents. This summary will be consumed by a coordinating agent to track progress across multiple parallel work sessions. Be verbose and thorough.
 
@@ -412,7 +422,7 @@ END SESSION SUMMARY
 
 This format ensures orchestrating agents have full context to coordinate parallel work and make informed decisions about task assignment.
 
-## 14. Persist Summary to Disk
+## 15. Persist Summary to Disk
 
 Write the summary to a file so orchestrating agents can read it directly from disk.
 
@@ -448,7 +458,7 @@ echo "Summary written to: $SUMMARY_FILE"
 
 **Important:** The summary file allows orchestrators to asynchronously review completed work without needing the worker session to remain active.
 
-## 15. Copy to Clipboard (Optional)
+## 16. Copy to Clipboard (Optional)
 
 Use AskUserQuestion to offer copying the summary to clipboard:
 
@@ -464,3 +474,32 @@ echo "Summary copied to clipboard"
 ```
 
 This avoids clipboard conflicts when multiple worker sessions complete simultaneously.
+
+## 17. Notify Orchestrator
+
+**IMPORTANT**: If you documented any SPEC DIVERGENCES, the orchestrator needs to reconcile the beads task board with the implementation reality.
+
+Output this message to the user:
+
+```
+===============================================
+TASK COMPLETE: $ARGUMENTS
+
+Summary ready for orchestrator.
+Divergences documented: <Yes/None>
+
+Next step: Paste this summary into the orchestrator session
+and run `/reconcile-summary` to update affected tasks.
+===============================================
+```
+
+If the SPEC DIVERGENCES section was "None - implementation matches specification", you can simplify to:
+
+```
+===============================================
+TASK COMPLETE: $ARGUMENTS
+
+No spec divergences - implementation matched specification.
+Summary available at: <path to summary file>
+===============================================
+```
