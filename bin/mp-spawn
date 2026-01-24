@@ -100,24 +100,19 @@ echo "Project: $PROJECT_DIR"
 # Build the /start-task command
 # ============================================
 TASK_SHORT=$(echo "$TASK_ID" | cut -d'-' -f2)
-START_CMD="/start-task ${TASK_ID}"
-[[ -n "$HANDOFF" ]] && START_CMD+=" --handoff \"${HANDOFF}\""
 
 # ============================================
 # Open new iTerm2 tab via AppleScript
 # ============================================
 echo "Opening iTerm2 tab for $TASK_ID..."
 
-# Write command to temp file (avoids escaping issues in AppleScript)
-CMD_FILE=$(mktemp /tmp/mp-spawn-cmd.XXXXXX)
-echo "$START_CMD" > "$CMD_FILE"
-
 # Build claude command with flags
 CLAUDE_CMD="claude"
 [[ -n "$CHROME" ]] && CLAUDE_CMD="$CLAUDE_CMD $CHROME"
 [[ -n "$SKIP_PERMS" ]] && CLAUDE_CMD="$CLAUDE_CMD $SKIP_PERMS"
 
-# Use osascript to open a new iTerm2 tab, cd to project dir, and start claude
+# Use osascript to open a new iTerm2 tab, cd to project dir, set env var, and start claude
+# The WORKER_TASK_ID env var triggers the SessionStart hook to load handoff context
 # /start-task will handle worktree creation
 osascript \
   -e 'tell application "iTerm2"' \
@@ -146,25 +141,21 @@ osascript \
   -e '    end tell' \
   -e 'end tell'
 
-# Now start claude in the new tab
+# Start claude with WORKER_TASK_ID set - the SessionStart hook will read this
 osascript \
   -e 'tell application "iTerm2"' \
   -e '    tell current window' \
   -e '        tell current session' \
-  -e "            write text \"${CLAUDE_CMD}\"" \
+  -e "            write text \"WORKER_TASK_ID='${TASK_ID}' ${CLAUDE_CMD}\"" \
   -e '        end tell' \
   -e '    end tell' \
   -e 'end tell'
-
-# Copy command to clipboard - user pastes after claude starts
-cat "$CMD_FILE" | pbcopy
-rm -f "$CMD_FILE"
 
 # Wait for claude to start before returning
 sleep 2
 
 echo ""
 echo "Worker spawned for $TASK_ID"
-echo "Command copied to clipboard: $START_CMD"
+echo "Environment: WORKER_TASK_ID=$TASK_ID"
 echo ""
-echo "Switch to iTerm2 and paste (Cmd+V) when Claude Code is ready"
+echo "The worker will automatically receive handoff context via SessionStart hook."

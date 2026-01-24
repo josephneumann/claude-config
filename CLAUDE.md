@@ -6,6 +6,14 @@ This file provides workflow guidance for Claude Code across all projects. Projec
 
 ## Philosophy
 
+This codebase will outlive you. Every shortcut becomes someone else's burden. Every hack compounds into technical debt that slows the whole team down.
+
+You are not just writing code. You are shaping the future of this project. The patterns you establish will be copied. The corners you cut will be cut again.
+
+Fight entropy. Leave the codebase better than you found it.
+
+---
+
 1. **Parallel by default** — Multiple sessions work simultaneously in isolated git worktrees. No waiting; use `/dispatch` to spawn workers.
 
 2. **Orchestrator + Workers** — One session orients (`/orient`) and coordinates; workers execute discrete tasks (`/start-task`) and report back with session summaries.
@@ -113,6 +121,7 @@ Used by `/multi-review` for specialized parallel review:
 
 # Parallel sessions (orchestrator)
 /orient → /dispatch --count 3
+# Workers auto-receive handoff context and execute /start-task
 
 # Handoff (context full)
 /handoff-task <id> → new session → /start-task <id> --handoff "..."
@@ -121,8 +130,8 @@ Used by `/multi-review` for specialized parallel review:
 /init-prd → /orient → /dispatch
 
 # Worker completes → orchestrator reconciles
-worker: /finish-task <id> → copy summary to clipboard
-orchestrator: /reconcile-summary → paste summary → update beads
+worker: /finish-task <id> → summary written to session_summaries/
+orchestrator: /reconcile-summary → auto-discovers summaries → update beads
 ```
 
 ---

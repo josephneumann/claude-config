@@ -113,11 +113,18 @@ Workflow guidance (commands, skills, philosophy) comes automatically from the gl
 **What it does:**
 1. Identifies tasks to dispatch (from args or `bd ready`)
 2. Generates handoff context for each task
-3. Shows summary and asks for confirmation (including skip-permissions option)
-4. Runs `mp-spawn` for each task (spawns workers in iTerm2 tabs)
-5. Provides guidance on attaching to workers
+3. Writes handoff files to `pending_handoffs/<task-id>.txt`
+4. Shows summary and asks for confirmation (including skip-permissions option)
+5. Runs `mp-spawn` for each task (spawns workers in iTerm2 tabs)
+6. Workers automatically receive handoff context via SessionStart hook
 
 **Note:** Worktrees are created by `/start-task`, not by `mp-spawn` or `/dispatch`.
+
+**Automated handoff flow:**
+- `/dispatch` writes handoff context to `pending_handoffs/<task-id>.txt`
+- `mp-spawn` sets `WORKER_TASK_ID` environment variable
+- SessionStart hook reads the handoff file and displays it to Claude
+- Claude sees the instruction to execute `/start-task`
 
 **Confirmation flow:**
 - Confirms dispatch of N workers
@@ -135,16 +142,10 @@ Workflow guidance (commands, skills, philosophy) comes automatically from the gl
 /dispatch MoneyPrinter-ajq:"Use PriceCache pattern"
 ```
 
-**After dispatch (with skip-permissions):**
-1. Switch to iTerm2 (`Cmd+Tab`)
-2. Paste the command (`Cmd+V`) and press Enter
-3. Use `Cmd+1/2/3` to navigate between worker tabs
+**After dispatch:**
+Workers automatically receive their handoff context and instructions via the SessionStart hook. No manual paste required.
 
-**After dispatch (without skip-permissions):**
-1. Switch to iTerm2 (`Cmd+Tab`)
-2. Answer the trust prompt for each worktree
-3. Paste the command (`Cmd+V`) and press Enter
-4. Use `Cmd+1/2/3` to navigate between worker tabs
+Use `Cmd+1/2/3` to navigate between worker tabs in iTerm2.
 
 **When to use:** From an orchestrator session to spawn parallel workers for independent tasks.
 
@@ -288,21 +289,27 @@ Workflow guidance (commands, skills, philosophy) comes automatically from the gl
 
 ---
 
-## Session Summaries (Persistent Output)
+## Session Summaries & Handoffs (Persistent I/O)
 
-Both `/summarize-session` and `/finish-task` write their session summaries to disk, enabling orchestrators to read completed work context asynchronously.
+Workers use two directories for persistent input and output:
+
+- **`pending_handoffs/`** — Input: Handoff context written by `/dispatch`, read by SessionStart hook
+- **`session_summaries/`** — Output: Session summaries written by `/finish-task`
 
 ### Storage Location
 
-Summaries are stored in the project root:
+Both directories are stored in the project root:
 
 ```
 project-root/
-├── session_summaries/          # Created automatically, gitignored
+├── pending_handoffs/           # Worker inputs (created by /dispatch)
+│   ├── MoneyPrinter-ajq.txt    # Consumed by SessionStart hook
+│   └── processed/              # Moved here after consumption
+├── session_summaries/          # Worker outputs (created by /finish-task)
 │   ├── MoneyPrinter-ajq_260117-143052.txt
 │   ├── MoneyPrinter-4b3_260117-151230.txt
-│   └── ...
-├── .gitignore                  # Contains session_summaries/
+│   └── reconciled/             # Moved here after reconciliation
+├── .gitignore                  # Contains both directories
 └── ...
 ```
 
@@ -338,10 +345,10 @@ ls session_summaries/*$(date +%y%m%d)*
 
 ### Automatic Gitignore
 
-The commands automatically add `session_summaries/` to `.gitignore` if not present. This ensures:
-- Summaries don't clutter git history
-- Each machine maintains its own local summary archive
-- No conflicts between parallel workers writing summaries
+The commands automatically add `session_summaries/` and `pending_handoffs/` to `.gitignore` if not present. This ensures:
+- Handoffs and summaries don't clutter git history
+- Each machine maintains its own local archive
+- No conflicts between parallel workers
 
 ---
 
@@ -441,11 +448,17 @@ Shell utilities for orchestrating parallel Claude workers.
 
 **What it does:**
 1. Opens a new iTerm2 tab via AppleScript
-2. Starts Claude Code with `--chrome` enabled by default
-3. Copies the `/start-task` command to your clipboard
-4. You paste the command after the worker starts
+2. Sets `WORKER_TASK_ID` environment variable for the task
+3. Starts Claude Code (with `--chrome` enabled by default)
+4. SessionStart hook automatically loads handoff context from `pending_handoffs/`
 
 **Note:** `mp-spawn` does NOT create worktrees. Worktree creation is handled entirely by `/start-task` for simplicity and to avoid duplication issues.
+
+**Automated handoff mechanism:**
+- `mp-spawn` sets `WORKER_TASK_ID=<task-id>` when starting Claude
+- The SessionStart hook (`load-worker-handoff.sh`) checks for this env var
+- If set, it reads `pending_handoffs/<task-id>.txt` and displays the context
+- Claude sees the handoff + instruction to execute `/start-task`
 
 **Usage:**
 ```bash
@@ -453,7 +466,7 @@ mp-spawn <task-id> [options]
 
 Options:
   --dir /path/to/project  Project directory (default: current directory)
-  --handoff "text"        Handoff context from previous session
+  --handoff "text"        Handoff context (legacy, prefer pending_handoffs/ files)
   --skip-permissions      Skip all permission prompts (uses --dangerously-skip-permissions)
 
 Note: --chrome is always enabled by default for all workers.
@@ -464,9 +477,6 @@ Note: --chrome is always enabled by default for all workers.
 # From within a project directory
 mp-spawn MoneyPrinter-ajq
 
-# With handoff context
-mp-spawn MoneyPrinter-ajq --handoff "Use PriceCache pattern for OHLCV data"
-
 # Fully autonomous workers (no permission prompts)
 mp-spawn MoneyPrinter-ajq --skip-permissions
 
@@ -474,16 +484,8 @@ mp-spawn MoneyPrinter-ajq --skip-permissions
 mp-spawn MoneyPrinter-ajq --dir "$(pwd)" --skip-permissions
 ```
 
-**After spawn (with --skip-permissions):**
-1. Switch to iTerm2 (`Cmd+Tab`)
-2. Paste the command (`Cmd+V`) — it's already on your clipboard
-3. Press Enter — worker starts immediately without trust prompts
-
-**After spawn (without --skip-permissions):**
-1. Switch to iTerm2 (`Cmd+Tab`)
-2. Answer the trust prompt for the project directory
-3. Paste the command (`Cmd+V`) — it's already on your clipboard
-4. Press Enter — `/start-task` will create the worktree and set up isolation
+**After spawn:**
+Workers automatically receive handoff context via the SessionStart hook. No manual paste required.
 
 **iTerm2 Integration:**
 - Uses AppleScript to create new iTerm2 tabs directly
