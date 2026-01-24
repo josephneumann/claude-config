@@ -134,20 +134,17 @@ osascript \
   -e 'end tell'
 
 # Wait for cd to complete
-sleep 1
+sleep 0.5
 
-# Set tab title using escape sequence (persists across process changes)
-# \e]1; sets tab title only, \a terminates the sequence
+# Set tab/session name using iTerm2's native AppleScript property
 osascript \
   -e 'tell application "iTerm2"' \
   -e '    tell current window' \
   -e '        tell current session' \
-  -e "            write text \"printf '\\\\e]1;${TASK_SHORT}\\\\a'\"" \
+  -e "            set name to \"${TASK_SHORT}\"" \
   -e '        end tell' \
   -e '    end tell' \
   -e 'end tell'
-
-sleep 0.5
 
 # Now start claude in the new tab
 osascript \
