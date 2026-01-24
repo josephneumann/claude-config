@@ -19,7 +19,31 @@ Examples:
 - `/start-task MoneyPrinter-46j.1` → task_id = `MoneyPrinter-46j.1`
 - `/start-task MoneyPrinter-46j.1 --handoff "Use 3% tolerance"` → with handoff context
 
-## 0.5 Display Handoff Context (if provided)
+## 1. Validate and Claim Task (FIRST!)
+
+**CRITICAL: Claim the task immediately to prevent race conditions with parallel workers.**
+
+```bash
+# Validate task exists
+bd show <task_id>
+```
+
+If the task doesn't exist, stop and report the error.
+
+If the task is already `in_progress` or `closed`, warn the user:
+- If `in_progress`: "This task is already claimed. Another worker may be on it. Proceed anyway?"
+- If `closed`: "This task is already closed. Did you mean a different task?"
+
+**Claim it immediately:**
+
+```bash
+bd update <task_id> --status in_progress
+bd sync
+```
+
+This must happen BEFORE any other setup (worktree creation, context gathering, etc.) to minimize the window where two workers might claim the same task.
+
+## 2. Display Handoff Context (if provided)
 
 If handoff context was provided, display it prominently:
 
@@ -33,17 +57,7 @@ HANDOFF CONTEXT FROM PREVIOUS SESSION
 
 **Note**: This is supplementary guidance from an orchestrating session. Still gather full project context and read the task directly — the handoff supplements but doesn't replace normal setup.
 
-## 1. Validate and Show Task
-
-```bash
-bd show <task_id>
-```
-
-Use the parsed `task_id` (not the full `$ARGUMENTS` which may contain `--handoff`).
-
-If the task doesn't exist, stop and report the error.
-
-## 2. Rename Conversation
+## 3. Rename Conversation
 
 Rename this conversation to the task ID and title for easy reference later:
 
@@ -53,7 +67,7 @@ Rename this conversation to the task ID and title for easy reference later:
 
 For example: `/rename frq: Implement backtest engine`
 
-## 3. Gather Project Context
+## 4. Gather Project Context
 
 Read these files to understand the project:
 - `CLAUDE.md` - Development guidelines
@@ -61,7 +75,7 @@ Read these files to understand the project:
 - `AGENTS.md` - Agent workflow documentation (if exists)
 - `README.md` - Project overview
 
-## 4. Check Recent Work
+## 5. Check Recent Work
 
 ```bash
 bd list --all | head -20
@@ -70,7 +84,7 @@ git log --oneline -10
 
 Understand what's been done recently and what state the project is in.
 
-## 5. Check Task Dependencies
+## 6. Check Task Dependencies
 
 ```bash
 bd show <task_id>
@@ -78,7 +92,7 @@ bd show <task_id>
 
 Look at the "Blocked by" section. If this task has unmet dependencies, warn the user and ask if they want to proceed anyway.
 
-## 5.5 Research Phase (Conditional)
+## 6.5 Research Phase (Conditional)
 
 Before implementation, determine if research is needed based on task characteristics.
 
@@ -135,7 +149,7 @@ bd update <task_id> --notes "Research: <brief summary of findings>"
 
 ---
 
-## 6. Create Git Worktree
+## 7. Create Git Worktree
 
 Determine the project directory name (e.g., `MoneyPrinter`). Create a worktree:
 
@@ -147,7 +161,7 @@ PROJECT_NAME=$(basename $(git rev-parse --show-toplevel))
 git worktree add ../${PROJECT_NAME}-<task_id> -b <task_id>-work
 ```
 
-## 7. Switch to Worktree and Disable Daemon
+## 8. Switch to Worktree and Disable Daemon
 
 ```bash
 cd ../${PROJECT_NAME}-<task_id>
@@ -156,7 +170,7 @@ export BEADS_NO_DAEMON=1
 
 **CRITICAL**: Remind the user that this terminal session now has `BEADS_NO_DAEMON=1` set, which prevents beads from auto-committing to the wrong branch.
 
-## 7.5. Copy Claude Settings to Worktree
+## 8.5. Copy Claude Settings to Worktree
 
 Copy the `.claude` directory from the main repo to preserve permission allowlists:
 
@@ -169,13 +183,6 @@ fi
 ```
 
 This ensures the agent has the same permission allowlist in the worktree as the main repo.
-
-## 8. Claim the Task
-
-```bash
-bd update <task_id> --status in_progress
-bd sync
-```
 
 ## 9. Assess Task Size
 
