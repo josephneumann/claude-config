@@ -123,9 +123,12 @@ Implementation often diverges from spec — that's normal. The workflow handles 
 - What downstream tasks are affected
 
 **Orchestrators** reconcile after each worker completes:
-1. Review the session summary (especially SPEC DIVERGENCES section)
-2. Run `/reconcile-summary` to update affected beads tasks
-3. Close obsoleted tasks, create discovered work, update descriptions
+1. Run `/reconcile-summary` (auto-discovers unreconciled summaries in `session_summaries/`)
+2. Or run `/reconcile-summary <task-id>` for a specific task
+3. Or paste a summary directly if preferred
+4. Update affected beads tasks, close obsoleted, create discovered work
+
+Reconciled summaries are moved to `session_summaries/reconciled/` to prevent re-processing.
 
 This keeps the task board accurate as reality unfolds.
 

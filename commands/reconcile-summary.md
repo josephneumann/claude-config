@@ -7,17 +7,68 @@ allowed-tools: Read, Bash, Glob, Grep, Edit, Write
 
 You are an orchestrating agent reviewing a completed worker session. Your job is to ensure the beads task board accurately reflects what was actually built, not just what was originally specified.
 
-## 1. Receive the Session Summary
+## 1. Discover Session Summaries
 
-The user will paste a session summary from a completed worker session. Parse it to extract:
+The command can receive input in multiple ways. Try them in order:
+
+### Option A: Argument provided
+If the user provided a task ID as argument (`$ARGUMENTS`), look for its summary:
+
+```bash
+# Find summary file for specific task
+ls -lt session_summaries/${ARGUMENTS}*.txt 2>/dev/null | head -1
+```
+
+### Option B: Auto-discover from session_summaries/
+If no argument, scan for unreconciled summaries (excludes `reconciled/` subdirectory):
+
+```bash
+# Find summary files NOT in reconciled/ subdirectory
+find session_summaries/ -maxdepth 1 -name "*.txt" -type f 2>/dev/null | head -10
+
+# Check which tasks were recently closed
+bd list --all 2>/dev/null | grep -i closed | head -10
+```
+
+### Option C: User pastes summary
+If no summaries found or user prefers, they can paste directly.
+
+### Discovery Logic
+
+1. **If `$ARGUMENTS` is a task ID**: Read that task's summary file
+2. **If summaries exist**: List them and ask user which to reconcile
+3. **If user pastes**: Parse the pasted content
+4. **If nothing found**: Ask user to paste or provide file path
+
+```bash
+# Example: List unreconciled summaries with task IDs and timestamps
+# (excludes session_summaries/reconciled/)
+for f in session_summaries/*.txt; do
+  if [ -f "$f" ]; then
+    task_id=$(basename "$f" | cut -d'_' -f1)
+    mod_time=$(stat -f "%Sm" -t "%Y-%m-%d %H:%M" "$f")
+    echo "$task_id - $mod_time - $f"
+  fi
+done 2>/dev/null | sort -t'-' -k2 -r | head -10
+```
+
+**Note:** Summaries in `session_summaries/reconciled/` have already been processed and are excluded from discovery.
+
+If multiple summaries need reconciliation, use AskUserQuestion:
+
+**Question:** "Found N unreconciled summaries. Which to process?"
+- **Options:** List task IDs, or "All of them" / "Let me pick"
+- **Header:** "Summaries"
+
+### Parse the Summary
+
+Once you have the summary content (from file or paste), extract:
 
 - **Task ID** from the TASK OVERVIEW section
 - **SPEC DIVERGENCES** section (critical - this tells you what changed)
 - **FOLLOW-UP ISSUES CREATED** section
 - **DEPENDENCIES UNBLOCKED** section
 - **ARCHITECTURAL NOTES** section
-
-If no summary is pasted, ask the user to paste it or provide a path to the summary file.
 
 ## 2. Review the Original Task
 
@@ -202,7 +253,23 @@ Use AskUserQuestion to offer copying the report to clipboard:
 
 If the user selects "Yes, copy to clipboard", copy the full reconciliation report.
 
-## 10. Prompt for Next Action
+## 10. Mark Summary as Reconciled
+
+Move the processed summary file to a `reconciled/` subdirectory to prevent re-processing:
+
+```bash
+# Create reconciled directory if needed
+mkdir -p session_summaries/reconciled
+
+# Move the processed summary
+mv "$SUMMARY_FILE" session_summaries/reconciled/
+
+echo "Summary moved to session_summaries/reconciled/"
+```
+
+This ensures the discovery step (Step 1) won't pick up already-reconciled summaries.
+
+## 11. Prompt for Next Action
 
 After reconciliation, ask the user:
 
@@ -210,6 +277,7 @@ After reconciliation, ask the user:
 - **Review changes** - Show the updated tasks in detail
 - **Continue orchestrating** - Return to normal orchestration
 - **Dispatch more workers** - Spin up workers for newly unblocked tasks
+- **Reconcile another** - Process the next pending summary
 
 ## Important Guidelines
 
