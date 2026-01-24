@@ -167,7 +167,42 @@ END RECONCILIATION REPORT
 ===============================================
 ```
 
-## 8. Prompt for Next Action
+## 8. Update Architectural Documentation (If Needed)
+
+If divergences represent significant architectural changes (not just implementation details), consider updating project-level documentation:
+
+**PROJECT_SPEC.md** - Update if:
+- Core architecture changed (different services, data flow, etc.)
+- Technology choices changed (different libraries, frameworks)
+- API contracts changed significantly
+- Data models changed
+
+**Project CLAUDE.md** - Update if:
+- New patterns or conventions were established
+- New commands or workflows were added
+- Critical rules changed (e.g., "never do X")
+
+```bash
+# Check if these files exist
+ls -la PROJECT_SPEC.md CLAUDE.md 2>/dev/null
+```
+
+Use AskUserQuestion to confirm before modifying these files:
+
+**Question:** "Divergence '<title>' represents an architectural change. Update PROJECT_SPEC.md or CLAUDE.md?"
+- **Options:** "Yes, update docs" / "No, beads only" / "Ask me about each file"
+
+## 9. Copy Reconciliation Report (Optional)
+
+Use AskUserQuestion to offer copying the report to clipboard:
+
+**Question:** "Copy reconciliation report to clipboard?"
+- **Options:** "Yes, copy to clipboard" / "No, skip"
+- **Header:** "Clipboard"
+
+If the user selects "Yes, copy to clipboard", copy the full reconciliation report.
+
+## 10. Prompt for Next Action
 
 After reconciliation, ask the user:
 
