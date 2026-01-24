@@ -273,3 +273,30 @@ Once:
 Ask: "Ready to begin implementation?"
 
 Only start coding after the user confirms.
+
+---
+
+## 13. CRITICAL: Task Completion Contract
+
+**YOUR WORK IS NOT DONE UNTIL YOU RUN `/finish-task <task-id>`**
+
+When implementation is complete (tests pass, code works), you MUST run:
+
+```
+/finish-task <task-id>
+```
+
+This command handles everything required to properly close out:
+- Creates the PR
+- Runs automated code review
+- Generates session summary for orchestrator
+- Closes the task in beads
+- Cleans up the worktree
+
+**DO NOT**:
+- Stop the session without running `/finish-task`
+- Tell the user "done!" without running `/finish-task`
+- Consider the task complete just because tests pass
+- Hand off without `/finish-task` (use `/handoff-task` if work is incomplete)
+
+The orchestrator depends on your session summary to coordinate parallel work. A task without a session summary is invisible to coordination.
