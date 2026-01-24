@@ -99,7 +99,7 @@ If user selects "No, cancel" for question 1, abort dispatch.
 
 For each task:
 
-1. **Write the handoff file** to `pending_handoffs/`:
+1. **Write the handoff file and add to queue** in `pending_handoffs/`:
 ```bash
 # Ensure directory exists
 mkdir -p "$(pwd)/pending_handoffs"
@@ -111,6 +111,10 @@ TIMESTAMP: <iso-timestamp>
 ---
 <handoff context text>
 HANDOFF_EOF
+
+# CRITICAL: Append task ID to the queue file
+# The SessionStart hook pops from this queue to assign tasks to workers
+echo "<task-id>" >> "$(pwd)/pending_handoffs/.queue"
 ```
 
 Also ensure `pending_handoffs/` is in `.gitignore`:
