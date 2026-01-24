@@ -422,10 +422,23 @@ cat > "$SUMMARY_FILE" <<'SUMMARY_EOF'
 SUMMARY_EOF
 
 echo "Summary written to: $SUMMARY_FILE"
+```
 
-# Copy summary to clipboard for easy pasting
+**Important:** The summary file allows orchestrators to asynchronously review completed work without needing the worker session to remain active.
+
+## 15. Copy to Clipboard (Optional)
+
+Use AskUserQuestion to offer copying the summary to clipboard:
+
+**Question:** "Copy session summary to clipboard?"
+- **Options:** "Yes, copy to clipboard" / "No, skip"
+- **Header:** "Clipboard"
+
+If the user selects "Yes, copy to clipboard":
+
+```bash
 cat "$SUMMARY_FILE" | pbcopy
 echo "Summary copied to clipboard"
 ```
 
-**Important:** The summary file allows orchestrators to asynchronously review completed work without needing the worker session to remain active. The summary is also copied to clipboard for easy sharing with the orchestrator.
+This avoids clipboard conflicts when multiple worker sessions complete simultaneously.
