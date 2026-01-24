@@ -181,6 +181,34 @@ Look for:
 - `P2` - Important, should-have
 - `P3` - Nice-to-have, can defer
 
+### 3.6 Validate Task Sizing
+
+**Philosophy: Task-sized work** — Each task should fit comfortably in a single Claude session's context window.
+
+For each proposed task, verify it meets these criteria:
+
+**Right-sized tasks:**
+- Can be completed in one session without handoff
+- Touch a focused set of files (typically <10)
+- Have a clear, testable outcome
+- Represent a meaningful atomic change (worth a PR)
+
+**Signs a task is too large — break it down:**
+- "Implement entire X system" → Split into: schema, core logic, API, tests
+- "Refactor Y" without boundaries → Define specific refactoring goals
+- Multiple independent features bundled → One task per feature
+- Vague scope → Clarify or add research task first
+
+**Signs a task is too small — consider combining:**
+- "Add field X to model" + "Add field Y to model" → Single schema task
+- Trivial changes that don't warrant a full PR
+- Multiple tightly-coupled changes that must ship together
+
+**When in doubt:**
+- Err on the side of smaller tasks — easier to combine than split
+- Add research tasks to clarify scope before implementation
+- Ask the user: "Task X seems large. Should I break it into subtasks?"
+
 ## Phase 4: Task Proposal
 
 Display the proposed tasks in a structured format:

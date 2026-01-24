@@ -26,25 +26,27 @@ Also adds `bin/` utilities to your PATH.
 
 This setup enables a specific approach to AI-assisted development:
 
-1. **Parallel by default** — Multiple Claude sessions work simultaneously on independent tasks, each in isolated git worktrees. No waiting for one task to finish before starting another.
+1. **Parallel by default** — Multiple Claude sessions work simultaneously in isolated git worktrees. No waiting; use `/dispatch` to spawn workers.
 
-2. **Orchestrator + Workers** — One session orients and identifies parallelizable work; worker sessions execute discrete tasks. The orchestrator sees the big picture, workers focus deeply.
+2. **Orchestrator + Workers** — One session orients (`/orient`) and coordinates; workers execute discrete tasks (`/start-task`) and report back with session summaries. The orchestrator sees the big picture, workers focus deeply.
 
-3. **Task isolation** — Each task gets its own branch/worktree, preventing conflicts and enabling clean PRs. No merge hell, no stepping on each other's work.
+3. **Task-sized work** — Break work into chunks that fit comfortably in context. Big enough to be a meaningful atomic change, small enough to complete without exhausting the context window. If you're compacting mid-task, the task was too big.
 
-4. **Bounded autonomy** — Claude works autonomously but within bounds: clear acceptance criteria, test-driven completion. Autonomy with guardrails.
+4. **Bounded autonomy** — Clarify requirements and define acceptance criteria before coding. Then execute autonomously within those bounds. Autonomy with guardrails.
 
-5. **Handoffs over context bloat** — When context grows large, hand off to a fresh session rather than degrading quality. Fresh context beats exhausted context.
+5. **Tests as the contract** — "Done" means tests pass. No subjective completion criteria. The code proves itself.
 
-6. **Tests as the contract** — "Done" means tests pass. No subjective completion criteria. The code proves itself.
+6. **Human in the loop** — Humans approve PRs, prioritize tasks, and make architectural decisions. AI executes, human directs.
 
-7. **Human remains in control** — Clarifying questions before implementation, PR approval, task prioritization stays with human. AI executes, human directs.
+7. **Handoffs over context bloat** — When context grows large, hand off to a fresh session with `/handoff-task` rather than degrading quality. Fresh context beats exhausted context.
 
-8. **Session summaries for coordination** — Detailed output enables asynchronous coordination between sessions. Each session leaves breadcrumbs for the next.
+8. **Session summaries** — Every completed task outputs a detailed summary enabling asynchronous coordination. Each session leaves breadcrumbs for the next.
 
-9. **Context window discipline** — No single task should exhaust the context window. If you're compacting, something is wrong. Best results come when <50% of context is used. Break big tasks into smaller ones.
+9. **Compound your learnings** — After solving problems, document solutions with `/compound` in `docs/solutions/`. Knowledge compounds across sessions and projects.
 
-10. **Routine tasks become skills** — Anything you do repeatedly should be codified as a skill or automation. The commands in this repo exist because the workflow is routine. Your project-specific routines deserve the same treatment.
+10. **Codify the routine** — Repeated patterns become skills and commands. If you do something twice, automate it. The commands in this repo exist because the workflow is routine.
+
+> **Compound Engineering**: Principles 9 and 10 work together — capture *knowledge* (learnings) and *process* (skills) so each session builds on the last. This is how AI-assisted development improves over time.
 
 ---
 
