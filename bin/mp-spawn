@@ -128,7 +128,6 @@ osascript \
   -e '    tell current window' \
   -e '        create tab with default profile' \
   -e '        tell current session' \
-  -e "            set name to \"${TASK_SHORT}\"" \
   -e "            write text \"cd '${PROJECT_DIR}'\"" \
   -e '        end tell' \
   -e '    end tell' \
@@ -136,6 +135,19 @@ osascript \
 
 # Wait for cd to complete
 sleep 1
+
+# Set tab title using escape sequence (persists across process changes)
+# \e]1; sets tab title only, \a terminates the sequence
+osascript \
+  -e 'tell application "iTerm2"' \
+  -e '    tell current window' \
+  -e '        tell current session' \
+  -e "            write text \"printf '\\\\e]1;${TASK_SHORT}\\\\a'\"" \
+  -e '        end tell' \
+  -e '    end tell' \
+  -e 'end tell'
+
+sleep 0.5
 
 # Now start claude in the new tab
 osascript \
