@@ -99,35 +99,58 @@ If user selects "No, cancel" for question 1, abort dispatch.
 
 For each task:
 
-1. **Spawn the worker** using mp-spawn:
+1. **Write the handoff file** to `pending_handoffs/`:
 ```bash
-source ~/.zshrc && mp-spawn <task-id> --dir "$(pwd)" [--chrome] [--skip-permissions] --handoff "<context>"
+# Ensure directory exists
+mkdir -p "$(pwd)/pending_handoffs"
+
+# Write handoff file with context
+cat > "$(pwd)/pending_handoffs/<task-id>.txt" << 'HANDOFF_EOF'
+TASK_ID: <task-id>
+TIMESTAMP: <iso-timestamp>
+---
+<handoff context text>
+HANDOFF_EOF
+```
+
+Also ensure `pending_handoffs/` is in `.gitignore`:
+```bash
+if ! grep -q "^pending_handoffs/$" .gitignore 2>/dev/null; then
+  echo "pending_handoffs/" >> .gitignore
+fi
+```
+
+2. **Spawn the worker** using mp-spawn:
+```bash
+source ~/.zshrc && mp-spawn <task-id> --dir "$(pwd)" [--chrome] [--skip-permissions]
 ```
 
 Include flags based on user's selections from Step 3:
 - Include `--chrome` if "Chrome tools" was selected
 - Include `--skip-permissions` if "Skip permissions" was selected
 
-2. **Output the command** that was copied to clipboard:
+Note: The `--handoff` flag is no longer needed as handoff context is now passed via the file.
+
+3. **Output status**:
 ```
 Worker 1/N spawned: <task-id>
-Command on clipboard: /start-task <task-id> --handoff "..."
+Handoff written to: pending_handoffs/<task-id>.txt
 
-→ Switch to iTerm2 and paste (Cmd+V) when Claude Code is ready
+The worker will automatically receive handoff context via SessionStart hook.
 ```
 
-3. **Use AskUserQuestion to confirm before spawning next worker:**
+4. **Use AskUserQuestion to confirm before spawning next worker:**
 
-Ask: "Pasted command for <task-id>. Ready for next worker?"
+Ask: "Worker for <task-id> spawned. Ready for next worker?"
 - Options: "Yes, spawn next" / "Retry this worker" / "Stop dispatching"
 - multiSelect: false
 
-4. **Handle response:**
+5. **Handle response:**
    - "Yes, spawn next" → Continue to next task
-   - "Retry this worker" → Re-run mp-spawn for this task
+   - "Retry this worker" → Re-write handoff file and re-run mp-spawn for this task
    - "Stop dispatching" → End dispatch early, report which workers were spawned
 
-5. **Repeat for each remaining task**
+6. **Repeat for each remaining task**
 
 ## Step 5: Post-Spawn Summary
 
@@ -144,11 +167,12 @@ Active workers:
 Worker tabs are named by task short ID (e.g., "6iw", "wpn").
 Use Cmd+1/2/3 to navigate between worker tabs.
 
-Each worker will:
-1. Set up the task environment (git worktree)
-2. Ask clarifying questions (if any)
-3. Begin implementation
-4. Output "/finish-task <id>" when tests pass
+Each worker will automatically:
+1. Receive handoff context via SessionStart hook
+2. Execute /start-task to set up the task environment (git worktree)
+3. Ask clarifying questions (if any)
+4. Begin implementation
+5. Run /finish-task when tests pass
 
 You can continue working in this orchestrator session while workers execute.
 ```
