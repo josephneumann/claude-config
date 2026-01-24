@@ -125,6 +125,28 @@ Task closed: <Yes/No>
 Reason: <close reason or "Still in progress">
 Synced to remote: <Yes/No>
 
+SPEC DIVERGENCES
+----------------
+Compare your implementation against the original task description from `bd show`. Document ANY differences between what was specified and what was actually built. Be explicit and thorough - the orchestrator relies on this to keep the task board accurate.
+
+Format each divergence as:
+
+**Divergence N: <brief title>**
+- Specified: <what the task description said to do>
+- Implemented: <what was actually built>
+- Reason: <why the change was necessary - technical constraint, better approach discovered, dependency issue, etc.>
+- Impact: <what downstream tasks or specs need updating>
+
+If implementation matched spec exactly, state: "None - implementation matches specification."
+
+Examples of divergences to document:
+- Different file structure than specified
+- Added/removed features from original scope
+- Changed API contracts or schemas
+- Used different libraries or approaches
+- Deferred functionality to follow-up tasks
+- Discovered requirements that weren't in the spec
+
 FOLLOW-UP ISSUES CREATED
 ------------------------
 <List any new beads issues created during this session, or "None">

@@ -41,6 +41,7 @@ This file provides workflow guidance for Claude Code across all projects. Projec
 | `/dispatch` | Spawn parallel workers | Multiple ready tasks |
 | `/init-prd [path]` | Bootstrap tasks from PROJECT_SPEC.md | New project setup |
 | `/summarize-session <id>` | Progress summary (read-only) | Mid-session checkpoint |
+| `/reconcile-summary` | Sync beads with implementation reality | After worker completes |
 
 ---
 
@@ -104,7 +105,29 @@ Used by `/multi-review` for specialized parallel review:
 
 # New project
 /init-prd → /orient → /dispatch
+
+# Worker completes → orchestrator reconciles
+worker: /finish-task <id> → copy summary to clipboard
+orchestrator: /reconcile-summary → paste summary → update beads
 ```
+
+---
+
+## Spec Divergence & Reconciliation
+
+Implementation often diverges from spec — that's normal. The workflow handles this:
+
+**Workers** document divergences in their session summary:
+- What was specified vs what was built
+- Why the change was necessary
+- What downstream tasks are affected
+
+**Orchestrators** reconcile after each worker completes:
+1. Review the session summary (especially SPEC DIVERGENCES section)
+2. Run `/reconcile-summary` to update affected beads tasks
+3. Close obsoleted tasks, create discovered work, update descriptions
+
+This keeps the task board accurate as reality unfolds.
 
 ---
 
