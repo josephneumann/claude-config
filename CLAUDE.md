@@ -30,6 +30,20 @@ This file provides workflow guidance for Claude Code across all projects. Projec
 
 ---
 
+## Critical Rule: Always Run `/finish-task`
+
+**A task is NOT complete until `/finish-task` has been run.**
+
+"Tests pass" ≠ "Done". The `/finish-task` command creates the PR, runs code review, generates the session summary, and closes the task. Without it:
+- The orchestrator has no visibility into your work
+- The task remains open in beads
+- No PR exists for review
+- The worktree is left dangling
+
+When your implementation is ready: **run `/finish-task <task-id>`**. No exceptions.
+
+---
+
 ## Commands Quick Reference
 
 | Command | Purpose | When to Use |
