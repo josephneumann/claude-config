@@ -1,5 +1,6 @@
 ---
-description: Complete a beads task - run checks, commit, push, close issue, cleanup worktree, generate session summary
+name: finish-task
+description: "Complete a beads task - run checks, commit, push, close issue, cleanup worktree, generate session summary"
 allowed-tools: Read, Bash, Glob, Grep, Edit, Write, Skill
 ---
 

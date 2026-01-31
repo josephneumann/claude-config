@@ -1,5 +1,6 @@
 ---
-description: Start working on a beads task with proper setup (worktree, context, daemon disabled)
+name: start-task
+description: "Start working on a beads task with proper setup (worktree, context, daemon disabled)"
 allowed-tools: Read, Bash, Glob, Grep, Edit, Write, AskUserQuestion
 ---
 

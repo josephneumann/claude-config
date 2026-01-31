@@ -1,6 +1,7 @@
 ---
 name: multi-review
 description: "This skill should be used when the user wants a comprehensive code review using multiple specialized reviewers in parallel. Invoked with /multi-review or when user asks for 'thorough review', 'full code review', or 'review from multiple perspectives'."
+allowed-tools: Read, Bash, Glob, Grep, Write, AskUserQuestion, Task
 ---
 
 # Multi-Review: Parallel Specialized Code Review
@@ -37,19 +38,39 @@ Categorize the changes to select appropriate reviewers:
 | Architecture | new files, interface, refactor, module | architecture-strategist |
 | Patterns | any code change | pattern-recognition-specialist |
 | Complexity | any code change | code-simplicity-reviewer |
+| Agent/Tool systems | agent definitions, skills, prompts, tool configs | agent-native-reviewer |
+| Database migrations | db/migrate/*, schema changes, data backfills | data-integrity-guardian, data-migration-expert |
+| Frontend/UI | .tsx, .jsx, .vue, .svelte, .html, .css, templates | (browser testing — see Step 9) |
 
 ### Step 3: Select Reviewers
 
-Always include:
+**Always include:**
 - `code-simplicity-reviewer` (YAGNI, complexity)
 - `pattern-recognition-specialist` (anti-patterns, conventions)
 
-Conditionally include:
-- `security-sentinel` - if auth, input handling, secrets, or user data
-- `performance-oracle` - if database queries, loops, caching, or data operations
-- `architecture-strategist` - if structural changes, new modules, or interface changes
+**Conditionally include:**
+- `security-sentinel` — if auth, input handling, secrets, or user data
+- `performance-oracle` — if database queries, loops, caching, or data operations
+- `architecture-strategist` — if structural changes, new modules, or interface changes
+- `agent-native-reviewer` — if agent definitions, skill files, system prompts, or tool configurations
+- `data-integrity-guardian` — if database migrations, schema changes, or data model modifications
+- `data-migration-expert` — if data backfills, ID mappings, enum conversions, or column renames
 
-**Select 3-5 reviewers** based on the change types identified.
+**Select 3-7 reviewers** based on the change types identified.
+
+### Step 3b: Conditional Migration Reviewers
+
+**Run migration-specific agents when the PR matches ANY of these criteria:**
+
+- Files matching `db/migrate/*`, `migrations/*`, or `alembic/versions/*`
+- Modifications to columns that store IDs, enums, or mappings
+- Data backfill scripts or management commands
+- Changes to how data is read/written (e.g., FK to string column)
+- PR title/body mentions: migration, backfill, data transformation, ID mapping
+
+**What these agents check:**
+- `data-integrity-guardian`: Transaction boundaries, reversibility, constraint safety, ACID compliance, regulatory considerations (GDPR/CCPA)
+- `data-migration-expert`: Verifies hard-coded mappings match production reality (prevents swapped IDs), checks for orphaned associations, validates dual-write patterns, provides SQL verification queries
 
 ### Step 4: Read Agent Definitions
 
@@ -57,11 +78,6 @@ For each selected reviewer, read the agent definition:
 
 ```bash
 cat ~/.claude/agents/review/<agent-name>.md
-```
-
-Or if symlinked:
-```bash
-cat ~/Code/claude-config/agents/review/<agent-name>.md
 ```
 
 ### Step 5: Launch Parallel Reviews
@@ -134,7 +150,9 @@ Combine results from all reviewers, sorted by severity:
 
 ### Step 7: Filter Results
 
-Only surface findings with **confidence >= 80%**. Lower confidence findings should be mentioned but not emphasized - they may be false positives.
+Only surface findings with **confidence >= 80%**. Lower confidence findings should be mentioned but not emphasized — they may be false positives.
+
+**Exception:** Security findings should always be surfaced even at lower confidence.
 
 ### Step 8: Offer Auto-Fix
 
@@ -156,49 +174,92 @@ Options:
 3. Skip auto-fix, I'll handle manually
 ```
 
+**Maximum 3 review cycles** — if auto-fix is applied, re-run only the affected reviewers (not all). Stop after 3 rounds regardless.
+
+### Step 9: Frontend Browser Testing (Optional)
+
+**When the PR includes frontend/UI changes**, offer browser-based testing using the Claude in Chrome MCP tools.
+
+Detect frontend changes by checking for files matching:
+- `*.tsx`, `*.jsx`, `*.vue`, `*.svelte`, `*.html`
+- `*.css`, `*.scss`, `*.less`, `*.tailwind`
+- `templates/**`, `views/**`, `components/**`, `pages/**`
+
+If frontend changes are detected, use `AskUserQuestion`:
+
+```
+This PR includes frontend changes. Would you like me to test the UI in the browser?
+
+1. **Yes — test affected pages** (I'll navigate to the changed routes and verify the UI)
+2. **No — skip browser testing**
+```
+
+**If the user accepts:**
+
+1. Use `mcp__claude-in-chrome__tabs_context_mcp` to get browser context
+2. Create a new tab with `mcp__claude-in-chrome__tabs_create_mcp`
+3. Navigate to the dev server URL for each affected route
+4. Use `mcp__claude-in-chrome__read_page` to inspect the DOM and verify elements
+5. Use `mcp__claude-in-chrome__computer` with `action: screenshot` to capture visual state
+6. Check for console errors with `mcp__claude-in-chrome__read_console_messages`
+7. Test interactive elements (forms, buttons, navigation) if applicable
+8. Report findings:
+   - Visual issues (layout breaks, missing elements, styling problems)
+   - Console errors or warnings
+   - Broken interactions
+   - Accessibility concerns from the DOM structure
+
+**Note:** Ask the user for the dev server URL if not obvious from the project config. Common defaults: `localhost:3000`, `localhost:5173`, `localhost:8000`.
+
 ## Agent Reference
 
-### code-simplicity-reviewer
+### Always Included
+
+#### code-simplicity-reviewer
 **Focus**: YAGNI, complexity reduction, unnecessary code
-**Always include**: Yes
 **Path**: `agents/review/code-simplicity-reviewer.md`
 
-### security-sentinel
+#### pattern-recognition-specialist
+**Focus**: Anti-patterns, code conventions, consistency
+**Path**: `agents/review/pattern-recognition-specialist.md`
+
+### Conditionally Included
+
+#### security-sentinel
 **Focus**: OWASP Top 10, input validation, auth, secrets
 **Include when**: Auth code, user input, API endpoints, secrets handling
 **Path**: `agents/review/security-sentinel.md`
 
-### performance-oracle
+#### performance-oracle
 **Focus**: N+1 queries, memory leaks, caching, async patterns
 **Include when**: Database operations, loops over data, caching changes
 **Path**: `agents/review/performance-oracle.md`
 
-### pattern-recognition-specialist
-**Focus**: Anti-patterns, code conventions, consistency
-**Always include**: Yes
-**Path**: `agents/review/pattern-recognition-specialist.md`
-
-### architecture-strategist
+#### architecture-strategist
 **Focus**: SOLID principles, design patterns, module structure
 **Include when**: New files, interface changes, structural refactoring
 **Path**: `agents/review/architecture-strategist.md`
 
-## Example Invocation
+#### agent-native-reviewer
+**Focus**: Action/context parity, tool design, agent capability gaps
+**Include when**: Agent definitions, skill files, system prompts, MCP configs
+**Path**: `agents/review/agent-native-reviewer.md`
 
-**User**: `/multi-review`
+#### data-integrity-guardian
+**Focus**: Migration safety, ACID compliance, transaction boundaries, GDPR/CCPA
+**Include when**: Database migrations, schema changes, data model modifications
+**Path**: `agents/review/data-integrity-guardian.md`
 
-**Assistant**:
-1. Identifies changed files from git
-2. Categorizes changes (e.g., "auth module changes, new API endpoint")
-3. Selects reviewers (simplicity, patterns, security, architecture)
-4. Launches 4 parallel Task agents
-5. Aggregates results
-6. Presents findings sorted by severity
-7. Offers to auto-fix high-confidence issues
+#### data-migration-expert
+**Focus**: Mapping validation, rollback safety, production data verification
+**Include when**: Data backfills, ID mappings, enum conversions, column renames
+**Path**: `agents/review/data-migration-expert.md`
 
 ## Important Notes
 
-- Parallel execution is key - don't run reviewers sequentially
+- Parallel execution is key — don't run reviewers sequentially
 - Filter to >= 80% confidence to reduce noise
 - Security findings should always be surfaced even at lower confidence
-- Maximum 5 reviewers to keep reviews focused
+- Maximum 3 review cycles for auto-fix iterations
+- Migration reviewers should always run together (integrity + migration expert)
+- Browser testing is optional and requires user consent

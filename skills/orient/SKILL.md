@@ -1,5 +1,6 @@
 ---
-description: Orient to a project - review structure, docs, and beads tasks to identify parallelizable work
+name: orient
+description: "Orient to a project - review structure, docs, and beads tasks to identify parallelizable work"
 allowed-tools: Read, Bash, Glob, Grep, Task
 ---
 

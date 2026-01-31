@@ -1,6 +1,6 @@
 # Claude Config
 
-Custom commands and hooks for Claude Code, designed for the **beads** task management workflow.
+Custom skills, agents, and hooks for Claude Code, designed for the **beads** task management workflow.
 
 ## Quick Install
 
@@ -12,19 +12,31 @@ cd ~/Code/claude-config
 
 This creates symlinks from `~/.claude/` to this repo:
 - `CLAUDE.md` - Global workflow guidance (read by all projects)
-- `commands/` - Slash commands for the beads workflow
+- `skills/` - Slash commands for the full workflow lifecycle
 - `hooks/` - Event hooks for Claude Code
-- `agents/` - Specialized agent definitions for research and review
-- `skills/` - Auto-invocable skills (compound learning, multi-review)
+- `agents/` - Specialized agent definitions for research, review, and workflow
 - `docs/` - Global learnings and solutions (shared across projects)
 
 Also adds `bin/` utilities to your PATH.
 
 ---
 
-## Philosophy: Parallel Agentic Development
+## The Workflow
 
-This setup enables a specific approach to AI-assisted development:
+```
+brainstorm → plan → deepen-plan → orient → dispatch → start-task → finish-task → compound
+└─────────── Plan ───────────┘   └────────────── Execute ──────────────────────┘   └ Learn ┘
+```
+
+**Plan phase**: Start with `/brainstorm` to explore ideas through interactive Q&A. Feed the result into `/plan`, which researches the codebase, analyzes feasibility with parallel agents, and decomposes into beads tasks with dependencies. Use `/deepen-plan` to enhance any section with targeted research.
+
+**Execute phase**: Run `/orient` to survey the project and identify parallel work streams. Use `/dispatch` to spawn multiple Claude Code workers in iTerm2 tabs — each gets a task via the automated handoff queue. Workers run `/start-task` (creates a git worktree, claims the task, gathers context) and `/finish-task` (tests, commit, PR, code review, session summary) autonomously. Use `/handoff-task` when context grows too large.
+
+**Learn phase**: After solving problems, run `/compound` to capture the solution in `docs/solutions/` for future sessions. `/multi-review` provides parallel specialized code review. The orchestrator runs `/reconcile-summary` to sync worker output with the task board.
+
+---
+
+## Philosophy: Parallel Agentic Development
 
 1. **Parallel by default** — Multiple Claude sessions work simultaneously in isolated git worktrees. No waiting; use `/dispatch` to spawn workers.
 
@@ -44,7 +56,7 @@ This setup enables a specific approach to AI-assisted development:
 
 9. **Compound your learnings** — After solving problems, document solutions with `/compound` in `docs/solutions/`. Knowledge compounds across sessions and projects.
 
-10. **Codify the routine** — Repeated patterns become skills and commands. If you do something twice, automate it. The commands in this repo exist because the workflow is routine.
+10. **Codify the routine** — Repeated patterns become skills. If you do something twice, automate it. The skills in this repo exist because the workflow is routine.
 
 > **Compound Engineering**: Principles 9 and 10 work together — capture *knowledge* (learnings) and *process* (skills) so each session builds on the last. This is how AI-assisted development improves over time.
 
@@ -72,157 +84,110 @@ Workflow docs are loaded globally from `~/.claude/CLAUDE.md`. Projects only need
    /start-task <task-id>
    ```
 
-Workflow guidance (commands, skills, philosophy) comes automatically from the global config.
+Workflow guidance (skills, philosophy) comes automatically from the global config.
 
 ---
 
-## Commands Reference
+## Skills Reference
 
-> **Full documentation:** Command and skill definitions in `commands/` and `skills/` are the canonical source. See [CLAUDE.md](./CLAUDE.md) for the global workflow reference.
+All workflow capabilities are implemented as skills in `skills/`. Full documentation lives in each `SKILL.md` file.
 
-### `/orient`
+| Skill | Phase | Purpose |
+|-------|-------|---------|
+| `/brainstorm` | Plan | Explore what to build via interactive Q&A |
+| `/plan` | Plan | Research, design, decompose into beads tasks |
+| `/deepen-plan` | Plan | Enhance plan with parallel research |
+| `/orient` | Execute | Survey project, identify parallel work streams |
+| `/dispatch` | Execute | Spawn parallel workers in iTerm2 tabs |
+| `/start-task <id>` | Execute | Claim task, create worktree, gather context |
+| `/finish-task <id>` | Execute | Tests, PR, code review, cleanup, close |
+| `/handoff-task <id>` | Execute | Pass work to fresh session |
+| `/summarize-session <id>` | Execute | Progress checkpoint (read-only) |
+| `/reconcile-summary` | Execute | Sync worker output with task board |
+| `/compound` | Learn | Capture learnings in `docs/solutions/` |
+| `/multi-review` | Learn | Parallel code review with specialized agents |
 
-**Purpose:** Orient to a project and identify parallelizable work streams.
+<details>
+<summary><strong>/brainstorm</strong> — Collaborative idea exploration</summary>
 
-**What it does:**
-1. Discovers project structure (README, CLAUDE.md, PROJECT_SPEC.md)
-2. Analyzes beads task state (`bd list`, `bd ready`)
-3. Checks git status and recent commits
-4. Runs tests to verify project health
-5. Outputs a structured **Orientation Report** with recommended parallel work streams
+Interactive Q&A dialogue to move from a vague idea to a clear concept. Writes output to `docs/brainstorms/YYYY-MM-DD-<topic>-brainstorm.md`. Suggests `/plan` as next step.
 
-**When to use:** At the start of a session to understand what work is available.
+</details>
 
-**Example:**
-```
-/orient
-```
+<details>
+<summary><strong>/plan</strong> — Research, design, and task decomposition</summary>
 
-**Output includes:**
-- Project identity and stack
-- Task overview (open, ready, in-progress)
-- Critical path analysis
-- Recommended parallel work streams with `/start-task` commands
+Replaces `/init-prd`. Checks for brainstorm files, runs parallel research agents (repo-research-analyst, learnings-researcher, spec-flow-analyzer, and conditionally best-practices-researcher and framework-docs-researcher). Writes plan to `docs/plans/`, then decomposes into beads tasks with dependencies via `bd create` and `bd dep add`.
 
----
+</details>
 
-### `/dispatch`
+<details>
+<summary><strong>/deepen-plan</strong> — Enhance existing plans</summary>
 
-**Purpose:** Spawn parallel Claude Code workers for multiple beads tasks.
+Finds the most recent plan in `docs/plans/`, identifies sections needing more detail, runs parallel research agents per-section, updates the plan document and beads tasks.
 
-**What it does:**
-1. Identifies tasks to dispatch (from args or `bd ready`)
-2. Generates handoff context for each task
-3. Writes handoff files to `pending_handoffs/<task-id>.txt`
-4. Shows summary and asks for confirmation (including skip-permissions option)
-5. Runs `mp-spawn` for each task (spawns workers in iTerm2 tabs)
-6. Workers automatically receive handoff context via SessionStart hook
+</details>
 
-**Note:** Worktrees are created by `/start-task`, not by `mp-spawn` or `/dispatch`.
+<details>
+<summary><strong>/orient</strong> — Project orientation and parallel work identification</summary>
+
+Discovers project structure, reads CLAUDE.md/README/PROJECT_SPEC, analyzes beads task state, checks git health, and outputs a structured orientation report with recommended parallel work streams. Always offers `/dispatch` as the primary next action.
+
+</details>
+
+<details>
+<summary><strong>/dispatch</strong> — Spawn parallel workers</summary>
+
+Identifies ready tasks from `bd ready`, generates handoff context, writes to `pending_handoffs/`, and spawns workers via `mp-spawn` in iTerm2 tabs. Workers automatically receive task context via the SessionStart hook.
 
 **Automated handoff flow:**
-- `/dispatch` writes handoff context to `pending_handoffs/<task-id>.txt`
-- `/dispatch` appends task ID to `pending_handoffs/.queue`
-- `mp-spawn` creates signal file `pending_handoffs/.spawn-<timestamp>-<pid>`
-- `mp-spawn` spawns Claude in a new iTerm2 tab
-- SessionStart hook claims signal file (atomic delete) — no signal = manual session, exit silently
-- Hook pops task from `.queue` (mkdir-based locking) and displays handoff
-- Claude sees the instruction to execute `/start-task`
+1. `/dispatch` writes handoff context to `pending_handoffs/<task-id>.txt`
+2. `/dispatch` appends task ID to `pending_handoffs/.queue`
+3. `mp-spawn` creates signal file `pending_handoffs/.spawn-<timestamp>-<pid>`
+4. SessionStart hook claims signal (atomic delete) — no signal = manual session, exit silently
+5. Hook pops task from `.queue` (mkdir-based locking) and displays handoff
+6. Claude sees the instruction to execute `/start-task`
 
-This signal + queue mechanism ensures:
-- Each worker gets exactly one task (FIFO order)
-- Manual sessions never grab queued tasks (no signal file)
-- Interrupted dispatch leaves no stale state (signals tied to actual spawns)
-
-**Confirmation flow:**
-- Confirms dispatch of N workers
-- Asks whether to use `--skip-permissions` (recommended for autonomous workers)
+This signal + queue mechanism ensures each worker gets exactly one task (FIFO order), manual sessions never grab queued tasks, and interrupted dispatch leaves no stale state.
 
 **Usage:**
 ```bash
-# Auto-select 3 ready tasks (default)
-/dispatch --count 3
-
-# Specific tasks
-/dispatch MoneyPrinter-ajq MoneyPrinter-4b3 MoneyPrinter-235
-
-# With custom handoff context
-/dispatch MoneyPrinter-ajq:"Use PriceCache pattern"
+/dispatch --count 3                    # Auto-select 3 ready tasks
+/dispatch task-id1 task-id2 task-id3   # Specific tasks
+/dispatch task-id:"Use PriceCache"     # With custom handoff context
 ```
-
-**After dispatch:**
-Workers automatically receive their handoff context and instructions via the SessionStart hook. No manual paste required.
 
 Use `Cmd+1/2/3` to navigate between worker tabs in iTerm2.
 
-**When to use:** From an orchestrator session to spawn parallel workers for independent tasks.
+</details>
 
----
+<details>
+<summary><strong>/start-task</strong> — Begin work on a task</summary>
 
-### `/init-prd [path]`
-
-**Purpose:** Initialize a project with beads tasks from a PROJECT_SPEC.md or PRD document.
-
-**What it does:**
-1. Sets up project if needed (CLAUDE.md, bd init)
-2. Finds and reads PROJECT_SPEC.md (or specified path)
-3. Asks clarifying questions to resolve ambiguities
-4. Extracts epics, features, tasks, and research items
-5. Infers dependencies from document structure
-6. Shows proposed tasks for approval
-7. Creates tasks via beads CLI
-
-**Options:**
-- `--dry-run` — Preview tasks without creating
-- `--append` — Add to existing beads state
-- `--skip-setup` — Skip CLAUDE.md and bd init checks
-
-**Examples:**
-```bash
-/init-prd                    # Full setup + parse PROJECT_SPEC.md
-/init-prd docs/SPEC.md       # Custom path
-/init-prd --dry-run          # Preview only
-/init-prd --skip-setup       # Skip project setup, just parse PRD
-```
-
-**When to use:** At the start of a new project to bootstrap tasks from a PRD or specification document.
-
----
-
-### `/start-task <task-id>`
-
-**Purpose:** Start working on a beads task with proper isolation and context.
-
-**What it does:**
 1. Validates the task exists (`bd show`)
-2. Renames the conversation to the task ID
-3. Gathers project context (CLAUDE.md, README, etc.)
-4. Creates a **git worktree** for isolation
-5. Disables beads daemon (`BEADS_NO_DAEMON=1`)
-6. Claims the task (`bd update --status in_progress`)
-7. Asks clarifying questions before implementation
+2. Claims the task (`bd update --status in_progress`)
+3. Creates a **git worktree** for isolation
+4. Disables beads daemon (`BEADS_NO_DAEMON=1`)
+5. Gathers project context (CLAUDE.md, README, etc.)
+6. Optionally runs research agents for complex tasks
+7. Defines acceptance criteria with the user
+8. Confirms before implementation begins
 
-**Options:**
-- `--handoff "<context>"` - Inline context from a previous session
+Supports `--handoff "<context>"` for session continuations from `/handoff-task`.
 
 **Examples:**
 ```bash
-# Standard start
 /start-task MoneyPrinter-46j.1
-
-# With handoff context from another session
 /start-task MoneyPrinter-46j.1 --handoff "Use 3% tolerance for price matching"
 ```
 
-**Important:** After starting, you'll be in a separate worktree. All changes are isolated from the main branch.
+After starting, you'll be in a separate worktree — all changes are isolated from the main branch.
 
----
+</details>
 
-### `/finish-task <task-id>`
+<details>
+<summary><strong>/finish-task</strong> — Complete a task with full quality checks</summary>
 
-**Purpose:** Complete a task with full quality checks and cleanup.
-
-**What it does:**
 1. Verifies current state (correct worktree, task in-progress)
 2. Runs quality gates (tests must pass)
 3. Reviews and updates documentation
@@ -231,69 +196,94 @@ Use `Cmd+1/2/3` to navigate between worker tabs in iTerm2.
 6. Syncs beads and pushes to remote
 7. Closes the task (`bd close`)
 8. Creates a pull request
-9. Runs automated code review (`/multi-review`) and auto-fixes issues
+9. Runs `/multi-review` with auto-fix (high-confidence issues ≥80% fixed automatically, max 3 cycles)
 10. Optionally merges PR and cleans up worktree (using absolute paths)
-11. Outputs a detailed **Session Summary**
-
-**Code Review:** After PR creation, runs `/multi-review` which launches parallel specialized reviewers. High-confidence issues (≥80%) are automatically fixed, committed, and pushed. Maximum 3 review cycles before asking user for guidance.
-
-**Example:**
-```
-/finish-task MoneyPrinter-46j.1
-```
+11. Outputs a detailed **Session Summary** to `session_summaries/`
 
 **Critical:** Tests must pass before the task can be finished. The command will stop if tests fail.
 
-**Worktree Cleanup:** The command uses absolute paths to safely change to the main repo before removing the worktree, preventing "Path does not exist" errors.
+</details>
 
----
+<details>
+<summary><strong>/handoff-task</strong> — Generate handoff context</summary>
 
-### `/handoff-task <task-id>`
+Gathers session-specific context (decisions, gotchas, approach) and outputs a copy-pasteable `/start-task` command with handoff context. Use when context grows too large or passing work between sessions.
 
-**Purpose:** Generate context for passing a task to another Claude session.
-
-**What it does:**
-1. Validates the task
-2. Gathers session-specific context (decisions made, gotchas discovered)
-3. Outputs a copy-pasteable `/start-task` command with handoff context
-
-**When to use:**
-- Ending a session but work isn't complete
-- Passing work to a parallel session
-- Context is too large for current session
-
-**Example:**
-```
-/handoff-task MoneyPrinter-46j.1
-```
-
-**Output:**
+**Output example:**
 ```
 /start-task MoneyPrinter-46j.1 --handoff "Used pytest fixtures for DB setup. Watch for timezone issues in date parsing."
 ```
 
----
+</details>
 
-### `/summarize-session <task-id>`
+<details>
+<summary><strong>/summarize-session</strong> — Read-only progress summary</summary>
 
-**Purpose:** Generate a detailed session summary without closing the task.
-
-**What it does:**
-1. Gathers context (git status, recent commits, changed files)
-2. Checks test status
-3. Outputs a structured **Session Summary**
-
-**When to use:**
-- Mid-session checkpoint
-- Before a handoff
-- When you need to document progress without finishing
-
-**Example:**
-```
-/summarize-session MoneyPrinter-46j.1
-```
+Generates a structured session summary without committing, pushing, or closing the task. Use for mid-session checkpoints or before handoffs.
 
 **Difference from `/finish-task`:** This command is read-only. It doesn't commit, push, close the task, or make any changes.
+
+</details>
+
+<details>
+<summary><strong>/reconcile-summary</strong> — Sync worker output with task board</summary>
+
+Auto-discovers unreconciled summaries in `session_summaries/`, analyzes spec divergences, updates affected beads tasks, creates new tasks for discovered work, and closes obsoleted tasks. Moves processed summaries to `session_summaries/reconciled/`.
+
+</details>
+
+<details>
+<summary><strong>/compound</strong> — Capture learnings</summary>
+
+Triggers on "that worked", "fixed it", or explicit invocation. Routes to project-specific (`docs/solutions/`) or global (`~/.claude/docs/solutions/`) storage. Creates structured solution documents with YAML frontmatter for searchability.
+
+</details>
+
+<details>
+<summary><strong>/multi-review</strong> — Parallel specialized code review</summary>
+
+Identifies changed files, selects 3-5 appropriate review agents based on change types, launches them in parallel, aggregates findings by severity, and offers auto-fix for high-confidence (≥80%) issues. Maximum 3 review cycles.
+
+</details>
+
+---
+
+## Agents Reference
+
+Agent definitions live in `agents/` and are used by skills for specialized tasks.
+
+### Research Agents
+
+Used by `/orient` and `/start-task` to gather context before implementation.
+
+| Agent | Purpose | Used By |
+|-------|---------|---------|
+| `repo-research-analyst` | Map architecture, conventions | `/orient` Phase 1.5 |
+| `git-history-analyzer` | Historical context, contributors | `/orient` Phase 1.5 |
+| `framework-docs-researcher` | Library docs, deprecation checks | `/start-task` Step 6.5 |
+| `learnings-researcher` | Search docs/solutions/ | `/start-task` Step 6.5 |
+| `best-practices-researcher` | External best practices | `/start-task` Step 6.5 |
+
+### Review Agents
+
+Used by `/multi-review` for specialized code review.
+
+| Agent | Focus |
+|-------|-------|
+| `code-simplicity-reviewer` | YAGNI, minimize complexity |
+| `security-sentinel` | OWASP Top 10, vulnerabilities |
+| `performance-oracle` | N+1 queries, memory, caching |
+| `pattern-recognition-specialist` | Anti-patterns, conventions |
+| `architecture-strategist` | SOLID, design alignment |
+| `agent-native-reviewer` | Action/context parity for agents |
+| `data-integrity-guardian` | Migration safety, ACID, GDPR/CCPA |
+| `data-migration-expert` | Validates mappings against production |
+
+### Workflow Agents
+
+| Agent | Purpose | Used By |
+|-------|---------|---------|
+| `spec-flow-analyzer` | Analyze specs for dependencies, gaps, feasibility | `/plan` Phase 2 |
 
 ---
 
@@ -327,10 +317,6 @@ project-root/
 <taskid>_YYMMDD-HHMMSS.txt
 ```
 
-- `taskid`: The beads task ID (e.g., `MoneyPrinter-ajq`)
-- `YYMMDD`: Date in year-month-day format
-- `HHMMSS`: Time in hour-minute-second format
-
 Example: `MoneyPrinter-ajq_260117-143052.txt` (task ajq, Jan 17 2026, 2:30:52 PM)
 
 ### Orchestrator Usage
@@ -353,96 +339,10 @@ ls session_summaries/*$(date +%y%m%d)*
 
 ### Automatic Gitignore
 
-The commands automatically add `session_summaries/` and `pending_handoffs/` to `.gitignore` if not present. This ensures:
+The skills automatically add `session_summaries/` and `pending_handoffs/` to `.gitignore` if not present. This ensures:
 - Handoffs and summaries don't clutter git history
 - Each machine maintains its own local archive
 - No conflicts between parallel workers
-
----
-
-## Skills Reference
-
-Skills are auto-invocable capabilities that Claude can use proactively based on context.
-
-### `/compound`
-
-**Purpose:** Capture learnings after solving a problem, creating institutional knowledge.
-
-**Triggers:**
-- Explicit invocation with `/compound`
-- Phrases like "that worked", "fixed it", "figured it out"
-- After successful debugging sessions
-
-**What it does:**
-1. Asks clarifying questions about the problem and solution
-2. Searches for existing similar solutions in `docs/solutions/`
-3. Creates a documented solution with proper schema
-4. Offers to add reminders to CLAUDE.md or create follow-up tasks
-
-**Output:** Creates a markdown file in `docs/solutions/[category]/` with:
-- YAML frontmatter (module, problem_type, root_cause, severity)
-- Symptom description
-- Investigation notes
-- Root cause analysis
-- Solution details
-- Prevention recommendations
-
----
-
-### `/multi-review`
-
-**Purpose:** Comprehensive code review using multiple specialized agents in parallel.
-
-**Triggers:**
-- Explicit invocation with `/multi-review`
-- Requests for "thorough review" or "full code review"
-
-**What it does:**
-1. Identifies changed files from git
-2. Selects appropriate review agents based on change types
-3. Launches 3-5 parallel review agents
-4. Aggregates findings by severity (Critical > Important > Suggestion)
-5. Filters to high-confidence (≥80%) issues
-6. Offers auto-fix for fixable issues
-
-**Review Agents:**
-| Agent | Focus | When Used |
-|-------|-------|-----------|
-| code-simplicity-reviewer | YAGNI, complexity | Always |
-| pattern-recognition-specialist | Anti-patterns, conventions | Always |
-| security-sentinel | OWASP Top 10, auth, secrets | Auth/security changes |
-| performance-oracle | N+1 queries, caching, memory | Data operations |
-| architecture-strategist | SOLID, design patterns | Structural changes |
-
----
-
-## Agents Reference
-
-Agent definitions live in `agents/` and are used by skills and commands.
-
-### Research Agents
-
-Used by `/orient` and `/start-task` to gather context before implementation.
-
-| Agent | Purpose | Used By |
-|-------|---------|---------|
-| `repo-research-analyst` | Map architecture, conventions | `/orient` Phase 1.5 |
-| `git-history-analyzer` | Historical context, contributors | `/orient` Phase 1.5 |
-| `framework-docs-researcher` | Library docs, deprecation checks | `/start-task` Step 5.5 |
-| `learnings-researcher` | Search docs/solutions/ | `/start-task` Step 5.5 |
-| `best-practices-researcher` | External best practices | `/start-task` Step 5.5 |
-
-### Review Agents
-
-Used by `/multi-review` for specialized code review.
-
-| Agent | Focus |
-|-------|-------|
-| `code-simplicity-reviewer` | YAGNI, minimize complexity |
-| `security-sentinel` | OWASP Top 10, vulnerabilities |
-| `performance-oracle` | N+1 queries, memory, caching |
-| `pattern-recognition-specialist` | Anti-patterns, conventions |
-| `architecture-strategist` | SOLID, design alignment |
 
 ---
 
@@ -480,10 +380,7 @@ mp-spawn <task-id> [options]
 
 Options:
   --dir /path/to/project  Project directory (default: current directory)
-  --handoff "text"        Handoff context (legacy, prefer pending_handoffs/ files)
   --skip-permissions      Skip all permission prompts (uses --dangerously-skip-permissions)
-
-Note: --chrome is always enabled by default for all workers.
 ```
 
 **Examples:**
@@ -498,9 +395,6 @@ mp-spawn MoneyPrinter-ajq --skip-permissions
 mp-spawn MoneyPrinter-ajq --dir "$(pwd)" --skip-permissions
 ```
 
-**After spawn:**
-Workers automatically receive handoff context via the SessionStart hook. No manual paste required.
-
 **iTerm2 Integration:**
 - Uses AppleScript to create new iTerm2 tabs directly
 - Each tab is named with the task short ID (e.g., "ajq")
@@ -510,75 +404,54 @@ Workers automatically receive handoff context via the SessionStart hook. No manu
 
 ## Workflow Examples
 
-### 1. Single-Session Workflow
-
-Standard workflow for completing one task in a single session:
+### 1. Planning a New Project
 
 ```bash
-# 1. Orient to the project
+# Explore the idea
+/brainstorm "real-time price alerts for crypto"
+
+# Research and decompose into tasks
+/plan
+
+# Optionally add more detail
+/deepen-plan
+
+# Orient and dispatch workers
 /orient
+/dispatch
+```
 
-# 2. Start a task (creates worktree, claims task)
+### 2. Single-Session Workflow
+
+```bash
+/orient
 /start-task beads-abc123
-
-# 3. Do the work...
-#    - Read code
-#    - Implement changes
-#    - Run tests
-
-# 4. Finish (commit, PR, cleanup)
+# Do the work...
 /finish-task beads-abc123
 ```
 
-### 2. Multi-Session Parallel Workflow
+### 3. Multi-Session Parallel Workflow
 
-Run multiple tasks simultaneously in separate Claude sessions:
-
-**Terminal 1:**
 ```bash
+# Orchestrator session
 /orient
-# See recommended streams, then:
-/start-task beads-feature-1
-# Work on feature 1...
-/finish-task beads-feature-1
+/dispatch --count 3
+# Workers auto-spawn in iTerm2 tabs
+# Wait for workers to complete, then:
+/reconcile-summary
 ```
 
-**Terminal 2:**
+### 4. Handoff Workflow
+
 ```bash
-/start-task beads-feature-2
-# Work on feature 2...
-/finish-task beads-feature-2
-```
-
-**Terminal 3:**
-```bash
-/start-task beads-feature-3
-# Work on feature 3...
-/finish-task beads-feature-3
-```
-
-Each session works in its own git worktree - no conflicts.
-
-### 3. Handoff Workflow
-
-Pass work between sessions when context grows too large:
-
-**Session 1 (hitting context limits):**
-```bash
+# Session 1 (hitting context limits)
 /start-task beads-abc123
 # Work for a while...
-# Context getting large, need to hand off
-
 /handoff-task beads-abc123
 # Outputs: /start-task beads-abc123 --handoff "..."
-```
 
-**Session 2 (fresh context):**
-```bash
-# Paste the handoff command from session 1
+# Session 2 (fresh context)
 /start-task beads-abc123 --handoff "Used pytest fixtures for DB setup..."
-
-# Continue where session 1 left off
 /finish-task beads-abc123
 ```
 
@@ -604,10 +477,10 @@ Pass work between sessions when context grows too large:
 
 4. **Verify:**
    ```bash
-   ls -la ~/.claude/commands  # Should show symlink
    ls -la ~/.claude/hooks     # Should show symlink
    ls -la ~/.claude/agents    # Should show symlink
    ls -la ~/.claude/skills    # Should show symlink
+   ls -la ~/.claude/docs      # Should show symlink
    which mp-spawn             # Should show path to bin/mp-spawn
    ```
 
@@ -615,57 +488,41 @@ The installer:
 - Creates `~/.claude/` if needed
 - Backs up existing directories (if any)
 - Creates symlinks to the repo
+- Removes legacy `commands/` symlink if present
 - Adds `bin/` to PATH in `~/.zshrc`
 - Is idempotent (safe to run multiple times)
 
 ---
 
-## Adding New Commands, Skills, or Hooks
-
-### Adding a Command
-
-1. Create a new `.md` file in `commands/`:
-   ```bash
-   vim ~/Code/claude-config/commands/my-new-command.md
-   ```
-
-2. Use the frontmatter format:
-   ```markdown
-   ---
-   description: Short description of what this command does
-   allowed-tools: Read, Bash, Glob, Grep, Edit, Write
-   ---
-
-   # My New Command: $ARGUMENTS
-
-   Instructions for Claude...
-   ```
-
-3. Commit and push — available immediately as `/my-new-command`
+## Adding New Skills and Hooks
 
 ### Adding a Skill
-
-Skills support auto-invocation based on context (commands require explicit `/invoke`).
 
 1. Create a new directory in `skills/`:
    ```bash
    mkdir ~/Code/claude-config/skills/my-skill
-   vim ~/Code/claude-config/skills/my-skill/SKILL.md
    ```
 
-2. Use the SKILL.md format:
+2. Create `SKILL.md` with frontmatter:
    ```markdown
    ---
    name: my-skill
    description: "This skill should be used when..."
+   allowed-tools: Read, Bash, Glob, Grep
    ---
 
-   # My Skill
+   # My Skill: $ARGUMENTS
 
    Instructions for Claude...
    ```
 
-3. Commit and push — available as `/my-skill` and auto-invoked when description matches
+3. Commit and push — available as `/my-skill`
+
+**Frontmatter options:**
+- `name` (required): Skill name, used as the slash command
+- `description` (required): When to invoke this skill
+- `allowed-tools`: Comma-separated list of tools the skill can use
+- `disable-model-invocation: true`: Prevent auto-invocation (for heavyweight workflows)
 
 ### Adding a Hook
 
@@ -681,13 +538,10 @@ Skills support auto-invocation based on context (commands require explicit `/inv
 
 ## Prerequisites
 
-These commands are designed for a specific workflow and require additional tools to be set up.
-
 ### Required
 
 - **[beads](https://github.com/josephneumann/beads)** (`bd`) - Task management CLI
-  - All commands use `bd` for task tracking, dependencies, and sync
-  - Install beads and configure it for your project before using these commands
+  - All skills use `bd` for task tracking, dependencies, and sync
   - Run `bd init` in your project to set up beads
 
 - **git** - With worktree support (standard in modern git)
@@ -699,20 +553,20 @@ These commands are designed for a specific workflow and require additional tools
   - Install: `brew install gh` (macOS) or see [installation docs](https://github.com/cli/cli#installation)
   - Authenticate: `gh auth login`
 
-- **iTerm2** - Terminal emulator for macOS (for `mp-spawn` worker management)
+- **iTerm2** - Terminal emulator for macOS (for `mp-spawn`)
   - Used by `mp-spawn` to create worker tabs via AppleScript
   - Download: [iterm2.com](https://iterm2.com/)
   - Must grant Accessibility permissions for AppleScript automation
 
 ### Claude Code Setup
 
-1. **Install Claude Code** - These are Claude Code slash commands, not standalone scripts
-2. **Run the installer** - `./install.sh` creates symlinks so Claude Code finds the commands
+1. **Install Claude Code**
+2. **Run the installer** - `./install.sh`
 3. **Verify** - In Claude Code, type `/orient` to test
 
 ### Without These Prerequisites
 
-- **Without beads:** Commands will fail on `bd` calls. You'd need to remove/replace beads references.
+- **Without beads:** Skills will fail on `bd` calls. You'd need to remove/replace beads references.
 - **Without gh:** `/finish-task` won't create PRs. You can create them manually.
 
 ---

@@ -1,161 +1,197 @@
 ---
 name: compound
 description: "This skill should be used when the user has solved a non-trivial problem and wants to document the solution for future reference. Triggers on phrases like 'that worked', 'fixed it', 'problem solved', 'figured it out', or when explicitly invoked with /compound."
+allowed-tools: Read, Bash, Glob, Grep, Write, AskUserQuestion, Task
 ---
 
 # Compound: Capture Learnings
 
-You are capturing a solution to a problem that was just solved. This creates institutional knowledge for future sessions.
+Coordinate multiple subagents working in parallel to document a recently solved problem.
 
-## Workflow
+## Purpose
 
-### Step 1: Detect Trigger
+Captures problem solutions while context is fresh, creating structured documentation in `docs/solutions/` with YAML frontmatter for searchability and future reference. Uses parallel subagents for maximum efficiency.
+
+**Why "compound"?** Each documented solution compounds your team's knowledge. The first time you solve a problem takes research. Document it, and the next occurrence takes minutes. Knowledge compounds.
+
+## Auto-Invoke
 
 This skill activates when:
 - User explicitly runs `/compound`
-- User indicates a problem was solved ("that worked", "fixed it", "figured it out")
+- User says: "that worked", "it's fixed", "working now", "problem solved", "figured it out"
 - A debugging session concludes successfully
 
-### Step 2: Determine Scope (BLOCKING - Ask User)
+Use `/compound [context]` to document immediately without waiting for auto-detection.
+
+## Preconditions
+
+Before proceeding, verify:
+- Problem has been solved (not in-progress)
+- Solution has been verified working
+- Non-trivial problem (not a simple typo or obvious error)
+
+If the problem is trivial, suggest skipping documentation.
+
+## Step 1: Determine Scope (BLOCKING - Ask User)
 
 Use `AskUserQuestion` to determine where this learning belongs:
 
 ```
 I'd like to document this solution. First, is this learning:
 
-1. **Project-specific** — Applies only to this codebase (e.g., "CruxMD's FHIR loader expects X format")
-2. **Global/reusable** — Applies across projects (e.g., "pgvector requires specific index settings for cosine similarity")
+1. **Project-specific** — Applies only to this codebase
+2. **Global/reusable** — Applies across projects
 ```
 
 **Routing:**
 - **Project-specific** → `./docs/solutions/` (current project)
 - **Global** → `~/.claude/docs/solutions/` (claude-config, shared across all projects)
 
-### Step 3: Gather Context (BLOCKING - Ask User)
+## Step 2: Launch Parallel Subagents
 
-Use `AskUserQuestion` to gather the following. Do NOT proceed until you have clear answers:
+Launch ALL of these subagents **in parallel** using the Task tool:
 
+### Agent 1: Context Analyzer
 ```
-Can you help me capture the key details?
-```
+Task general-purpose: "Analyze the conversation history to identify:
+- Problem type and affected component/module
+- Observable symptoms and error messages
+- Investigation steps taken
+- Technologies and frameworks involved
 
-**Questions to ask:**
-1. **Module/Area**: Which part of the codebase was affected?
-2. **Symptom**: What was the observable problem? (error message, unexpected behavior)
-3. **Root Cause**: What was actually wrong?
-4. **Solution**: What fixed it?
-5. **Prevention**: How can this be avoided in the future?
+Return a YAML frontmatter skeleton with:
+scope, module, date, problem_type, symptoms, root_cause, severity, tags
 
-### Step 4: Search Existing Solutions
-
-Check if a similar solution already exists in BOTH locations:
-
-```bash
-# Search project-specific solutions
-grep -ri "<module>" docs/solutions/ --include="*.md" -l 2>/dev/null | head -5
-
-# Search global solutions
-grep -ri "<module>" ~/.claude/docs/solutions/ --include="*.md" -l 2>/dev/null | head -5
-
-# Search for similar symptoms (both locations)
-grep -ri "<symptom-keyword>" docs/solutions/ ~/.claude/docs/solutions/ --include="*.md" -l 2>/dev/null | head -5
+Use this schema:
+  problem_type: one of [build-error, test-failure, runtime-error, performance, database, security, integration, logic-error, workflow]
+  root_cause: one of [missing-dependency, config-error, race-condition, incorrect-assumption, api-change, missing-validation, resource-exhaustion, logic-flaw, documentation-gap, other]
+  severity: one of [critical, high, medium, low]"
 ```
 
-If a similar solution exists, ask the user if they want to:
-- Update the existing document
-- Create a new document (different enough to warrant separation)
-- Skip documentation (already covered)
+### Agent 2: Solution Extractor
+```
+Task general-purpose: "Analyze the conversation to extract:
+- All investigation steps tried (what didn't work and why)
+- The root cause (technical explanation)
+- The working solution with specific code/config changes
+- Code examples that demonstrate the fix
 
-### Step 5: Generate Filename
+Return structured content for the Solution, Investigation, and Root Cause sections of a solution document."
+```
 
-Format: `[symptom-slug]-[module]-YYYYMMDD.md`
+### Agent 3: Related Docs Finder
+```
+Task general-purpose: "Search for related documentation:
+1. Search docs/solutions/ for related files: grep -ri '<keywords>' docs/solutions/ --include='*.md' -l
+2. Search ~/.claude/docs/solutions/ for global solutions: grep -ri '<keywords>' ~/.claude/docs/solutions/ --include='*.md' -l
+3. Check for related GitHub issues if in a git repo
 
-Example: `import-error-authentication-20260124.md`
+Return: list of related documents with brief relevance notes, and any cross-reference links."
+```
 
-Rules:
+### Agent 4: Prevention Strategist
+```
+Task general-purpose: "Based on the problem and solution discussed in this session:
+- Develop prevention strategies (how to avoid this in the future)
+- Suggest test cases that would catch this problem
+- Identify patterns that could indicate similar issues elsewhere
+- Recommend any CLAUDE.md additions if this is a project-wide gotcha
+
+Return structured prevention content."
+```
+
+### Agent 5: Category Classifier
+```
+Task general-purpose: "Based on the problem type, determine:
+1. The optimal docs/solutions/ category directory
+2. A filename following the format: [symptom-slug]-[module]-YYYYMMDD.md
+
+Categories:
+  build-error → build-errors/
+  test-failure → test-failures/
+  runtime-error → runtime-errors/
+  performance → performance/
+  database → database/
+  security → security/
+  integration → integration/
+  logic-error → logic-errors/
+  workflow → workflow/
+
+Rules for filename:
 - Lowercase with hyphens
 - Symptom first (what you'd search for)
 - Module second (where it happened)
 - Date last (for versioning)
 
-### Step 6: Validate YAML Frontmatter
-
-Use this schema for the frontmatter:
-
-```yaml
----
-scope: <project|global>
-module: <affected-module>
-date: <YYYY-MM-DD>
-problem_type: <one of: build-error, test-failure, runtime-error, performance, database, security, integration, logic-error, workflow>
-symptoms:
-  - <observable symptom 1>
-  - <observable symptom 2>
-root_cause: <one of: missing-dependency, config-error, race-condition, incorrect-assumption, api-change, missing-validation, resource-exhaustion, logic-flaw, documentation-gap, other>
-severity: <one of: critical, high, medium, low>
-tags:
-  - <relevant-tag-1>
-  - <relevant-tag-2>
----
+Return: category directory and filename."
 ```
 
-### Step 7: Create Document
+## Step 3: Assemble and Write Document
 
-**For project-specific learnings:**
-Create in `./docs/solutions/[category]/`
+After all agents complete, assemble the document:
 
-**For global learnings:**
-Create in `~/.claude/docs/solutions/[category]/`
+1. **Check for duplicates** — If Related Docs Finder found an existing similar solution, ask user:
+   - Update the existing document
+   - Create a new document (different enough to warrant separation)
+   - Skip documentation (already covered)
 
-| problem_type | Directory |
-|--------------|-----------|
-| build-error | `docs/solutions/build-errors/` |
-| test-failure | `docs/solutions/test-failures/` |
-| runtime-error | `docs/solutions/runtime-errors/` |
-| performance | `docs/solutions/performance/` |
-| database | `docs/solutions/database/` |
-| security | `docs/solutions/security/` |
-| integration | `docs/solutions/integration/` |
-| logic-error | `docs/solutions/logic-errors/` |
-| workflow | `docs/solutions/workflow/` |
+2. **Create directory if needed:**
+```bash
+mkdir -p [target-dir]/[category]
+```
 
-**Document Template:**
+3. **Write the document** using outputs from all agents:
 
 ```markdown
 ---
-[frontmatter from Step 6]
+[frontmatter from Context Analyzer]
 ---
 
 # [Descriptive Title]
 
 ## Symptom
 
-[What the user observed - error messages, unexpected behavior]
+[From Context Analyzer — observable symptoms, error messages]
 
 ## Investigation
 
-[Brief summary of how the problem was diagnosed]
+[From Solution Extractor — steps tried, what didn't work]
 
 ## Root Cause
 
-[What was actually wrong]
+[From Solution Extractor — what was actually wrong]
 
 ## Solution
 
-[What fixed it - be specific with code/config changes]
+[From Solution Extractor — specific code/config changes]
 
 ## Prevention
 
-[How to avoid this in the future]
+[From Prevention Strategist — how to avoid in future]
 
 ## Related
 
-- [Links to related docs, issues, or solutions]
+[From Related Docs Finder — links to related docs, issues, solutions]
 ```
 
-### Step 8: Decision Menu
+## Step 4: Optional Specialized Agent Review
 
-After creating the document, present options:
+Based on the problem type detected by Context Analyzer, optionally run a domain expert for validation:
+
+| Problem Type | Agent | What It Checks |
+|-------------|-------|----------------|
+| performance | `performance-oracle` | Validates optimization approach |
+| security | `security-sentinel` | Reviews for remaining vulnerabilities |
+| database | `data-integrity-guardian` | Reviews migration/query safety |
+| Any code-heavy fix | `code-simplicity-reviewer` | Ensures solution is minimal |
+
+Use `AskUserQuestion`: "Want me to run a specialized review on this solution?"
+
+If yes, launch the appropriate agent against the solution document content.
+
+## Step 5: Decision Menu
+
+After creating the document, present:
 
 ```
 Solution documented at: [path]/[category]/[filename].md
@@ -164,34 +200,25 @@ What would you like to do next?
 1. Continue working (done documenting)
 2. Add a reminder to CLAUDE.md (if this is a project-wide gotcha)
 3. Create a follow-up task (if there's related work to do)
+4. Link related documentation
 ```
 
-## Example Flow
+## The Compounding Philosophy
 
-**User**: "Finally figured out why pgvector wasn't returning results - needed to set the index to use cosine distance"
+This creates a compounding knowledge system:
 
-**Assistant**:
+1. First time you solve "N+1 query in brief generation" → Research (30 min)
+2. Document the solution → `docs/solutions/performance/n-plus-one-briefs.md` (5 min)
+3. Next time similar issue occurs → Quick lookup (2 min)
+4. Knowledge compounds → Team gets smarter
+
 ```
-I'd like to document this solution. Is this learning:
-1. Project-specific (only applies to this codebase)
-2. Global/reusable (applies across projects)
-```
-
-**User**: "Global - this applies to any project using pgvector"
-
-**Assistant**:
-```
-Got it, I'll save this to the global solutions. A few quick questions:
-1. Module: pgvector/embeddings
-2. Symptom: Vector search returning no results despite valid embeddings?
-3. Root Cause: Index using wrong distance metric?
-
-Is that accurate? And what was the specific fix?
+Build → Test → Find Issue → Research → Improve → Document → Validate → Deploy
+    ↑                                                                      ↓
+    └──────────────────────────────────────────────────────────────────────┘
 ```
 
-**User**: "Yes, had to use `vector_cosine_ops` instead of the default"
-
-**Assistant creates**: `~/.claude/docs/solutions/database/pgvector-no-results-embeddings-20260124.md`
+**Each unit of engineering work should make subsequent units of work easier—not harder.**
 
 ## Directory Setup
 
@@ -208,7 +235,6 @@ mkdir -p ~/.claude/docs/solutions/{build-errors,test-failures,runtime-errors,per
 ## Important Notes
 
 - **Always ask about scope first** — Route to the right location before gathering details
-- Always ask before creating documents — the user confirms the details
 - Keep solutions focused — one problem per document
 - Use searchable terms in symptoms and tags
 - Link to related solutions when patterns repeat

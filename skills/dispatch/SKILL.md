@@ -1,5 +1,6 @@
 ---
-description: Dispatch parallel Claude Code workers for beads tasks
+name: dispatch
+description: "Dispatch parallel Claude Code workers for beads tasks"
 allowed-tools: Bash, Read, Glob, Grep
 ---
 

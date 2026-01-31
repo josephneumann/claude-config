@@ -42,7 +42,7 @@ Fight entropy. Leave the codebase better than you found it.
 
 **A task is NOT complete until `/finish-task` has been run.**
 
-"Tests pass" ≠ "Done". The `/finish-task` command creates the PR, runs code review, generates the session summary, and closes the task. Without it:
+"Tests pass" ≠ "Done". The `/finish-task` skill creates the PR, runs code review, generates the session summary, and closes the task. Without it:
 - The orchestrator has no visibility into your work
 - The task remains open in beads
 - No PR exists for review
@@ -52,22 +52,31 @@ When your implementation is ready: **run `/finish-task <task-id>`**. No exceptio
 
 ---
 
-## Commands Quick Reference
+## Skills Reference
 
-| Command | Purpose | When to Use |
-|---------|---------|-------------|
+All workflow capabilities are implemented as skills in `skills/`.
+
+### Planning Pipeline
+
+| Skill | Purpose | When to Use |
+|-------|---------|-------------|
+| `/brainstorm` | Explore what to build via Q&A | New idea, vague concept |
+| `/plan` | Research, design, decompose into tasks | After brainstorm or with a spec |
+| `/deepen-plan` | Enhance plan with parallel research | Plan needs more detail |
+
+### Execution
+
+| Skill | Purpose | When to Use |
+|-------|---------|-------------|
 | `/orient` | Build context, identify parallel work | Session start |
 | `/start-task <id>` | Create worktree, claim task, gather context | Beginning a task |
 | `/finish-task <id>` | Tests, commit, PR, cleanup, close | Task complete |
 | `/handoff-task <id>` | Generate context for another session | Context full, passing work |
 | `/dispatch` | Spawn parallel workers | Multiple ready tasks |
-| `/init-prd [path]` | Bootstrap tasks from PROJECT_SPEC.md | New project setup |
 | `/summarize-session <id>` | Progress summary (read-only) | Mid-session checkpoint |
 | `/reconcile-summary` | Sync beads with implementation reality | After worker completes |
 
----
-
-## Skills Quick Reference
+### Compound Engineering
 
 | Skill | Purpose | Triggers |
 |-------|---------|----------|
@@ -101,6 +110,17 @@ Used by `/multi-review` for specialized parallel review:
 | `performance-oracle` | N+1 queries, caching, memory |
 | `pattern-recognition-specialist` | Anti-patterns, conventions |
 | `architecture-strategist` | SOLID, design patterns |
+| `agent-native-reviewer` | Action/context parity for agents |
+| `data-integrity-guardian` | Migration safety, ACID, GDPR/CCPA |
+| `data-migration-expert` | Validates mappings against production |
+
+---
+
+## Workflow Agents
+
+| Agent | Purpose |
+|-------|---------|
+| `spec-flow-analyzer` | Analyze specs for dependencies, gaps, feasibility |
 
 ---
 
@@ -116,6 +136,9 @@ Used by `/multi-review` for specialized parallel review:
 ## Workflow Cheatsheet
 
 ```bash
+# Plan a new project
+/brainstorm → /plan → /deepen-plan → /orient → /dispatch
+
 # Single session
 /orient → /start-task <id> → implement → /finish-task <id>
 
@@ -125,9 +148,6 @@ Used by `/multi-review` for specialized parallel review:
 
 # Handoff (context full)
 /handoff-task <id> → new session → /start-task <id> --handoff "..."
-
-# New project
-/init-prd → /orient → /dispatch
 
 # Worker completes → orchestrator reconciles
 worker: /finish-task <id> → summary written to session_summaries/
@@ -199,4 +219,4 @@ bd sync --flush-only        # Export to JSONL
 
 ---
 
-*Full documentation: See skill/command definitions in `~/.claude/` or the [claude-config repo](https://github.com/josephneumann/claude-config).*
+*Full documentation: See skill definitions in `~/.claude/skills/` or the [claude-config repo](https://github.com/josephneumann/claude-config).*
