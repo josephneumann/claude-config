@@ -106,6 +106,7 @@ All workflow capabilities are implemented as skills in `skills/`. Full documenta
 | `/reconcile-summary` | Execute | Sync worker output with task board |
 | `/compound` | Learn | Capture learnings in `docs/solutions/` |
 | `/multi-review` | Learn | Parallel code review with specialized agents |
+| `/last30days` | Research | Ad-hoc research across recent activity and changes |
 
 <details>
 <summary><strong>/brainstorm</strong> — Collaborative idea exploration</summary>
