@@ -1,5 +1,6 @@
 ---
-description: Review a worker session summary and reconcile beads tasks with implementation reality
+name: reconcile-summary
+description: "Review a worker session summary and reconcile beads tasks with implementation reality"
 allowed-tools: Read, Bash, Glob, Grep, Edit, Write
 ---
 

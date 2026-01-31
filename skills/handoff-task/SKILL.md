@@ -1,5 +1,6 @@
 ---
-description: Generate handoff context for passing a task to a separate agent session
+name: handoff-task
+description: "Generate handoff context for passing a task to a separate agent session"
 allowed-tools: Read, Bash, Glob, Grep, AskUserQuestion
 ---
 
