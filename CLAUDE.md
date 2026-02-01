@@ -38,6 +38,18 @@ Fight entropy. Leave the codebase better than you found it.
 
 ---
 
+## Critical Rule: Never Use Built-in Plan Mode for Planning
+
+When the user asks to "plan", "brainstorm", or "deepen a plan", use the custom skills (`/plan`, `/brainstorm`, `/deepen-plan`) — **never** the built-in `EnterPlanMode` tool. The built-in plan mode is for implementation planning only. Our planning skills are richer: they run research agents, produce plan documents, and decompose into beads tasks.
+
+---
+
+## Critical Rule: Never Merge a PR Without User Confirmation
+
+**NEVER merge a pull request without explicit confirmation from the user.** Always ask before merging, even if all checks pass and the review looks clean. The human decides when code lands.
+
+---
+
 ## Critical Rule: Always Run `/finish-task`
 
 **A task is NOT complete until `/finish-task` has been run.**
