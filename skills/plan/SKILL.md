@@ -1,7 +1,6 @@
 ---
 name: plan
 description: "Research, design, and decompose a project plan into beads tasks. Integrated planning pipeline from idea to actionable work."
-disable-model-invocation: true
 allowed-tools: Read, Bash, Glob, Grep, Write, AskUserQuestion, Task
 ---
 

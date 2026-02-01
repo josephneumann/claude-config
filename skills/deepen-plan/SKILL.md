@@ -1,7 +1,6 @@
 ---
 name: deepen-plan
 description: "Enhance an existing plan with parallel research, per-section analysis, and updated beads tasks."
-disable-model-invocation: true
 allowed-tools: Read, Bash, Glob, Grep, Write, Edit, AskUserQuestion, Task, WebSearch, mcp__plugin_context7_context7__resolve-library-id, mcp__plugin_context7_context7__query-docs
 ---
 

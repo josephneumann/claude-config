@@ -1,7 +1,6 @@
 ---
 name: brainstorm
 description: "Collaborative brainstorming to explore what to build. Interactive Q&A dialogue to refine ideas before planning."
-disable-model-invocation: true
 allowed-tools: Read, Bash, Glob, Grep, AskUserQuestion, Write, Task
 ---
 
