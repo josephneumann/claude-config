@@ -185,6 +185,23 @@ fi
 
 This ensures the agent has the same permission allowlist in the worktree as the main repo.
 
+## 8.6. Symlink Environment Files to Worktree
+
+Worktrees only contain tracked files — `.env` files are gitignored and won't exist in new worktrees. Symlink them so tests and local services work:
+
+```bash
+# Symlink .env files from main repo (if they exist)
+for envfile in ../${PROJECT_NAME}/.env ../${PROJECT_NAME}/.env.*; do
+  if [ -f "$envfile" ]; then
+    filename=$(basename "$envfile")
+    ln -sf "$(cd "$(dirname "$envfile")" && pwd)/$filename" "./$filename"
+    echo "Symlinked $filename to worktree"
+  fi
+done
+```
+
+**Why symlink instead of copy?** One source of truth — when secrets rotate, all worktrees pick up the change automatically. No stale copies.
+
 ## 9. Assess Task Size
 
 **Philosophy: Task-sized work** — Tasks should fit comfortably in context.
