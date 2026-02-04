@@ -196,16 +196,16 @@ Write the summary to a file so orchestrating agents can read it directly from di
 PROJECT_ROOT=$(git rev-parse --show-toplevel)
 
 # Create directory if needed
-mkdir -p "$PROJECT_ROOT/session_summaries"
+mkdir -p "$PROJECT_ROOT/docs/session_summaries"
 
 # Add to .gitignore if not present
-if ! grep -q "^session_summaries/$" "$PROJECT_ROOT/.gitignore" 2>/dev/null; then
-  echo "session_summaries/" >> "$PROJECT_ROOT/.gitignore"
+if ! grep -q "^docs/session_summaries/$" "$PROJECT_ROOT/.gitignore" 2>/dev/null; then
+  echo "docs/session_summaries/" >> "$PROJECT_ROOT/.gitignore"
 fi
 
 # Generate filename with timestamp
 TIMESTAMP=$(date +%y%m%d-%H%M%S)
-SUMMARY_FILE="$PROJECT_ROOT/session_summaries/$ARGUMENTS_${TIMESTAMP}.txt"
+SUMMARY_FILE="$PROJECT_ROOT/docs/session_summaries/$ARGUMENTS_${TIMESTAMP}.txt"
 ```
 
 Write the summary content using a heredoc:

@@ -100,13 +100,13 @@ If user selects "No, cancel" for question 1, abort dispatch.
 
 For each task:
 
-1. **Write the handoff file and add to queue** in `pending_handoffs/`:
+1. **Write the handoff file and add to queue** in `docs/pending_handoffs/`:
 ```bash
 # Ensure directory exists
-mkdir -p "$(pwd)/pending_handoffs"
+mkdir -p "$(pwd)/docs/pending_handoffs"
 
 # Write handoff file with context
-cat > "$(pwd)/pending_handoffs/<task-id>.txt" << 'HANDOFF_EOF'
+cat > "$(pwd)/docs/pending_handoffs/<task-id>.txt" << 'HANDOFF_EOF'
 TASK_ID: <task-id>
 TIMESTAMP: <iso-timestamp>
 ---
@@ -115,13 +115,13 @@ HANDOFF_EOF
 
 # CRITICAL: Append task ID to the queue file
 # The SessionStart hook pops from this queue to assign tasks to workers
-echo "<task-id>" >> "$(pwd)/pending_handoffs/.queue"
+echo "<task-id>" >> "$(pwd)/docs/pending_handoffs/.queue"
 ```
 
-Also ensure `pending_handoffs/` is in `.gitignore`:
+Also ensure `docs/pending_handoffs/` is in `.gitignore`:
 ```bash
-if ! grep -q "^pending_handoffs/$" .gitignore 2>/dev/null; then
-  echo "pending_handoffs/" >> .gitignore
+if ! grep -q "^docs/pending_handoffs/$" .gitignore 2>/dev/null; then
+  echo "docs/pending_handoffs/" >> .gitignore
 fi
 ```
 
@@ -139,7 +139,7 @@ Note: The `--handoff` flag is no longer needed as handoff context is now passed 
 3. **Output status**:
 ```
 Worker 1/N spawned: <task-id>
-Handoff written to: pending_handoffs/<task-id>.txt
+Handoff written to: docs/pending_handoffs/<task-id>.txt
 
 The worker will automatically receive handoff context via SessionStart hook.
 ```

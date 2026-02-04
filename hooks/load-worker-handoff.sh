@@ -5,8 +5,8 @@
 # This hook runs at the start of every Claude Code session.
 # It uses a signal + queue mechanism to reliably assign tasks to workers:
 #
-# 1. /dispatch writes task IDs to pending_handoffs/.queue (one per line)
-# 2. /dispatch writes full handoff to pending_handoffs/<task-id>.txt
+# 1. /dispatch writes task IDs to docs/pending_handoffs/.queue (one per line)
+# 2. /dispatch writes full handoff to docs/pending_handoffs/<task-id>.txt
 # 3. mp-spawn creates a signal file (.spawn-<timestamp>) just before starting Claude
 # 4. This hook claims one signal file (atomic delete), then pops task from queue
 # 5. Each worker gets exactly one task in FIFO order
@@ -24,11 +24,11 @@ else
     exit 0
 fi
 
-HANDOFF_DIR="$PROJECT_DIR/pending_handoffs"
+HANDOFF_DIR="$PROJECT_DIR/docs/pending_handoffs"
 QUEUE_FILE="$HANDOFF_DIR/.queue"
 LOCK_DIR="$HANDOFF_DIR/.queue.lock"
 
-# Exit silently if no pending_handoffs directory
+# Exit silently if no docs/pending_handoffs directory
 if [ ! -d "$HANDOFF_DIR" ]; then
     exit 0
 fi

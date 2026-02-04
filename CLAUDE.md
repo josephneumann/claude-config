@@ -162,7 +162,7 @@ Used by `/multi-review` for specialized parallel review:
 /handoff-task <id> → new session → /start-task <id> --handoff "..."
 
 # Worker completes → orchestrator reconciles
-worker: /finish-task <id> → summary written to session_summaries/
+worker: /finish-task <id> → summary written to docs/session_summaries/
 orchestrator: /reconcile-summary → auto-discovers summaries → update beads
 ```
 
@@ -173,11 +173,11 @@ orchestrator: /reconcile-summary → auto-discovers summaries → update beads
 When `/dispatch` spawns workers, they automatically receive their task context:
 
 1. **`/dispatch` writes two files per task:**
-   - `pending_handoffs/<task-id>.txt` — Full handoff content
-   - `pending_handoffs/.queue` — Task ID appended (FIFO order)
+   - `docs/pending_handoffs/<task-id>.txt` — Full handoff content
+   - `docs/pending_handoffs/.queue` — Task ID appended (FIFO order)
 
 2. **`mp-spawn` creates a signal file** just before starting Claude:
-   - `pending_handoffs/.spawn-<timestamp>-<pid>`
+   - `docs/pending_handoffs/.spawn-<timestamp>-<pid>`
 
 3. **SessionStart hook runs on every Claude session:**
    - No signal file? → Exit silently (manual session)
@@ -204,12 +204,12 @@ Implementation often diverges from spec — that's normal. The workflow handles 
 - What downstream tasks are affected
 
 **Orchestrators** reconcile after each worker completes:
-1. Run `/reconcile-summary` (auto-discovers unreconciled summaries in `session_summaries/`)
+1. Run `/reconcile-summary` (auto-discovers unreconciled summaries in `docs/session_summaries/`)
 2. Or run `/reconcile-summary <task-id>` for a specific task
 3. Or paste a summary directly if preferred
 4. Update affected beads tasks, close obsoleted, create discovered work
 
-Reconciled summaries are moved to `session_summaries/reconciled/` to prevent re-processing.
+Reconciled summaries are moved to `docs/session_summaries/reconciled/` to prevent re-processing.
 
 This keeps the task board accurate as reality unfolds.
 
