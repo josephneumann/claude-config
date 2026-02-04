@@ -435,16 +435,16 @@ if [ -z "$PROJECT_ROOT" ]; then
 fi
 
 # Create directory if needed
-mkdir -p "$PROJECT_ROOT/session_summaries"
+mkdir -p "$PROJECT_ROOT/docs/session_summaries"
 
 # Add to .gitignore if not present
-if ! grep -q "^session_summaries/$" "$PROJECT_ROOT/.gitignore" 2>/dev/null; then
-  echo "session_summaries/" >> "$PROJECT_ROOT/.gitignore"
+if ! grep -q "^docs/session_summaries/$" "$PROJECT_ROOT/.gitignore" 2>/dev/null; then
+  echo "docs/session_summaries/" >> "$PROJECT_ROOT/.gitignore"
 fi
 
 # Generate filename with timestamp
 TIMESTAMP=$(date +%y%m%d-%H%M%S)
-SUMMARY_FILE="$PROJECT_ROOT/session_summaries/$ARGUMENTS_${TIMESTAMP}.txt"
+SUMMARY_FILE="$PROJECT_ROOT/docs/session_summaries/$ARGUMENTS_${TIMESTAMP}.txt"
 ```
 
 Write the summary content using a heredoc:

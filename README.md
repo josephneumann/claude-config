@@ -139,17 +139,19 @@ Discovers project structure, reads CLAUDE.md/README/PROJECT_SPEC, analyzes beads
 <details>
 <summary><strong>/dispatch</strong> — Spawn parallel workers</summary>
 
-Identifies ready tasks from `bd ready`, generates handoff context, writes to `pending_handoffs/`, and spawns workers via `mp-spawn` in iTerm2 tabs. Workers automatically receive task context via the SessionStart hook.
+Identifies ready tasks from `bd ready`, generates handoff context, writes to `docs/pending_handoffs/`, and spawns workers via `mp-spawn` in iTerm2 tabs. Workers automatically receive task context via the SessionStart hook.
 
 **Automated handoff flow:**
-1. `/dispatch` writes handoff context to `pending_handoffs/<task-id>.txt`
-2. `/dispatch` appends task ID to `pending_handoffs/.queue`
-3. `mp-spawn` creates signal file `pending_handoffs/.spawn-<timestamp>-<pid>`
+1. `/dispatch` writes handoff context to `docs/pending_handoffs/<task-id>.txt`
+2. `/dispatch` appends task ID to `docs/pending_handoffs/.queue`
+3. `mp-spawn` creates signal file `docs/pending_handoffs/.spawn-<timestamp>-<pid>`
 4. SessionStart hook claims signal (atomic delete) — no signal = manual session, exit silently
 5. Hook pops task from `.queue` (mkdir-based locking) and displays handoff
 6. Claude sees the instruction to execute `/start-task`
 
 This signal + queue mechanism ensures each worker gets exactly one task (FIFO order), manual sessions never grab queued tasks, and interrupted dispatch leaves no stale state.
+
+All handoff files are stored in `docs/pending_handoffs/`.
 
 **Usage:**
 ```bash
@@ -199,7 +201,7 @@ After starting, you'll be in a separate worktree — all changes are isolated fr
 8. Creates a pull request
 9. Runs `/multi-review` with auto-fix (high-confidence issues ≥80% fixed automatically, max 3 cycles)
 10. Optionally merges PR and cleans up worktree (using absolute paths)
-11. Outputs a detailed **Session Summary** to `session_summaries/`
+11. Outputs a detailed **Session Summary** to `docs/session_summaries/`
 
 **Critical:** Tests must pass before the task can be finished. The command will stop if tests fail.
 
@@ -229,7 +231,7 @@ Generates a structured session summary without committing, pushing, or closing t
 <details>
 <summary><strong>/reconcile-summary</strong> — Sync worker output with task board</summary>
 
-Auto-discovers unreconciled summaries in `session_summaries/`, analyzes spec divergences, updates affected beads tasks, creates new tasks for discovered work, and closes obsoleted tasks. Moves processed summaries to `session_summaries/reconciled/`.
+Auto-discovers unreconciled summaries in `docs/session_summaries/`, analyzes spec divergences, updates affected beads tasks, creates new tasks for discovered work, and closes obsoleted tasks. Moves processed summaries to `docs/session_summaries/reconciled/`.
 
 </details>
 
@@ -292,23 +294,25 @@ Used by `/multi-review` for specialized code review.
 
 Workers use two directories for persistent input and output:
 
-- **`pending_handoffs/`** — Input: Handoff context written by `/dispatch`, read by SessionStart hook
-- **`session_summaries/`** — Output: Session summaries written by `/finish-task`
+- **`docs/pending_handoffs/`** — Input: Handoff context written by `/dispatch`, read by SessionStart hook
+- **`docs/session_summaries/`** — Output: Session summaries written by `/finish-task`
 
 ### Storage Location
 
-Both directories are stored in the project root:
+Both directories are stored in `docs/`:
 
 ```
 project-root/
-├── pending_handoffs/           # Worker inputs (created by /dispatch)
-│   ├── MoneyPrinter-ajq.txt    # Consumed by SessionStart hook
-│   └── processed/              # Moved here after consumption
-├── session_summaries/          # Worker outputs (created by /finish-task)
-│   ├── MoneyPrinter-ajq_260117-143052.txt
-│   ├── MoneyPrinter-4b3_260117-151230.txt
-│   └── reconciled/             # Moved here after reconciliation
-├── .gitignore                  # Contains both directories
+├── docs/
+│   ├── pending_handoffs/           # Worker inputs (created by /dispatch)
+│   │   ├── MoneyPrinter-ajq.txt    # Consumed by SessionStart hook
+│   │   └── processed/              # Moved here after consumption
+│   ├── session_summaries/          # Worker outputs (created by /finish-task)
+│   │   ├── MoneyPrinter-ajq_260117-143052.txt
+│   │   ├── MoneyPrinter-4b3_260117-151230.txt
+│   │   └── reconciled/             # Moved here after reconciliation
+│   └── solutions/                  # Learnings from /compound
+├── .gitignore                      # Contains both directories
 └── ...
 ```
 
@@ -326,21 +330,21 @@ Orchestrators can discover and read completed work:
 
 ```bash
 # List recent summaries (sorted by modification time)
-ls -lt session_summaries/
+ls -lt docs/session_summaries/
 
 # Read a specific summary
-cat session_summaries/MoneyPrinter-ajq_260117-143052.txt
+cat docs/session_summaries/MoneyPrinter-ajq_260117-143052.txt
 
 # Find summaries for a specific task
-ls session_summaries/*ajq*
+ls docs/session_summaries/*ajq*
 
 # Find summaries from today
-ls session_summaries/*$(date +%y%m%d)*
+ls docs/session_summaries/*$(date +%y%m%d)*
 ```
 
 ### Automatic Gitignore
 
-The skills automatically add `session_summaries/` and `pending_handoffs/` to `.gitignore` if not present. This ensures:
+The skills automatically add `docs/session_summaries/` and `docs/pending_handoffs/` to `.gitignore` if not present. This ensures:
 - Handoffs and summaries don't clutter git history
 - Each machine maintains its own local archive
 - No conflicts between parallel workers
@@ -357,14 +361,14 @@ Shell utilities for orchestrating parallel Claude workers.
 
 **What it does:**
 1. Opens a new iTerm2 tab via AppleScript
-2. Creates signal file `pending_handoffs/.spawn-<timestamp>-<pid>`
+2. Creates signal file `docs/pending_handoffs/.spawn-<timestamp>-<pid>`
 3. Starts Claude Code (with `--chrome` enabled by default)
 4. SessionStart hook claims signal and loads handoff context from queue
 
 **Note:** `mp-spawn` does NOT create worktrees. Worktree creation is handled entirely by `/start-task` for simplicity and to avoid duplication issues.
 
 **Automated handoff mechanism:**
-- `/dispatch` writes handoff files AND appends task IDs to `pending_handoffs/.queue`
+- `/dispatch` writes handoff files AND appends task IDs to `docs/pending_handoffs/.queue`
 - `mp-spawn` creates signal file, then spawns Claude
 - SessionStart hook claims signal (atomic delete) — no signal = manual session
 - Hook pops task from `.queue` (mkdir-based locking) and displays handoff

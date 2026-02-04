@@ -17,7 +17,7 @@ Options:
   --no-chrome             Disable Chrome browser tools
   --help                  Show this help
 
-Note: Handoff context is passed via pending_handoffs/<task-id>.txt files,
+Note: Handoff context is passed via docs/pending_handoffs/<task-id>.txt files,
 written by /dispatch before spawning. The --handoff flag is deprecated.
 
 Examples:
@@ -146,8 +146,8 @@ osascript \
 # Create spawn signal file - this tells the hook this is a worker session
 # The hook will claim this signal (delete it) and process the queue
 # Signal filename includes timestamp and PID for uniqueness
-mkdir -p "$PROJECT_DIR/pending_handoffs"
-SPAWN_SIGNAL="$PROJECT_DIR/pending_handoffs/.spawn-$(date +%s)-$$"
+mkdir -p "$PROJECT_DIR/docs/pending_handoffs"
+SPAWN_SIGNAL="$PROJECT_DIR/docs/pending_handoffs/.spawn-$(date +%s)-$$"
 touch "$SPAWN_SIGNAL"
 
 # Start claude - the SessionStart hook will see the signal and process queue

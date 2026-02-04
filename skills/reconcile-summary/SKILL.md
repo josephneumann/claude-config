@@ -17,15 +17,15 @@ If the user provided a task ID as argument (`$ARGUMENTS`), look for its summary:
 
 ```bash
 # Find summary file for specific task
-ls -lt session_summaries/${ARGUMENTS}*.txt 2>/dev/null | head -1
+ls -lt docs/session_summaries/${ARGUMENTS}*.txt 2>/dev/null | head -1
 ```
 
-### Option B: Auto-discover from session_summaries/
+### Option B: Auto-discover from docs/session_summaries/
 If no argument, scan for unreconciled summaries (excludes `reconciled/` subdirectory):
 
 ```bash
 # Find summary files NOT in reconciled/ subdirectory
-find session_summaries/ -maxdepth 1 -name "*.txt" -type f 2>/dev/null | head -10
+find docs/session_summaries/ -maxdepth 1 -name "*.txt" -type f 2>/dev/null | head -10
 
 # Check which tasks were recently closed
 bd list --all 2>/dev/null | grep -i closed | head -10
@@ -43,8 +43,8 @@ If no summaries found or user prefers, they can paste directly.
 
 ```bash
 # Example: List unreconciled summaries with task IDs and timestamps
-# (excludes session_summaries/reconciled/)
-for f in session_summaries/*.txt; do
+# (excludes docs/session_summaries/reconciled/)
+for f in docs/session_summaries/*.txt; do
   if [ -f "$f" ]; then
     task_id=$(basename "$f" | cut -d'_' -f1)
     mod_time=$(stat -f "%Sm" -t "%Y-%m-%d %H:%M" "$f")
@@ -53,7 +53,7 @@ for f in session_summaries/*.txt; do
 done 2>/dev/null | sort -t'-' -k2 -r | head -10
 ```
 
-**Note:** Summaries in `session_summaries/reconciled/` have already been processed and are excluded from discovery.
+**Note:** Summaries in `docs/session_summaries/reconciled/` have already been processed and are excluded from discovery.
 
 If multiple summaries need reconciliation, use AskUserQuestion:
 
@@ -260,12 +260,12 @@ Move the processed summary file to a `reconciled/` subdirectory to prevent re-pr
 
 ```bash
 # Create reconciled directory if needed
-mkdir -p session_summaries/reconciled
+mkdir -p docs/session_summaries/reconciled
 
 # Move the processed summary
-mv "$SUMMARY_FILE" session_summaries/reconciled/
+mv "$SUMMARY_FILE" docs/session_summaries/reconciled/
 
-echo "Summary moved to session_summaries/reconciled/"
+echo "Summary moved to docs/session_summaries/reconciled/"
 ```
 
 This ensures the discovery step (Step 1) won't pick up already-reconciled summaries.
