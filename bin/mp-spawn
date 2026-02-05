@@ -2,7 +2,7 @@
 set -e
 
 # ============================================
-# mp-spawn: Spawn Claude Code worker in iTerm2
+# mp-spawn: Spawn Claude Code worker in iTerm2 or Ghostty
 # Worktree creation is handled by /start-task
 # ============================================
 
@@ -12,10 +12,17 @@ Usage: mp-spawn <task-id> [options]
 
 Options:
   --dir /path/to/project  Project directory (default: current directory)
+  --terminal <terminal>   Force terminal: "iterm2" or "ghostty"
   --skip-permissions      Skip all permission prompts (--dangerously-skip-permissions)
   --chrome                Enable Chrome browser tools (--chrome)
   --no-chrome             Disable Chrome browser tools
   --help                  Show this help
+
+Terminal detection (in priority order):
+  1. --terminal flag (explicit per-invocation)
+  2. CLAUDE_SPAWN_TERMINAL env var (persistent preference)
+  3. \$TERM_PROGRAM detection (iTerm.app or ghostty)
+  4. Installed app check (falls back to whichever is installed)
 
 Note: Handoff context is passed via docs/pending_handoffs/<task-id>.txt files,
 written by /dispatch before spawning. The --handoff flag is deprecated.
@@ -24,6 +31,7 @@ Examples:
   mp-spawn MoneyPrinter-ajq
   mp-spawn MoneyPrinter-ajq --dir /Users/jneumann/Code/MoneyPrinter
   mp-spawn MoneyPrinter-ajq --skip-permissions --chrome
+  mp-spawn MoneyPrinter-ajq --terminal ghostty
 EOF
   exit 1
 }
@@ -34,6 +42,7 @@ PROJECT_DIR=""
 HANDOFF=""
 SKIP_PERMS=""
 CHROME=""
+TERMINAL_OVERRIDE=""
 
 while [[ $# -gt 0 ]]; do
   case $1 in
@@ -43,6 +52,14 @@ while [[ $# -gt 0 ]]; do
       ;;
     --handoff)
       HANDOFF="$2"
+      shift 2
+      ;;
+    --terminal)
+      if [[ "$2" != "iterm2" && "$2" != "ghostty" ]]; then
+        echo "Error: --terminal must be 'iterm2' or 'ghostty' (got '$2')"
+        exit 1
+      fi
+      TERMINAL_OVERRIDE="$2"
       shift 2
       ;;
     --skip-permissions)
@@ -98,67 +115,152 @@ fi
 echo "Project: $PROJECT_DIR"
 
 # ============================================
+# Detect terminal emulator
+# ============================================
+detect_terminal() {
+  # 1. CLI flag (already set in TERMINAL_OVERRIDE)
+  if [[ -n "$TERMINAL_OVERRIDE" ]]; then
+    echo "$TERMINAL_OVERRIDE"
+    return
+  fi
+
+  # 2. Environment variable
+  if [[ -n "$CLAUDE_SPAWN_TERMINAL" ]]; then
+    if [[ "$CLAUDE_SPAWN_TERMINAL" == "iterm2" || "$CLAUDE_SPAWN_TERMINAL" == "ghostty" ]]; then
+      echo "$CLAUDE_SPAWN_TERMINAL"
+      return
+    else
+      echo "Warning: CLAUDE_SPAWN_TERMINAL='$CLAUDE_SPAWN_TERMINAL' is not valid (use 'iterm2' or 'ghostty')" >&2
+    fi
+  fi
+
+  # 3. $TERM_PROGRAM detection
+  if [[ "$TERM_PROGRAM" == "iTerm.app" ]]; then
+    echo "iterm2"
+    return
+  elif [[ "$TERM_PROGRAM" == "ghostty" ]]; then
+    echo "ghostty"
+    return
+  fi
+
+  # 4. Installed app check
+  if open -Ra "iTerm" 2>/dev/null; then
+    echo "iterm2"
+    return
+  elif open -Ra "Ghostty" 2>/dev/null; then
+    echo "ghostty"
+    return
+  fi
+
+  # 5. Nothing found
+  echo ""
+}
+
+TERMINAL=$(detect_terminal)
+
+if [[ -z "$TERMINAL" ]]; then
+  echo "Error: No supported terminal found. mp-spawn requires iTerm2 or Ghostty on macOS."
+  echo ""
+  echo "Install one of:"
+  echo "  - iTerm2: https://iterm2.com/"
+  echo "  - Ghostty: https://ghostty.org/"
+  echo ""
+  echo "Or set explicitly:"
+  echo "  mp-spawn <task-id> --terminal iterm2"
+  echo "  export CLAUDE_SPAWN_TERMINAL=ghostty"
+  exit 1
+fi
+
+echo "Terminal: $TERMINAL"
+
+# ============================================
 # Build the /start-task command
 # ============================================
 TASK_SHORT=$(echo "$TASK_ID" | cut -d'-' -f2)
-
-# ============================================
-# Open new iTerm2 tab via AppleScript
-# ============================================
-echo "Opening iTerm2 tab for $TASK_ID..."
 
 # Build claude command with flags
 CLAUDE_CMD="claude"
 [[ -n "$CHROME" ]] && CLAUDE_CMD="$CLAUDE_CMD $CHROME"
 [[ -n "$SKIP_PERMS" ]] && CLAUDE_CMD="$CLAUDE_CMD $SKIP_PERMS"
 
-# Use osascript to open a new iTerm2 tab, cd to project dir, and start claude
-# After tab is ready, we create a signal file and start claude
-# The SessionStart hook claims the signal and processes the queue
-# /start-task will handle worktree creation
-osascript \
-  -e 'tell application "iTerm2"' \
-  -e '    activate' \
-  -e '    if (count of windows) = 0 then' \
-  -e '        create window with default profile' \
-  -e '    end if' \
-  -e '    tell current window' \
-  -e '        create tab with default profile' \
-  -e '        tell current session' \
-  -e "            write text \"cd '${PROJECT_DIR}'\"" \
-  -e '        end tell' \
-  -e '    end tell' \
-  -e 'end tell'
+# ============================================
+# Terminal-specific spawn functions
+# ============================================
 
-# Wait for cd to complete
-sleep 0.5
+# --- iTerm2 ---
 
-# Set tab/session name using iTerm2's native AppleScript property
-osascript \
-  -e 'tell application "iTerm2"' \
-  -e '    tell current window' \
-  -e '        tell current session' \
-  -e "            set name to \"${TASK_SHORT}\"" \
-  -e '        end tell' \
-  -e '    end tell' \
-  -e 'end tell'
+spawn_iterm2() {
+  echo "Opening iTerm2 tab for $TASK_ID..."
 
-# Create spawn signal file - this tells the hook this is a worker session
-# The hook will claim this signal (delete it) and process the queue
-# Signal filename includes timestamp and PID for uniqueness
+  # Create tab and cd to project directory
+  osascript \
+    -e 'tell application "iTerm2"' \
+    -e '    activate' \
+    -e '    if (count of windows) = 0 then' \
+    -e '        create window with default profile' \
+    -e '    end if' \
+    -e '    tell current window' \
+    -e '        create tab with default profile' \
+    -e '        tell current session' \
+    -e "            write text \"cd '${PROJECT_DIR}'\"" \
+    -e '        end tell' \
+    -e '    end tell' \
+    -e 'end tell'
+
+  # Wait for cd to complete
+  sleep 0.5
+
+  # Set tab/session name
+  osascript \
+    -e 'tell application "iTerm2"' \
+    -e '    tell current window' \
+    -e '        tell current session' \
+    -e "            set name to \"${TASK_SHORT}\"" \
+    -e '        end tell' \
+    -e '    end tell' \
+    -e 'end tell'
+}
+
+send_command_iterm2() {
+  osascript \
+    -e 'tell application "iTerm2"' \
+    -e '    tell current window' \
+    -e '        tell current session' \
+    -e "            write text \"${CLAUDE_CMD}\"" \
+    -e '        end tell' \
+    -e '    end tell' \
+    -e 'end tell'
+}
+
+# --- Ghostty ---
+
+spawn_ghostty() {
+  echo "Opening Ghostty window for $TASK_ID..."
+  # Ghostty creates the window and runs the command atomically via open -na
+  # No separate spawn step needed
+}
+
+send_command_ghostty() {
+  open -na "Ghostty" --args \
+    --title="${TASK_SHORT}" \
+    --working-directory="${PROJECT_DIR}" \
+    -e bash -c "printf '\\033]0;${TASK_SHORT}\\007' && ${CLAUDE_CMD}"
+}
+
+# ============================================
+# Spawn worker
+# ============================================
+
+# Phase 1: Create tab/window (Ghostty: no-op, window created in Phase 3)
+spawn_${TERMINAL}
+
+# Phase 2: Create signal file
 mkdir -p "$PROJECT_DIR/docs/pending_handoffs"
 SPAWN_SIGNAL="$PROJECT_DIR/docs/pending_handoffs/.spawn-$(date +%s)-$$"
 touch "$SPAWN_SIGNAL"
 
-# Start claude - the SessionStart hook will see the signal and process queue
-osascript \
-  -e 'tell application "iTerm2"' \
-  -e '    tell current window' \
-  -e '        tell current session' \
-  -e "            write text \"${CLAUDE_CMD}\"" \
-  -e '        end tell' \
-  -e '    end tell' \
-  -e 'end tell'
+# Phase 3: Start claude
+send_command_${TERMINAL}
 
 # Wait for claude to start before returning
 sleep 2
