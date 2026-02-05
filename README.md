@@ -30,7 +30,7 @@ brainstorm → plan → deepen-plan → orient → dispatch → start-task → f
 
 **Plan phase**: Start with `/brainstorm` to explore ideas through interactive Q&A. Feed the result into `/plan`, which researches the codebase, analyzes feasibility with parallel agents, and decomposes into beads tasks with dependencies. Use `/deepen-plan` to enhance any section with targeted research.
 
-**Execute phase**: Run `/orient` to survey the project and identify parallel work streams. Use `/dispatch` to spawn multiple Claude Code workers in iTerm2 tabs — each gets a task via the automated handoff queue. Workers run `/start-task` (creates a git worktree, claims the task, gathers context) and `/finish-task` (tests, commit, PR, code review, session summary) autonomously. Use `/handoff-task` when context grows too large.
+**Execute phase**: Run `/orient` to survey the project and identify parallel work streams. Use `/dispatch` to spawn multiple Claude Code workers in terminal tabs/windows — each gets a task via the automated handoff queue. Workers run `/start-task` (creates a git worktree, claims the task, gathers context) and `/finish-task` (tests, commit, PR, code review, session summary) autonomously. Use `/handoff-task` when context grows too large.
 
 **Learn phase**: After solving problems, run `/compound` to capture the solution in `docs/solutions/` for future sessions. `/multi-review` provides parallel specialized code review. The orchestrator runs `/reconcile-summary` to sync worker output with the task board.
 
@@ -98,7 +98,7 @@ All workflow capabilities are implemented as skills in `skills/`. Full documenta
 | `/plan` | Plan | Research, design, decompose into beads tasks |
 | `/deepen-plan` | Plan | Enhance plan with parallel research |
 | `/orient` | Execute | Survey project, identify parallel work streams |
-| `/dispatch` | Execute | Spawn parallel workers in iTerm2 tabs |
+| `/dispatch` | Execute | Spawn parallel workers in terminal tabs/windows |
 | `/start-task <id>` | Execute | Claim task, create worktree, gather context |
 | `/finish-task <id>` | Execute | Tests, PR, code review, cleanup, close |
 | `/handoff-task <id>` | Execute | Pass work to fresh session |
@@ -139,7 +139,7 @@ Discovers project structure, reads CLAUDE.md/README/PROJECT_SPEC, analyzes beads
 <details>
 <summary><strong>/dispatch</strong> — Spawn parallel workers</summary>
 
-Identifies ready tasks from `bd ready`, generates handoff context, writes to `docs/pending_handoffs/`, and spawns workers via `mp-spawn` in iTerm2 tabs. Workers automatically receive task context via the SessionStart hook.
+Identifies ready tasks from `bd ready`, generates handoff context, writes to `docs/pending_handoffs/`, and spawns workers via `mp-spawn` in terminal tabs (iTerm2) or windows (Ghostty). Workers automatically receive task context via the SessionStart hook.
 
 **Automated handoff flow:**
 1. `/dispatch` writes handoff context to `docs/pending_handoffs/<task-id>.txt`
@@ -160,7 +160,7 @@ All handoff files are stored in `docs/pending_handoffs/`.
 /dispatch task-id:"Use PriceCache"     # With custom handoff context
 ```
 
-Use `Cmd+1/2/3` to navigate between worker tabs in iTerm2.
+Use `Cmd+1/2/3` (iTerm2 tabs) or `Cmd+\`` (Ghostty windows) to navigate between workers.
 
 </details>
 
@@ -357,13 +357,14 @@ Shell utilities for orchestrating parallel Claude workers.
 
 ### `mp-spawn`
 
-**Purpose:** Spawn a Claude Code worker in a new iTerm2 tab.
+**Purpose:** Spawn a Claude Code worker in a new iTerm2 tab or Ghostty window.
 
 **What it does:**
-1. Opens a new iTerm2 tab via AppleScript
-2. Creates signal file `docs/pending_handoffs/.spawn-<timestamp>-<pid>`
-3. Starts Claude Code (with `--chrome` enabled by default)
-4. SessionStart hook claims signal and loads handoff context from queue
+1. Detects terminal emulator (iTerm2 or Ghostty)
+2. Opens a new tab (iTerm2) or window (Ghostty)
+3. Creates signal file `docs/pending_handoffs/.spawn-<timestamp>-<pid>`
+4. Starts Claude Code (with `--chrome` enabled by default)
+5. SessionStart hook claims signal and loads handoff context from queue
 
 **Note:** `mp-spawn` does NOT create worktrees. Worktree creation is handled entirely by `/start-task` for simplicity and to avoid duplication issues.
 
@@ -385,6 +386,7 @@ mp-spawn <task-id> [options]
 
 Options:
   --dir /path/to/project  Project directory (default: current directory)
+  --terminal <terminal>   Force terminal: "iterm2" or "ghostty"
   --skip-permissions      Skip all permission prompts (uses --dangerously-skip-permissions)
 ```
 
@@ -398,12 +400,16 @@ mp-spawn MoneyPrinter-ajq --skip-permissions
 
 # Orchestrator passing explicit directory
 mp-spawn MoneyPrinter-ajq --dir "$(pwd)" --skip-permissions
+
+# Force Ghostty even when running from iTerm2
+mp-spawn MoneyPrinter-ajq --terminal ghostty
 ```
 
-**iTerm2 Integration:**
-- Uses AppleScript to create new iTerm2 tabs directly
-- Each tab is named with the task short ID (e.g., "ajq")
-- Switch between workers with `Cmd+1/2/3` or `Cmd+Shift+[/]`
+**Terminal support:**
+- **iTerm2**: Creates new tabs via AppleScript. Switch with `Cmd+1/2/3` or `Cmd+Shift+[/]`
+- **Ghostty**: Creates new windows via `open -na`. Switch with `Cmd+\``
+- Each tab/window is named with the task short ID (e.g., "ajq")
+- Auto-detects terminal, or override with `--terminal ghostty` or `CLAUDE_SPAWN_TERMINAL=ghostty`
 
 ---
 
@@ -441,7 +447,7 @@ mp-spawn MoneyPrinter-ajq --dir "$(pwd)" --skip-permissions
 # Orchestrator session
 /orient
 /dispatch --count 3
-# Workers auto-spawn in iTerm2 tabs
+# Workers auto-spawn in terminal tabs/windows
 # Wait for workers to complete, then:
 /reconcile-summary
 ```
@@ -558,10 +564,10 @@ The installer:
   - Install: `brew install gh` (macOS) or see [installation docs](https://github.com/cli/cli#installation)
   - Authenticate: `gh auth login`
 
-- **iTerm2** - Terminal emulator for macOS (for `mp-spawn`)
-  - Used by `mp-spawn` to create worker tabs via AppleScript
-  - Download: [iterm2.com](https://iterm2.com/)
-  - Must grant Accessibility permissions for AppleScript automation
+- **iTerm2 or Ghostty** - Terminal emulator for macOS (for `mp-spawn`)
+  - **iTerm2**: Creates worker tabs via AppleScript. Download: [iterm2.com](https://iterm2.com/). Must grant Accessibility permissions for AppleScript automation
+  - **Ghostty**: Creates worker windows via `open -na`. Download: [ghostty.org](https://ghostty.org/)
+  - `mp-spawn` auto-detects the active terminal, or set `CLAUDE_SPAWN_TERMINAL=iterm2|ghostty`
 
 ### Claude Code Setup
 

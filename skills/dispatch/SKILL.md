@@ -170,7 +170,7 @@ Active workers:
 ...
 
 Worker tabs are named by task short ID (e.g., "6iw", "wpn").
-Use Cmd+1/2/3 to navigate between worker tabs.
+Use Cmd+1/2/3 (iTerm2 tabs) or Cmd+\` (Ghostty windows) to navigate between workers.
 
 Each worker will automatically:
 1. Receive handoff context via SessionStart hook
@@ -187,7 +187,7 @@ You can continue working in this orchestrator session while workers execute.
 - **mp-spawn not found**: Tell user to run `source ~/.zshrc` or check installation
 - **No ready tasks**: Suggest running `/orient` first to identify work
 - **Task doesn't exist**: Skip it, warn the user, continue with valid tasks
-- **iTerm2 not available**: Tell user mp-spawn requires iTerm2 on macOS
+- **No supported terminal**: Tell user mp-spawn requires iTerm2 or Ghostty on macOS
 - **All tasks invalid**: Abort with clear error message
 - **User stops early**: Report which workers were successfully spawned
 
