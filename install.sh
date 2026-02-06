@@ -58,21 +58,6 @@ if [ -L "$CLAUDE_DIR/commands" ]; then
     echo "✓ Removed legacy commands symlink (migrated to skills)"
 fi
 
-# Add bin/ to PATH via .zshrc
-BIN_DIR="$SCRIPT_DIR/bin"
-ZSHRC="$HOME/.zshrc"
-
-if [ -d "$BIN_DIR" ]; then
-    if ! grep -q "claude-config/bin" "$ZSHRC" 2>/dev/null; then
-        echo "" >> "$ZSHRC"
-        echo "# Claude config bin utilities" >> "$ZSHRC"
-        echo "export PATH=\"$BIN_DIR:\$PATH\"" >> "$ZSHRC"
-        echo "✓ Added bin/ to PATH in ~/.zshrc"
-    else
-        echo "✓ bin/ already in PATH"
-    fi
-fi
-
 echo ""
 echo "Installation complete!"
 echo ""
@@ -82,4 +67,3 @@ echo "  ls -la ~/.claude/hooks"
 echo "  ls -la ~/.claude/agents"
 echo "  ls -la ~/.claude/skills"
 echo "  ls -la ~/.claude/docs"
-echo "  which mp-spawn  # (after sourcing ~/.zshrc)"

@@ -1,12 +1,12 @@
 ---
 name: dispatch
-description: "Dispatch parallel Claude Code workers for beads tasks"
-allowed-tools: Bash, Read, Glob, Grep
+description: "Dispatch parallel Agent Teams teammates for beads tasks"
+allowed-tools: Bash, Read, Glob, Grep, AskUserQuestion, TeamCreate, TaskCreate, TaskUpdate, TaskList, SendMessage, Task
 ---
 
-# Dispatch Workers: $ARGUMENTS
+# Dispatch Teammates: $ARGUMENTS
 
-You are an orchestrator dispatching parallel Claude Code workers using `mp-spawn`.
+You are an orchestrator dispatching parallel Agent Teams teammates for beads tasks.
 
 ## Parse Arguments
 
@@ -14,12 +14,8 @@ Arguments: `$ARGUMENTS`
 
 Parse the following patterns:
 - `--count N` — Auto-select N ready tasks from `bd ready`
-- `--chrome` — Enable Chrome browser tools (prompted, default: enabled)
-- `--no-chrome` — Disable Chrome browser tools
-- `--skip-permissions` — Skip permission prompts (prompted, default: enabled)
-- `--no-skip-permissions` — Require manual approval for operations
 - `<task-id>` — Specific task to dispatch
-- `<task-id>:"context"` — Task with custom handoff context (e.g., `MoneyPrinter-ajq:"Use PriceCache"`)
+- `<task-id>:"context"` — Task with custom context (e.g., `MoneyPrinter-ajq:"Use PriceCache"`)
 
 If no arguments provided, default to `--count 3`.
 
@@ -44,152 +40,111 @@ Validate each task exists:
 bd show <task-id>
 ```
 
-## Step 2: Generate Handoff Context
+## Step 2: Generate Context
 
-For each task without explicit handoff context:
+For each task without explicit context:
 
 1. Read the task details from `bd show <task-id>`
 2. Look for related patterns in the codebase:
    - Check if similar files exist that the worker should follow
    - Look for recently completed dependencies
-3. Generate a brief (1-2 sentence) handoff context that helps the worker start faster
+3. Generate a brief (1-2 sentence) context that helps the teammate start faster
 
-Example handoff contexts:
+Example contexts:
 - "Use sector_etfs.txt format from existing tickers/ directory"
 - "Follow the pattern in backtesting/cache.py for data storage"
 - "Depends on completed MoneyPrinter-xyz, can use its output"
 
-## Step 3: Confirm Dispatch and Options
+## Step 3: Confirm Dispatch
 
 Present a summary to the user:
 
 ```
-Ready to dispatch N workers:
+Ready to dispatch N teammates:
 
 1. <task-id> (P2 <type>): <title>
-   Handoff: "<generated or provided context>"
+   Context: "<generated or provided context>"
 
 2. <task-id> (P1 <type>): <title>
-   Handoff: "<generated or provided context>"
+   Context: "<generated or provided context>"
 
 ...
 ```
 
-**Then use AskUserQuestion to confirm dispatch and configure options:**
+**Use AskUserQuestion to confirm:**
 
-Ask the user with these questions:
-
-1. "Confirm dispatch of N workers?"
-   - Options: "Yes, dispatch" / "No, cancel"
-   - multiSelect: false
-
-2. "Select worker options (recommended for autonomous work):"
-   - Options:
-     - "Chrome tools (Recommended)" - "Enable browser automation capabilities"
-     - "Skip permissions (Recommended)" - "No manual approval prompts during execution"
-   - multiSelect: true
-   - NOTE: Both should be pre-selected/recommended by default
+Ask: "Confirm dispatch of N teammates?"
+- Options: "Yes, dispatch" / "No, cancel"
+- multiSelect: false
 
 **Wait for explicit user confirmation before proceeding.**
 
-If user selects "No, cancel" for question 1, abort dispatch.
+If user selects "No, cancel", abort dispatch.
 
-## Step 4: Spawn Workers ONE AT A TIME
+## Step 4: Create Team and Spawn Teammates
 
-**CRITICAL: Spawn workers sequentially, waiting for user confirmation between each.**
+1. **Create the team** using TeamCreate with a descriptive name based on the project/tasks.
 
-For each task:
+2. **Create tasks** in the Agent Teams task list using TaskCreate — one per beads task. Include in each task description:
+   - The beads task ID
+   - Task title and description from `bd show`
+   - The generated context
+   - Clear instruction: "Run `/start-task <task-id>` to begin. Run `/finish-task <task-id>` when done."
 
-1. **Write the handoff file and add to queue** in `docs/pending_handoffs/`:
-```bash
-# Ensure directory exists
-mkdir -p "$(pwd)/docs/pending_handoffs"
+3. **Set up dependencies** between tasks using TaskUpdate if the beads tasks have dependencies.
 
-# Write handoff file with context
-cat > "$(pwd)/docs/pending_handoffs/<task-id>.txt" << 'HANDOFF_EOF'
-TASK_ID: <task-id>
-TIMESTAMP: <iso-timestamp>
----
-<handoff context text>
-HANDOFF_EOF
+4. **Spawn teammates** using the Task tool with `team_name` parameter — one per task. Each teammate should be a `general-purpose` subagent type with `mode: "bypassPermissions"`. Give each teammate a descriptive name based on the task (e.g., the task short ID).
 
-# CRITICAL: Append task ID to the queue file
-# The SessionStart hook pops from this queue to assign tasks to workers
-echo "<task-id>" >> "$(pwd)/docs/pending_handoffs/.queue"
-```
+   The spawn prompt for each teammate should include:
+   ```
+   You are a worker on team "<team-name>". Your task:
 
-Also ensure `docs/pending_handoffs/` is in `.gitignore`:
-```bash
-if ! grep -q "^docs/pending_handoffs/$" .gitignore 2>/dev/null; then
-  echo "docs/pending_handoffs/" >> .gitignore
-fi
-```
+   <task title and description from bd show>
 
-2. **Spawn the worker** using mp-spawn:
-```bash
-source ~/.zshrc && mp-spawn <task-id> --dir "$(pwd)" [--chrome] [--skip-permissions]
-```
+   Context: <generated context>
 
-Include flags based on user's selections from Step 3:
-- Include `--chrome` if "Chrome tools" was selected
-- Include `--skip-permissions` if "Skip permissions" was selected
+   Instructions:
+   1. Run `/start-task <task-id>` to set up your worktree and claim the task
+   2. Implement the task according to the acceptance criteria
+   3. Run `/finish-task <task-id>` when tests pass and implementation is complete
+   4. Report back to the team lead when done
 
-Note: The `--handoff` flag is no longer needed as handoff context is now passed via the file.
+   IMPORTANT: Always work in the git worktree created by /start-task. Never edit files in the main working directory.
+   ```
 
-3. **Output status**:
-```
-Worker 1/N spawned: <task-id>
-Handoff written to: docs/pending_handoffs/<task-id>.txt
+5. **Assign tasks** using TaskUpdate to set the owner of each task to the corresponding teammate name.
 
-The worker will automatically receive handoff context via SessionStart hook.
-```
+## Step 5: Post-Dispatch Summary
 
-4. **Use AskUserQuestion to confirm before spawning next worker:**
-
-Ask: "Worker for <task-id> spawned. Ready for next worker?"
-- Options: "Yes, spawn next" / "Retry this worker" / "Stop dispatching"
-- multiSelect: false
-
-5. **Handle response:**
-   - "Yes, spawn next" → Continue to next task
-   - "Retry this worker" → Re-write handoff file and re-run mp-spawn for this task
-   - "Stop dispatching" → End dispatch early, report which workers were spawned
-
-6. **Repeat for each remaining task**
-
-## Step 5: Post-Spawn Summary
-
-After all workers are spawned (or dispatch stopped early), provide a summary:
+After all teammates are spawned, provide a summary:
 
 ```
-Dispatch complete: N/M workers spawned
+Dispatch complete: N teammates spawned
 
-Active workers:
-1. <task-id>: <title> — Tab 1
-2. <task-id>: <title> — Tab 2
+Team: <team-name>
+Teammates:
+1. <name>: <task-id> — <title>
+2. <name>: <task-id> — <title>
 ...
 
-Worker tabs are named by task short ID (e.g., "6iw", "wpn").
-Use Cmd+1/2/3 (iTerm2 tabs) or Cmd+\` (Ghostty windows) to navigate between workers.
+Each teammate will:
+1. Run /start-task to set up a git worktree
+2. Implement the task
+3. Run /finish-task when tests pass
 
-Each worker will automatically:
-1. Receive handoff context via SessionStart hook
-2. Execute /start-task to set up the task environment (git worktree)
-3. Ask clarifying questions (if any)
-4. Begin implementation
-5. Run /finish-task when tests pass
+Use Shift+Up/Down to switch between teammates (in-process mode).
+The team lead will receive notifications as teammates complete work.
 
-You can continue working in this orchestrator session while workers execute.
+IMPORTANT: Before ending this session, run /reconcile-summary to sync
+all teammate work back to beads.
 ```
 
 ## Error Handling
 
-- **mp-spawn not found**: Tell user to run `source ~/.zshrc` or check installation
 - **No ready tasks**: Suggest running `/orient` first to identify work
 - **Task doesn't exist**: Skip it, warn the user, continue with valid tasks
-- **No supported terminal**: Tell user mp-spawn requires iTerm2 or Ghostty on macOS
 - **All tasks invalid**: Abort with clear error message
-- **User stops early**: Report which workers were successfully spawned
+- **Teammate spawn fails**: Report the error, continue with remaining tasks
 
 ## Examples
 
@@ -208,12 +163,7 @@ You can continue working in this orchestrator session while workers execute.
 /dispatch MoneyPrinter-ajq MoneyPrinter-4b3
 ```
 
-**With custom handoff:**
+**With custom context:**
 ```
 /dispatch MoneyPrinter-ajq:"Use existing ticker format"
-```
-
-**Explicit no chrome:**
-```
-/dispatch --count 2 --no-chrome
 ```

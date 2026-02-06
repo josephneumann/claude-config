@@ -327,6 +327,6 @@ This command handles everything required to properly close out:
 - Stop the session without running `/finish-task`
 - Tell the user "done!" without running `/finish-task`
 - Consider the task complete just because tests pass
-- Hand off without `/finish-task` (use `/handoff-task` if work is incomplete)
+- Hand off without `/finish-task` (notify the team lead if work is incomplete)
 
 The orchestrator depends on your session summary to coordinate parallel work. A task without a session summary is invisible to coordination.

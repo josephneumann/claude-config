@@ -17,8 +17,6 @@ This creates symlinks from `~/.claude/` to this repo:
 - `agents/` - Specialized agent definitions for research, review, and workflow
 - `docs/` - Global learnings and solutions (shared across projects)
 
-Also adds `bin/` utilities to your PATH.
-
 ---
 
 ## The Workflow
@@ -30,7 +28,7 @@ brainstorm → plan → deepen-plan → orient → dispatch → start-task → f
 
 **Plan phase**: Start with `/brainstorm` to explore ideas through interactive Q&A. Feed the result into `/plan`, which researches the codebase, analyzes feasibility with parallel agents, and decomposes into beads tasks with dependencies. Use `/deepen-plan` to enhance any section with targeted research.
 
-**Execute phase**: Run `/orient` to survey the project and identify parallel work streams. Use `/dispatch` to spawn multiple Claude Code workers in terminal tabs/windows — each gets a task via the automated handoff queue. Workers run `/start-task` (creates a git worktree, claims the task, gathers context) and `/finish-task` (tests, commit, PR, code review, session summary) autonomously. Use `/handoff-task` when context grows too large.
+**Execute phase**: Run `/orient` to survey the project and identify parallel work streams. Use `/dispatch` to spawn Agent Teams teammates — each gets a task with context and runs `/start-task` (creates a git worktree, claims the task, gathers context) and `/finish-task` (tests, commit, PR, code review, session summary) autonomously. The team lead coordinates via inter-agent messaging and runs `/reconcile-summary` before ending the session.
 
 **Learn phase**: After solving problems, run `/compound` to capture the solution in `docs/solutions/` for future sessions. `/multi-review` provides parallel specialized code review. The orchestrator runs `/reconcile-summary` to sync worker output with the task board.
 
@@ -38,9 +36,9 @@ brainstorm → plan → deepen-plan → orient → dispatch → start-task → f
 
 ## Philosophy: Parallel Agentic Development
 
-1. **Parallel by default** — Multiple Claude sessions work simultaneously in isolated git worktrees. No waiting; use `/dispatch` to spawn workers.
+1. **Parallel by default** — Multiple Claude sessions work simultaneously in isolated git worktrees. No waiting; use `/dispatch` to spawn Agent Teams teammates.
 
-2. **Orchestrator + Workers** — One session orients (`/orient`) and coordinates; workers execute discrete tasks (`/start-task`) and report back with session summaries. The orchestrator sees the big picture, workers focus deeply.
+2. **Orchestrator + Workers** — One session orients (`/orient`) and coordinates via Agent Teams; teammates execute discrete tasks (`/start-task`) and report back with session summaries. The orchestrator sees the big picture, teammates focus deeply.
 
 3. **Task-sized work** — Break work into chunks that fit comfortably in context. Big enough to be a meaningful atomic change, small enough to complete without exhausting the context window. If you're compacting mid-task, the task was too big.
 
@@ -50,7 +48,7 @@ brainstorm → plan → deepen-plan → orient → dispatch → start-task → f
 
 6. **Human in the loop** — Humans approve PRs, prioritize tasks, and make architectural decisions. AI executes, human directs.
 
-7. **Handoffs over context bloat** — When context grows large, hand off to a fresh session with `/handoff-task` rather than degrading quality. Fresh context beats exhausted context.
+7. **Handoffs over context bloat** — When context grows large, the team lead spawns a replacement teammate with the prior context rather than degrading quality. Fresh context beats exhausted context.
 
 8. **Session summaries** — Every completed task outputs a detailed summary enabling asynchronous coordination. Each session leaves breadcrumbs for the next.
 
@@ -98,10 +96,9 @@ All workflow capabilities are implemented as skills in `skills/`. Full documenta
 | `/plan` | Plan | Research, design, decompose into beads tasks |
 | `/deepen-plan` | Plan | Enhance plan with parallel research |
 | `/orient` | Execute | Survey project, identify parallel work streams |
-| `/dispatch` | Execute | Spawn parallel workers in terminal tabs/windows |
+| `/dispatch` | Execute | Spawn Agent Teams teammates for parallel work |
 | `/start-task <id>` | Execute | Claim task, create worktree, gather context |
 | `/finish-task <id>` | Execute | Tests, PR, code review, cleanup, close |
-| `/handoff-task <id>` | Execute | Pass work to fresh session |
 | `/summarize-session <id>` | Execute | Progress checkpoint (read-only) |
 | `/reconcile-summary` | Execute | Sync worker output with task board |
 | `/compound` | Learn | Capture learnings in `docs/solutions/` |
@@ -137,30 +134,20 @@ Discovers project structure, reads CLAUDE.md/README/PROJECT_SPEC, analyzes beads
 </details>
 
 <details>
-<summary><strong>/dispatch</strong> — Spawn parallel workers</summary>
+<summary><strong>/dispatch</strong> — Spawn Agent Teams teammates</summary>
 
-Identifies ready tasks from `bd ready`, generates handoff context, writes to `docs/pending_handoffs/`, and spawns workers via `mp-spawn` in terminal tabs (iTerm2) or windows (Ghostty). Workers automatically receive task context via the SessionStart hook.
-
-**Automated handoff flow:**
-1. `/dispatch` writes handoff context to `docs/pending_handoffs/<task-id>.txt`
-2. `/dispatch` appends task ID to `docs/pending_handoffs/.queue`
-3. `mp-spawn` creates signal file `docs/pending_handoffs/.spawn-<timestamp>-<pid>`
-4. SessionStart hook claims signal (atomic delete) — no signal = manual session, exit silently
-5. Hook pops task from `.queue` (mkdir-based locking) and displays handoff
-6. Claude sees the instruction to execute `/start-task`
-
-This signal + queue mechanism ensures each worker gets exactly one task (FIFO order), manual sessions never grab queued tasks, and interrupted dispatch leaves no stale state.
-
-All handoff files are stored in `docs/pending_handoffs/`.
+Identifies ready tasks from `bd ready`, generates context, creates an Agent Teams team, and spawns teammates — one per task. Each teammate receives task context and the instruction to run `/start-task`. Teammates work in isolated git worktrees and coordinate via inter-agent messaging.
 
 **Usage:**
 ```bash
 /dispatch --count 3                    # Auto-select 3 ready tasks
 /dispatch task-id1 task-id2 task-id3   # Specific tasks
-/dispatch task-id:"Use PriceCache"     # With custom handoff context
+/dispatch task-id:"Use PriceCache"     # With custom context
 ```
 
-Use `Cmd+1/2/3` (iTerm2 tabs) or `Cmd+\`` (Ghostty windows) to navigate between workers.
+Use Shift+Up/Down to switch between teammates (in-process mode).
+
+**IMPORTANT:** Before ending the orchestrator session, run `/reconcile-summary` to sync all teammate work back to beads — Agent Teams state is session-scoped and lost on exit.
 
 </details>
 
@@ -176,7 +163,7 @@ Use `Cmd+1/2/3` (iTerm2 tabs) or `Cmd+\`` (Ghostty windows) to navigate between 
 7. Defines acceptance criteria with the user
 8. Confirms before implementation begins
 
-Supports `--handoff "<context>"` for session continuations from `/handoff-task`.
+Supports `--handoff "<context>"` for passing additional context from the team lead.
 
 **Examples:**
 ```bash
@@ -204,18 +191,6 @@ After starting, you'll be in a separate worktree — all changes are isolated fr
 11. Outputs a detailed **Session Summary** to `docs/session_summaries/`
 
 **Critical:** Tests must pass before the task can be finished. The command will stop if tests fail.
-
-</details>
-
-<details>
-<summary><strong>/handoff-task</strong> — Generate handoff context</summary>
-
-Gathers session-specific context (decisions, gotchas, approach) and outputs a copy-pasteable `/start-task` command with handoff context. Use when context grows too large or passing work between sessions.
-
-**Output example:**
-```
-/start-task MoneyPrinter-46j.1 --handoff "Used pytest fixtures for DB setup. Watch for timezone issues in date parsing."
-```
 
 </details>
 
@@ -290,29 +265,23 @@ Used by `/multi-review` for specialized code review.
 
 ---
 
-## Session Summaries & Handoffs (Persistent I/O)
+## Session Summaries (Persistent I/O)
 
-Workers use two directories for persistent input and output:
+Session summaries provide cross-session continuity for completed work.
 
-- **`docs/pending_handoffs/`** — Input: Handoff context written by `/dispatch`, read by SessionStart hook
-- **`docs/session_summaries/`** — Output: Session summaries written by `/finish-task`
+- **`docs/session_summaries/`** — Written by `/finish-task`, read by `/reconcile-summary`
 
 ### Storage Location
-
-Both directories are stored in `docs/`:
 
 ```
 project-root/
 ├── docs/
-│   ├── pending_handoffs/           # Worker inputs (created by /dispatch)
-│   │   ├── MoneyPrinter-ajq.txt    # Consumed by SessionStart hook
-│   │   └── processed/              # Moved here after consumption
 │   ├── session_summaries/          # Worker outputs (created by /finish-task)
 │   │   ├── MoneyPrinter-ajq_260117-143052.txt
 │   │   ├── MoneyPrinter-4b3_260117-151230.txt
 │   │   └── reconciled/             # Moved here after reconciliation
 │   └── solutions/                  # Learnings from /compound
-├── .gitignore                      # Contains both directories
+├── .gitignore                      # Contains session_summaries/
 └── ...
 ```
 
@@ -344,72 +313,10 @@ ls docs/session_summaries/*$(date +%y%m%d)*
 
 ### Automatic Gitignore
 
-The skills automatically add `docs/session_summaries/` and `docs/pending_handoffs/` to `.gitignore` if not present. This ensures:
-- Handoffs and summaries don't clutter git history
+The skills automatically add `docs/session_summaries/` to `.gitignore` if not present. This ensures:
+- Summaries don't clutter git history
 - Each machine maintains its own local archive
 - No conflicts between parallel workers
-
----
-
-## Bin Utilities Reference
-
-Shell utilities for orchestrating parallel Claude workers.
-
-### `mp-spawn`
-
-**Purpose:** Spawn a Claude Code worker in a new iTerm2 tab or Ghostty window.
-
-**What it does:**
-1. Detects terminal emulator (iTerm2 or Ghostty)
-2. Opens a new tab (iTerm2) or window (Ghostty)
-3. Creates signal file `docs/pending_handoffs/.spawn-<timestamp>-<pid>`
-4. Starts Claude Code (with `--chrome` enabled by default)
-5. SessionStart hook claims signal and loads handoff context from queue
-
-**Note:** `mp-spawn` does NOT create worktrees. Worktree creation is handled entirely by `/start-task` for simplicity and to avoid duplication issues.
-
-**Automated handoff mechanism:**
-- `/dispatch` writes handoff files AND appends task IDs to `docs/pending_handoffs/.queue`
-- `mp-spawn` creates signal file, then spawns Claude
-- SessionStart hook claims signal (atomic delete) — no signal = manual session
-- Hook pops task from `.queue` (mkdir-based locking) and displays handoff
-- Claude sees the handoff + instruction to execute `/start-task`
-
-This signal + queue approach ensures:
-- Reliable task assignment even if workers spawn simultaneously
-- Manual sessions never grab queued tasks
-- Interrupted dispatch leaves no stale state
-
-**Usage:**
-```bash
-mp-spawn <task-id> [options]
-
-Options:
-  --dir /path/to/project  Project directory (default: current directory)
-  --terminal <terminal>   Force terminal: "iterm2" or "ghostty"
-  --skip-permissions      Skip all permission prompts (uses --dangerously-skip-permissions)
-```
-
-**Examples:**
-```bash
-# From within a project directory
-mp-spawn MoneyPrinter-ajq
-
-# Fully autonomous workers (no permission prompts)
-mp-spawn MoneyPrinter-ajq --skip-permissions
-
-# Orchestrator passing explicit directory
-mp-spawn MoneyPrinter-ajq --dir "$(pwd)" --skip-permissions
-
-# Force Ghostty even when running from iTerm2
-mp-spawn MoneyPrinter-ajq --terminal ghostty
-```
-
-**Terminal support:**
-- **iTerm2**: Creates new tabs via AppleScript. Switch with `Cmd+1/2/3` or `Cmd+Shift+[/]`
-- **Ghostty**: Creates new windows via `open -na`. Switch with `Cmd+\``
-- Each tab/window is named with the task short ID (e.g., "ajq")
-- Auto-detects terminal, or override with `--terminal ghostty` or `CLAUDE_SPAWN_TERMINAL=ghostty`
 
 ---
 
@@ -441,29 +348,16 @@ mp-spawn MoneyPrinter-ajq --terminal ghostty
 /finish-task beads-abc123
 ```
 
-### 3. Multi-Session Parallel Workflow
+### 3. Multi-Session Parallel Workflow (Agent Teams)
 
 ```bash
 # Orchestrator session
 /orient
 /dispatch --count 3
-# Workers auto-spawn in terminal tabs/windows
-# Wait for workers to complete, then:
+# Teammates auto-spawn, run /start-task, implement, run /finish-task
+# Use Shift+Up/Down to switch between teammates
+# Before ending:
 /reconcile-summary
-```
-
-### 4. Handoff Workflow
-
-```bash
-# Session 1 (hitting context limits)
-/start-task beads-abc123
-# Work for a while...
-/handoff-task beads-abc123
-# Outputs: /start-task beads-abc123 --handoff "..."
-
-# Session 2 (fresh context)
-/start-task beads-abc123 --handoff "Used pytest fixtures for DB setup..."
-/finish-task beads-abc123
 ```
 
 ---
@@ -492,7 +386,6 @@ mp-spawn MoneyPrinter-ajq --terminal ghostty
    ls -la ~/.claude/agents    # Should show symlink
    ls -la ~/.claude/skills    # Should show symlink
    ls -la ~/.claude/docs      # Should show symlink
-   which mp-spawn             # Should show path to bin/mp-spawn
    ```
 
 The installer:
@@ -500,7 +393,6 @@ The installer:
 - Backs up existing directories (if any)
 - Creates symlinks to the repo
 - Removes legacy `commands/` symlink if present
-- Adds `bin/` to PATH in `~/.zshrc`
 - Is idempotent (safe to run multiple times)
 
 ---
@@ -564,10 +456,17 @@ The installer:
   - Install: `brew install gh` (macOS) or see [installation docs](https://github.com/cli/cli#installation)
   - Authenticate: `gh auth login`
 
-- **iTerm2 or Ghostty** - Terminal emulator for macOS (for `mp-spawn`)
-  - **iTerm2**: Creates worker tabs via AppleScript. Download: [iterm2.com](https://iterm2.com/). Must grant Accessibility permissions for AppleScript automation
-  - **Ghostty**: Creates worker windows via `open -na`. Download: [ghostty.org](https://ghostty.org/)
-  - `mp-spawn` auto-detects the active terminal, or set `CLAUDE_SPAWN_TERMINAL=iterm2|ghostty`
+- **Agent Teams** - Required for `/dispatch`. Enable in `~/.claude/settings.json`:
+  ```json
+  {
+    "env": {
+      "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+    },
+    "teammateMode": "in-process"
+  }
+  ```
+  - `teammateMode` options: `"in-process"` (Shift+Up/Down in any terminal), `"tmux"` (split panes, requires tmux or iTerm2), `"auto"` (detects tmux, falls back to in-process)
+  - See [Agent Teams docs](https://code.claude.com/docs/en/agent-teams) for full reference
 
 ### Claude Code Setup
 
