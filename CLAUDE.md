@@ -14,9 +14,9 @@ Fight entropy. Leave the codebase better than you found it.
 
 ---
 
-1. **Parallel by default** — Multiple sessions work simultaneously in isolated git worktrees. No waiting; use `/dispatch` to spawn workers.
+1. **Parallel by default** — Multiple sessions work simultaneously in isolated git worktrees. No waiting; use `/dispatch` to spawn Agent Teams teammates.
 
-2. **Orchestrator + Workers** — One session orients (`/orient`) and coordinates; workers execute discrete tasks (`/start-task`) and report back with session summaries.
+2. **Orchestrator + Workers** — One session orients (`/orient`) and coordinates via Agent Teams; teammates execute discrete tasks (`/start-task`) and report back with session summaries.
 
 3. **Task-sized work** — Break work into chunks that fit comfortably in context. Big enough to be a meaningful atomic change, small enough to complete without exhausting the context window.
 
@@ -26,7 +26,7 @@ Fight entropy. Leave the codebase better than you found it.
 
 6. **Human in the loop** — Humans approve PRs, prioritize tasks, and make architectural decisions. AI executes, human directs.
 
-7. **Handoffs over context bloat** — When context grows large, hand off to a fresh session with `/handoff-task` rather than degrading quality.
+7. **Handoffs over context bloat** — When context grows large, the team lead spawns a replacement teammate with the prior context rather than degrading quality.
 
 8. **Session summaries** — Every completed task outputs a detailed summary. Each session leaves breadcrumbs for the next.
 
@@ -83,8 +83,7 @@ All workflow capabilities are implemented as skills in `skills/`.
 | `/orient` | Build context, identify parallel work | Session start |
 | `/start-task <id>` | Create worktree, claim task, gather context | Beginning a task |
 | `/finish-task <id>` | Tests, commit, PR, cleanup, close | Task complete |
-| `/handoff-task <id>` | Generate context for another session | Context full, passing work |
-| `/dispatch` | Spawn parallel workers | Multiple ready tasks |
+| `/dispatch` | Spawn Agent Teams teammates | Multiple ready tasks |
 | `/summarize-session <id>` | Progress summary (read-only) | Mid-session checkpoint |
 | `/reconcile-summary` | Sync beads with implementation reality | After worker completes |
 
@@ -154,43 +153,17 @@ Used by `/multi-review` for specialized parallel review:
 # Single session
 /orient → /start-task <id> → implement → /finish-task <id>
 
-# Parallel sessions (orchestrator)
+# Parallel sessions (orchestrator via Agent Teams)
 /orient → /dispatch --count 3
-# Workers auto-receive handoff via queue mechanism (see below)
-
-# Handoff (context full)
-/handoff-task <id> → new session → /start-task <id> --handoff "..."
+# Teammates auto-spawn, run /start-task, implement, run /finish-task
 
 # Worker completes → orchestrator reconciles
 worker: /finish-task <id> → summary written to docs/session_summaries/
 orchestrator: /reconcile-summary → auto-discovers summaries → update beads
+
+# IMPORTANT: Before ending an orchestrator session, always run:
+/reconcile-summary
 ```
-
----
-
-## Automated Worker Handoff
-
-When `/dispatch` spawns workers, they automatically receive their task context:
-
-1. **`/dispatch` writes two files per task:**
-   - `docs/pending_handoffs/<task-id>.txt` — Full handoff content
-   - `docs/pending_handoffs/.queue` — Task ID appended (FIFO order)
-
-2. **`mp-spawn` creates a signal file** just before starting Claude:
-   - `docs/pending_handoffs/.spawn-<timestamp>-<pid>`
-
-3. **SessionStart hook runs on every Claude session:**
-   - No signal file? → Exit silently (manual session)
-   - Signal exists? → Claim it (atomic delete), pop task from queue, show handoff
-
-4. **Worker sees:** Task context + instruction to run `/start-task <task-id>`
-
-**Key points:**
-- Manual sessions never grab queued tasks (no signal = no action)
-- Signal files are created by mp-spawn, not dispatch (tied to actual spawns)
-- Concurrent workers are safe (mkdir-based locking on queue, atomic signal claim)
-- FIFO ordering ensures tasks are assigned in dispatch order
-- Interrupted dispatch leaves no stale state (signals only exist for actual spawns)
 
 ---
 
