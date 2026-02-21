@@ -63,19 +63,53 @@ fi
 SETTINGS_FILE="$CLAUDE_DIR/settings.json"
 
 if [ -f "$SETTINGS_FILE" ]; then
-    # Check if WorktreeCreate hook is already registered
-    if ! jq -e '.hooks.WorktreeCreate' "$SETTINGS_FILE" > /dev/null 2>&1; then
-        # Add WorktreeCreate hook
-        jq '.hooks.WorktreeCreate = [{"matcher": "", "hooks": [{"type": "command", "command": "~/.claude/hooks/worktree-setup.sh", "statusMessage": "Setting up worktree environment..."}]}]' \
-            "$SETTINGS_FILE" > "${SETTINGS_FILE}.tmp" && mv "${SETTINGS_FILE}.tmp" "$SETTINGS_FILE"
-        echo "✓ Registered WorktreeCreate hook"
-    else
-        echo "✓ WorktreeCreate hook already registered"
-    fi
+    # Helper to register a hook if not already present
+    register_hook() {
+        local event="$1"
+        local check_pattern="$2"
+        local jq_expr="$3"
+        local label="$4"
 
-    # Check if BEADS_NO_DAEMON SessionStart hook is already registered
+        if ! jq -e "$check_pattern" "$SETTINGS_FILE" > /dev/null 2>&1; then
+            jq "$jq_expr" "$SETTINGS_FILE" > "${SETTINGS_FILE}.tmp" && mv "${SETTINGS_FILE}.tmp" "$SETTINGS_FILE"
+            echo "✓ Registered $label"
+        else
+            echo "✓ $label already registered"
+        fi
+    }
+
+    # PreToolUse: guard-main-branch
+    register_hook "PreToolUse" \
+        '.hooks.PreToolUse[] | select(.hooks[].command | test("guard-main-branch"))' \
+        '.hooks.PreToolUse += [{"matcher": "Bash", "hooks": [{"type": "command", "command": "~/.claude/hooks/guard-main-branch.sh", "statusMessage": "Checking branch safety..."}]}]' \
+        "PreToolUse guard-main-branch hook"
+
+    # WorktreeCreate: worktree-setup
+    register_hook "WorktreeCreate" \
+        '.hooks.WorktreeCreate' \
+        '.hooks.WorktreeCreate = [{"matcher": "", "hooks": [{"type": "command", "command": "~/.claude/hooks/worktree-setup.sh", "statusMessage": "Setting up worktree environment..."}]}]' \
+        "WorktreeCreate hook"
+
+    # TeammateIdle: teammate-idle-guard
+    register_hook "TeammateIdle" \
+        '.hooks.TeammateIdle' \
+        '.hooks.TeammateIdle = [{"matcher": "", "hooks": [{"type": "command", "command": "~/.claude/hooks/teammate-idle-guard.sh", "statusMessage": "Checking session summary..."}]}]' \
+        "TeammateIdle hook"
+
+    # TaskCompleted: task-completed-guard
+    register_hook "TaskCompleted" \
+        '.hooks.TaskCompleted' \
+        '.hooks.TaskCompleted = [{"matcher": "", "hooks": [{"type": "command", "command": "~/.claude/hooks/task-completed-guard.sh", "statusMessage": "Verifying task completion..."}]}]' \
+        "TaskCompleted hook"
+
+    # Stop: reconcile-reminder
+    register_hook "Stop" \
+        '.hooks.Stop' \
+        '.hooks.Stop = [{"matcher": "", "hooks": [{"type": "command", "command": "~/.claude/hooks/reconcile-reminder.sh", "statusMessage": "Checking for unreconciled summaries..."}]}]' \
+        "Stop reconcile-reminder hook"
+
+    # SessionStart: BEADS_NO_DAEMON for worktrees
     if ! jq -e '.hooks.SessionStart[] | select(.hooks[].command | test("BEADS_NO_DAEMON"))' "$SETTINGS_FILE" > /dev/null 2>&1; then
-        # Add SessionStart hook for BEADS_NO_DAEMON
         DAEMON_HOOK='{"matcher": "", "hooks": [{"type": "command", "command": "TOPLEVEL=$(git rev-parse --show-toplevel 2>/dev/null); MAIN=$(git worktree list 2>/dev/null | head -1 | awk '"'"'{print $1}'"'"'); if [ \"$TOPLEVEL\" != \"$MAIN\" ] && [ -n \"$MAIN\" ]; then echo '"'"'export BEADS_NO_DAEMON=1'"'"' >> \"$CLAUDE_ENV_FILE\"; fi"}]}'
         jq --argjson hook "$DAEMON_HOOK" '.hooks.SessionStart += [$hook]' \
             "$SETTINGS_FILE" > "${SETTINGS_FILE}.tmp" && mv "${SETTINGS_FILE}.tmp" "$SETTINGS_FILE"
