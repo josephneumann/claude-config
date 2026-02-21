@@ -1,6 +1,6 @@
 ---
 name: start-task
-description: "Start working on a beads task with proper setup (worktree, context, daemon disabled)"
+description: "Start working on a beads task (claim, gather context, define acceptance criteria)"
 allowed-tools: Read, Bash, Glob, Grep, Edit, Write, AskUserQuestion
 ---
 
@@ -150,59 +150,24 @@ bd update <task_id> --notes "Research: <brief summary of findings>"
 
 ---
 
-## 7. Create Git Worktree
+## 7. Verify Worktree Isolation
 
-Determine the project directory name (e.g., `MoneyPrinter`). Create a worktree:
-
-```bash
-# Get current directory name
-PROJECT_NAME=$(basename $(git rev-parse --show-toplevel))
-
-# Create worktree with task ID as suffix
-git worktree add ../${PROJECT_NAME}-<task_id> -b <task_id>-work
-```
-
-## 8. Switch to Worktree and Disable Daemon
+This skill expects to be run inside an isolated worktree. Environment setup (`.env` symlinks, `BEADS_NO_DAEMON=1`) is handled automatically by hooks.
 
 ```bash
-cd ../${PROJECT_NAME}-<task_id>
-export BEADS_NO_DAEMON=1
-```
+TOPLEVEL=$(git rev-parse --show-toplevel)
+MAIN_REPO=$(git worktree list | head -1 | awk '{print $1}')
 
-**CRITICAL**: Remind the user that this terminal session now has `BEADS_NO_DAEMON=1` set, which prevents beads from auto-committing to the wrong branch.
-
-## 8.5. Copy Claude Settings to Worktree
-
-Copy the `.claude` directory from the main repo to preserve permission allowlists:
-
-```bash
-# Copy .claude settings (if they exist in main repo)
-if [ -d "../${PROJECT_NAME}/.claude" ]; then
-  cp -r ../${PROJECT_NAME}/.claude ./.claude
-  echo "Copied .claude settings to worktree"
+if [ "$TOPLEVEL" = "$MAIN_REPO" ]; then
+  echo "WARNING: Not in a worktree. Start with: claude --worktree <task-id>"
+  echo "Or dispatch with /dispatch which creates worktrees automatically."
+  exit 1
 fi
+
+echo "Running in worktree at $TOPLEVEL — environment setup handled by WorktreeCreate hook."
 ```
 
-This ensures the agent has the same permission allowlist in the worktree as the main repo.
-
-## 8.6. Symlink Environment Files to Worktree
-
-Worktrees only contain tracked files — `.env` files are gitignored and won't exist in new worktrees. Symlink them so tests and local services work:
-
-```bash
-# Symlink .env files from main repo (if they exist)
-for envfile in ../${PROJECT_NAME}/.env ../${PROJECT_NAME}/.env.*; do
-  if [ -f "$envfile" ]; then
-    filename=$(basename "$envfile")
-    ln -sf "$(cd "$(dirname "$envfile")" && pwd)/$filename" "./$filename"
-    echo "Symlinked $filename to worktree"
-  fi
-done
-```
-
-**Why symlink instead of copy?** One source of truth — when secrets rotate, all worktrees pick up the change automatically. No stale copies.
-
-## 9. Assess Task Size
+## 8. Assess Task Size
 
 **Philosophy: Task-sized work** — Tasks should fit comfortably in context.
 
@@ -243,9 +208,9 @@ Then ask: "Which subtask should we work on? I'll switch to that task."
 
 If they pick a subtask, **start over from step 1** with the subtask ID. The current worktree can be reused or removed.
 
-**If appropriately sized**, continue to step 10.
+**If appropriately sized**, continue to step 9.
 
-## 10. Define Acceptance Criteria
+## 9. Define Acceptance Criteria
 
 **Philosophy: Bounded autonomy** — Define "done" before coding.
 
@@ -277,7 +242,7 @@ Record the agreed criteria:
 bd update <task_id> --notes "Acceptance: <brief summary of criteria>"
 ```
 
-## 11. Clarify Ambiguities
+## 10. Clarify Ambiguities
 
 **CRITICAL**: Before writing any code, use `AskUserQuestion` to resolve any remaining ambiguities:
 
@@ -293,7 +258,7 @@ Example questions:
 - "Should this handle edge case Z, or is that out of scope?"
 - "I see two ways to implement this: A or B. Do you have a preference?"
 
-## 12. Begin Implementation
+## 11. Begin Implementation
 
 Once:
 - Task is appropriately sized (or user approved proceeding)
@@ -306,7 +271,7 @@ Only start coding after the user confirms.
 
 ---
 
-## 13. CRITICAL: Task Completion Contract
+## 12. CRITICAL: Task Completion Contract
 
 **YOUR WORK IS NOT DONE UNTIL YOU RUN `/finish-task <task-id>`**
 

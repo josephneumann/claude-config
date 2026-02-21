@@ -14,7 +14,7 @@ Fight entropy. Leave the codebase better than you found it.
 
 ---
 
-1. **Parallel by default** — Multiple sessions work simultaneously in isolated git worktrees. No waiting; use `/dispatch` to spawn Agent Teams teammates.
+1. **Parallel by default** — Multiple sessions work simultaneously in isolated git worktrees. Use `claude --worktree` for single sessions or `isolation: "worktree"` for dispatched teammates.
 
 2. **Orchestrator + Workers** — One session orients (`/orient`) and coordinates via Agent Teams; teammates execute discrete tasks (`/start-task`) and report back with session summaries.
 
@@ -81,7 +81,7 @@ All workflow capabilities are implemented as skills in `skills/`.
 | Skill | Purpose | When to Use |
 |-------|---------|-------------|
 | `/orient` | Build context, identify parallel work | Session start |
-| `/start-task <id>` | Create worktree, claim task, gather context | Beginning a task |
+| `/start-task <id>` | Claim task, gather context, define criteria | Beginning a task |
 | `/finish-task <id>` | Tests, commit, PR, cleanup, close | Task complete |
 | `/dispatch` | Spawn Agent Teams teammates | Multiple ready tasks |
 | `/summarize-session <id>` | Progress summary (read-only) | Mid-session checkpoint |
@@ -201,6 +201,19 @@ bd update <id> --status=in_progress
 bd close <id>
 bd sync --flush-only        # Export to JSONL
 ```
+
+---
+
+## Worktree Isolation
+
+All task work runs in isolated git worktrees by default:
+
+- **Dispatched teammates**: `isolation: "worktree"` in `/dispatch` — automatic
+- **Single-session work**: `claude --worktree <task-id>`
+- **Environment setup**: `WorktreeCreate` hook handles `.env` symlinks; `SessionStart` hook sets `BEADS_NO_DAEMON=1`
+
+Native worktrees live under `.claude/worktrees/` and auto-clean on exit.
+Add `.claude/worktrees/` to your project's `.gitignore`.
 
 ---
 

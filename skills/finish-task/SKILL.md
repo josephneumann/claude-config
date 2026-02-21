@@ -234,43 +234,19 @@ After code review passes (or user approves despite issues):
 
 If user approves, proceed to step 12. If user declines, leave the PR open for manual review and skip to step 13.
 
-## 12. Merge PR and Cleanup Worktree
-
-**IMPORTANT**: Must use absolute paths and cd to main repo BEFORE removing worktree.
+## 12. Merge PR and Cleanup
 
 ```bash
-# Store paths using absolute references BEFORE any directory changes
-WORKTREE_PATH=$(pwd)
 BRANCH_NAME=$(git branch --show-current)
-MAIN_REPO=$(git worktree list | grep '\[main\]' | awk '{print $1}')
-PROJECT_NAME=$(basename "$MAIN_REPO")
+MAIN_REPO=$(git worktree list | head -1 | awk '{print $1}')
 
-echo "Worktree: $WORKTREE_PATH"
-echo "Main repo: $MAIN_REPO"
-echo "Branch: $BRANCH_NAME"
-```
-
-**CRITICAL**: Change to main repo FIRST, then remove worktree:
-
-```bash
-# FIRST: Change to main repo (must succeed before removing worktree)
 cd "$MAIN_REPO"
 
-# Verify we're in main repo
-pwd
-git branch --show-current  # Should show 'main'
-
-# NOW safe to remove the worktree
-git worktree remove "$WORKTREE_PATH" --force
-
-# Merge the PR (use --repo flag to be explicit)
+# Merge PR and clean up branch
 gh pr merge --squash --delete-branch
 
 # Pull the merged changes
 git pull
-
-# Verify cleanup
-git worktree list
 ```
 
 If `gh pr merge` fails with "already merged", just delete the branch manually:
@@ -279,10 +255,7 @@ git branch -d "$BRANCH_NAME" 2>/dev/null || true
 git push origin --delete "$BRANCH_NAME" 2>/dev/null || true
 ```
 
-**If you get "Path does not exist" errors**: Your shell's CWD was deleted. Run:
-```bash
-cd "$MAIN_REPO"  # or: cd /Users/jneumann/Code/<project>
-```
+Worktree cleanup is handled automatically by Claude Code when the session exits (native worktrees auto-remove when clean).
 
 ## 13. Re-Read Original Task Spec
 

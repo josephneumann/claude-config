@@ -93,7 +93,7 @@ If user selects "No, cancel", abort dispatch.
 
 3. **Set up dependencies** between tasks using TaskUpdate if the beads tasks have dependencies.
 
-4. **Spawn teammates** using the Task tool with `team_name` parameter — one per task. Each teammate should be a `general-purpose` subagent type with `mode: "bypassPermissions"`. Give each teammate a descriptive name based on the task (e.g., the task short ID).
+4. **Spawn teammates** using the Task tool with `team_name` parameter, `isolation: "worktree"`, and `mode: "bypassPermissions"` — one per task. Each teammate should be a `general-purpose` subagent type. Give each teammate a descriptive name based on the task (e.g., the task short ID).
 
    The spawn prompt for each teammate should include:
    ```
@@ -104,12 +104,11 @@ If user selects "No, cancel", abort dispatch.
    Context: <generated context>
 
    Instructions:
-   1. Run `/start-task <task-id>` to set up your worktree and claim the task
+   1. Run `/start-task <task-id>` to claim the task and verify your environment
+      (You're already in an isolated worktree with .env files set up)
    2. Implement the task according to the acceptance criteria
    3. Run `/finish-task <task-id>` when tests pass and implementation is complete
    4. Report back to the team lead when done
-
-   IMPORTANT: Always work in the git worktree created by /start-task. Never edit files in the main working directory.
    ```
 
 5. **Assign tasks** using TaskUpdate to set the owner of each task to the corresponding teammate name.
@@ -127,8 +126,8 @@ Teammates:
 2. <name>: <task-id> — <title>
 ...
 
-Each teammate will:
-1. Run /start-task to set up a git worktree
+Each teammate runs in an isolated worktree (via isolation: "worktree") and will:
+1. Run /start-task to claim the task and verify environment
 2. Implement the task
 3. Run /finish-task when tests pass
 
