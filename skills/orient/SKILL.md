@@ -106,6 +106,33 @@ Add research findings to the "CONTEXT FOR NEW SESSIONS" section of the orientati
 
 ---
 
+## Phase 1.7: Investigation Recommendation (Optional)
+
+When the project state suggests ambiguity — multiple possible root causes, unclear architecture, or conflicting evidence — consider recommending an investigative dispatch before implementation.
+
+**Indicators:**
+- Tests failing with unclear cause
+- Recent reverts or fix-on-fix commits in git log
+- Task descriptions reference "investigate", "debug", "figure out"
+- Stale worktrees from abandoned parallel work
+
+**If investigation is warranted**, create investigation tasks in beads:
+
+```bash
+bd create --title="Investigate hypothesis A: <description>" --type=task --priority=1
+bd create --title="Investigate hypothesis B: <description>" --type=task --priority=1
+```
+
+Then recommend in Phase 5:
+
+"Investigation recommended before implementation dispatch.
+Run `/dispatch --plan-first <task-A> <task-B>` to spawn investigators
+who will plan their approach before diving in."
+
+**Skip if:** Task board is clear, all ready tasks are straightforward, or user wants to proceed directly.
+
+---
+
 ## Phase 2: Task State Analysis
 
 ### 2.1 Beads Overview

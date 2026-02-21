@@ -14,6 +14,8 @@ Arguments: `$ARGUMENTS`
 
 Parse the following patterns:
 - `--count N` — Auto-select N ready tasks from `bd ready`
+- `--plan-first` — Force all teammates into plan approval mode
+- `--no-plan` — Disable auto risk detection, all use bypassPermissions
 - `<task-id>` — Specific task to dispatch
 - `<task-id>:"context"` — Task with custom context (e.g., `MoneyPrinter-ajq:"Use PriceCache"`)
 
@@ -40,6 +42,25 @@ Validate each task exists:
 bd show <task-id>
 ```
 
+## Step 2.5: Risk Assessment (Plan Mode Detection)
+
+**Skip if `--no-plan` was specified.** If `--plan-first` was specified, mark ALL tasks `[PLAN]`.
+
+Otherwise, for each task, check its title + description (from `bd show`) for high-risk keywords (case-insensitive). These are the same categories used in `start-task` Step 6.5:
+
+- **Security**: `auth`, `authentication`, `authorization`, `encrypt`, `secret`, `password`, `token`, `credential`
+- **Data**: `migration`, `migrate`, `schema change`, `drop table`, `delete data`
+- **Financial**: `payment`, `billing`, `subscription`, `transaction`
+- **Architectural**: `architecture`, `redesign`, `rewrite`, `refactor core`
+
+Mark matching tasks `[PLAN]`, others `[AUTO]`.
+
+## Step 2.6: Interface Detection (Peer Messaging)
+
+For each pair of dispatched tasks, check if they share a dependency edge *within this dispatch batch*. Run `bd show <id>` for each task and check BLOCKS/BLOCKED BY fields. Only flag pairs where BOTH tasks are being dispatched together — external dependencies are irrelevant for peer messaging.
+
+Build peer pairs: `[(task-A, task-B, "description of shared interface")]`
+
 ## Step 2: Generate Context
 
 For each task without explicit context:
@@ -62,14 +83,16 @@ Present a summary to the user:
 ```
 Ready to dispatch N teammates:
 
-1. <task-id> (P2 <type>): <title>
+1. <task-id> (P1 <type>) [PLAN]: <title>
    Context: "<generated or provided context>"
 
-2. <task-id> (P1 <type>): <title>
+2. <task-id> (P2 <type>) [AUTO]: <title>
    Context: "<generated or provided context>"
 
 ...
 ```
+
+The `[PLAN]` / `[AUTO]` tags indicate whether the teammate will spawn in plan approval mode or autonomous mode.
 
 **Use AskUserQuestion to confirm:**
 
@@ -93,9 +116,13 @@ If user selects "No, cancel", abort dispatch.
 
 3. **Set up dependencies** between tasks using TaskUpdate if the beads tasks have dependencies.
 
-4. **Spawn teammates** using the Task tool with `team_name` parameter, `isolation: "worktree"`, and `mode: "bypassPermissions"` — one per task. Each teammate should be a `general-purpose` subagent type. Give each teammate a descriptive name based on the task (e.g., the task short ID).
+4. **Spawn teammates** using the Task tool with `team_name` parameter and `isolation: "worktree"` — one per task. Each teammate should be a `general-purpose` subagent type. Give each teammate a descriptive name based on the task (e.g., the task short ID).
 
-   The spawn prompt for each teammate should include:
+   **Mode selection:**
+   - `[AUTO]` tasks: spawn with `mode: "bypassPermissions"` (default behavior)
+   - `[PLAN]` tasks: spawn with `mode: "plan"`
+
+   **Spawn prompt for `[AUTO]` tasks:**
    ```
    You are a worker on team "<team-name>". Your task:
 
@@ -109,6 +136,35 @@ If user selects "No, cancel", abort dispatch.
    2. Implement the task according to the acceptance criteria
    3. Run `/finish-task <task-id>` when tests pass and implementation is complete
    4. Report back to the team lead when done
+   ```
+
+   **Spawn prompt for `[PLAN]` tasks:**
+   ```
+   You are a worker on team "<team-name>" spawned in PLAN MODE. Your task:
+
+   <task title and description from bd show>
+
+   Context: <generated context>
+
+   Instructions:
+   1. Run `/start-task <task-id>` to claim the task and gather context
+      (You're already in an isolated worktree with .env files set up)
+   2. Create a detailed implementation plan
+   3. Call ExitPlanMode to submit your plan for lead approval
+   4. WAIT — the lead will review and approve/reject your plan
+   5. After approval, implement the task
+   6. Run `/finish-task <task-id>` when tests pass and implementation is complete
+   7. Report back to the team lead when done
+   ```
+
+   **Peer coordination (if peer pairs detected in Step 2.6):**
+   For tasks with peers, append to the spawn prompt:
+   ```
+   Peer coordination:
+   Your teammate "<peer-name>" is working on <peer-task-id> (<brief desc>).
+   Your tasks share a dependency. If you make decisions about shared interfaces
+   (API contracts, data schemas, file formats), message <peer-name> using
+   SendMessage to agree before implementing.
    ```
 
 5. **Assign tasks** using TaskUpdate to set the owner of each task to the corresponding teammate name.
@@ -136,6 +192,15 @@ The team lead will receive notifications as teammates complete work.
 
 IMPORTANT: Before ending this session, run /reconcile-summary to sync
 all teammate work back to beads.
+```
+
+**If plan-mode teammates were spawned, add:**
+
+```
+Plan-mode teammates will submit plans for your review.
+When you receive a plan_approval_request, review the plan and respond:
+- Approve: SendMessage type="plan_approval_response", approve=true
+- Reject: SendMessage type="plan_approval_response", approve=false, content="<feedback>"
 ```
 
 ## Error Handling

@@ -84,8 +84,10 @@ All workflow capabilities are implemented as skills in `skills/`.
 | `/start-task <id>` | Claim task, gather context, define criteria | Beginning a task |
 | `/finish-task <id>` | Tests, commit, PR, cleanup, close | Task complete |
 | `/dispatch` | Spawn Agent Teams teammates | Multiple ready tasks |
+| | Flags: `--plan-first`, `--no-plan`, `--count N`, task IDs with context | |
 | `/summarize-session <id>` | Progress summary (read-only) | Mid-session checkpoint |
 | `/reconcile-summary` | Sync beads with implementation reality | After worker completes |
+| | Flag: `--no-cleanup` skips team shutdown prompt | |
 
 ### Compound Engineering
 
@@ -201,6 +203,18 @@ bd update <id> --status=in_progress
 bd close <id>
 bd sync --flush-only        # Export to JSONL
 ```
+
+---
+
+## Quality Gate Hooks
+
+Three hooks enforce workflow discipline during Agent Teams sessions:
+
+- **TeammateIdle**: Blocks teammates from going idle without running `/finish-task`. Only enforces for beads-task teammates (names containing a hyphen like `Project-abc`). Non-beads teammates pass through.
+- **TaskCompleted**: Blocks task completion without a session summary file in `docs/session_summaries/`. Same beads-name enforcement as TeammateIdle.
+- **Stop**: Reminds the orchestrator to run `/reconcile-summary` before ending a session. Only blocks if unreconciled `.txt` files exist in `docs/session_summaries/`. Solo sessions without summaries are unaffected.
+
+These hooks are registered in `~/.claude/settings.json` and implemented in `hooks/`.
 
 ---
 
