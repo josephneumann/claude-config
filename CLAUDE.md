@@ -98,6 +98,11 @@ All workflow capabilities are implemented as skills in `skills/`.
 | `/compound` | Capture learnings after solving problems | "fixed it", "that worked", explicit |
 | `/multi-review` | Parallel code review with specialized agents | "thorough review", PR review, explicit |
 
+**Two compound modes:**
+
+- **Auto-compound** — Lightweight, automatic, runs inside `/finish-task` (Step 14.5). Extracts gotchas and divergences from session summaries and writes them to `docs/solutions/`. Tagged `source: auto-compound`. Fire-and-forget, no user interaction. Closes the learning loop inside `/auto-run`.
+- **Rich compound** (`/compound`) — Interactive, human-driven, runs 5 parallel subagents. For deep problem documentation after debugging sessions. Use when you want thorough analysis beyond what auto-compound captures.
+
 ---
 
 ## Research Agents

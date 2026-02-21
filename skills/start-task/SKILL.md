@@ -106,7 +106,21 @@ If you are on a team (check if TaskList returns results):
 
 ## 6.5 Research Phase (Conditional)
 
-Before implementation, determine if research is needed based on task characteristics.
+### Quick Learnings Check (Always Run)
+
+Before starting implementation, search for relevant prior solutions:
+
+```bash
+# Search project-specific solutions
+grep -rli '<keywords from task title/description>' docs/solutions/ 2>/dev/null | head -5
+
+# Search global solutions
+grep -rli '<keywords>' ~/.claude/docs/solutions/ 2>/dev/null | head -5
+```
+
+If matches found, read the top 1-2 most relevant documents and incorporate their insights. This prevents re-discovering known gotchas.
+
+The full `learnings-researcher` agent (below) remains optional for complex tasks — this quick grep handles the common case.
 
 ### High-Risk Indicators (Research First)
 

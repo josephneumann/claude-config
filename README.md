@@ -1,4 +1,6 @@
-<h1 align="center">claude-corps</h1>
+<p align="center">
+  <img src="claude-corps.png" alt="claude-corps banner" width="100%">
+</p>
 
 <p align="center">
   <strong>Parallel agentic development framework for Claude Code</strong>
@@ -70,6 +72,8 @@ graph LR
     E --> F["Workers: /start-task"]
     F --> G["Workers: /finish-task"]
     G --> H["/reconcile-summary"]
+    G -.->|"auto-compound"| K["docs/solutions/"]
+    K -.->|"learnings"| F
     H --> I["/compound"]
     E -.->|"/auto-run loop"| H
 ```
