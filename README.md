@@ -86,20 +86,37 @@ graph LR
 
 All workflow capabilities are implemented as slash commands in `skills/`.
 
+### Planning
+
 | Skill | Purpose |
 |-------|---------|
 | `/brainstorm` | Explore what to build via interactive Q&A |
 | `/plan` | Research, design, decompose into tasks with dependencies |
 | `/deepen-plan` | Enhance an existing plan with parallel research |
+
+### Execution
+
+| Skill | Purpose |
+|-------|---------|
 | `/orient` | Survey project, identify parallel work streams |
-| `/dispatch` | Spawn parallel Agent Teams teammates in worktrees |
-| `/auto-run` | Autonomous dispatch-reconcile loop for multi-hour runs |
 | `/start-task <id>` | Claim task, create worktree, gather context |
 | `/finish-task <id>` | Tests, commit, PR, code review, session summary, close |
+
+### Orchestration
+
+| Skill | Purpose |
+|-------|---------|
+| `/dispatch` | Spawn parallel Agent Teams teammates in worktrees |
+| `/auto-run` | Autonomous dispatch-reconcile loop for multi-hour runs |
 | `/reconcile-summary` | Sync worker output with task board |
 | `/summarize-session <id>` | Mid-session progress checkpoint (read-only) |
-| `/compound` | Capture learnings in `docs/solutions/` |
+
+### Quality &amp; Learning
+
+| Skill | Purpose |
+|-------|---------|
 | `/multi-review` | Parallel code review with specialized agents |
+| `/compound` | Capture learnings in `docs/solutions/` |
 
 <details>
 <summary><strong>Skill details</strong> (click to expand)</summary>
