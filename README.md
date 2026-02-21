@@ -42,12 +42,25 @@ Claude Code is powerful on its own. claude-corps makes it a **team**.
 
 ## Quick Start
 
+### Option A: Plugin Install
+
+In Claude Code:
+```
+/plugin marketplace add josephneumann/claude-corps
+/plugin install claude-corps@claude-corps
+```
+
+> **Note**: Plugin install namespaces skills as `/claude-corps:orient`, `/claude-corps:dispatch`, etc.
+> For the full un-namespaced experience with CLAUDE.md integration, use Option B.
+
+### Option B: Full Install (Recommended)
+
 ```bash
 git clone https://github.com/josephneumann/claude-corps.git ~/Code/claude-corps
 cd ~/Code/claude-corps && ./install.sh
 ```
 
-This symlinks skills, agents, hooks, scripts, and docs into `~/.claude/` so they're available globally across all your projects.
+This symlinks skills, agents, hooks, scripts, and docs into `~/.claude/` for un-namespaced `/orient`, `/dispatch`, etc.
 
 Then in any project:
 
