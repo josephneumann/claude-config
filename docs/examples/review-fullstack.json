@@ -1,10 +1,13 @@
 {
-  "version": "1",
+  "version": "2",
   "tiers": {
     "critical": ["backend/app/auth.py", "backend/app/config.py", "backend/alembic/**"],
-    "high": ["backend/app/services/agent.py", "backend/app/routes/chat.py", "backend/app/models/**", "docker-compose*.yml"],
+    "high": ["backend/app/models/**", "docker-compose*.yml"],
     "medium": ["backend/app/routes/**", "backend/app/services/**", "frontend/app/api/**"],
     "low": ["frontend/components/**", "docs/**", "tests/**"]
   },
-  "frameworks": ["nextjs", "tailwind", "python-backend"]
+  "reviewers": {
+    "exclude": [],
+    "include": []
+  }
 }

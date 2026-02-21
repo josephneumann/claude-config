@@ -50,13 +50,13 @@ bd show <task-id>
 
 ### Risk Tier Configuration
 
-First, check for a project-level risk tiers config:
+First, check for a project-level review config:
 
 ```bash
-cat .claude/risk-tiers.json 2>/dev/null || echo "No risk-tiers.json found"
+cat .claude/review.json 2>/dev/null || cat .claude/risk-tiers.json 2>/dev/null || echo "No review config found"
 ```
 
-**With `risk-tiers.json`:** Match task file paths (from `bd show` description or related files) against tier patterns. The highest matching tier determines the task's risk level:
+**With review config:** Match task file paths (from `bd show` description or related files) against tier patterns. The highest matching tier determines the task's risk level:
 
 | Risk Tier | Dispatch Mode |
 |-----------|---------------|
@@ -65,7 +65,7 @@ cat .claude/risk-tiers.json 2>/dev/null || echo "No risk-tiers.json found"
 | medium | `[AUTO]` |
 | low | `[AUTO]` |
 
-**Without `risk-tiers.json` (keyword fallback):** For each task, check its title + description (from `bd show`) for high-risk keywords (case-insensitive):
+**Without review config (keyword fallback):** For each task, check its title + description (from `bd show`) for high-risk keywords (case-insensitive):
 
 - **Security**: `auth`, `authentication`, `authorization`, `encrypt`, `secret`, `password`, `token`, `credential`
 - **Data**: `migration`, `migrate`, `schema change`, `drop table`, `delete data`
@@ -84,7 +84,7 @@ Build peer pairs: `[(task-A, task-B, "description of shared interface")]`
 
 **If `--model` flag was specified:** Use that model for ALL tasks (overrides all other logic).
 
-**With `risk-tiers.json`:**
+**With review config:**
 
 | Risk Tier | Model |
 |-----------|-------|
@@ -93,7 +93,7 @@ Build peer pairs: `[(task-A, task-B, "description of shared interface")]`
 | medium | sonnet |
 | low | sonnet |
 
-**Without `risk-tiers.json` (keyword fallback):**
+**Without review config (keyword fallback):**
 - Keywords `architecture`, `security`, `auth`, `migration`, `rewrite`, `redesign` in task title/description → `opus`
 - Everything else → `sonnet`
 
