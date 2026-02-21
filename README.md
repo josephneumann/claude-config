@@ -64,6 +64,7 @@ claude
 graph LR
     A["/brainstorm"] --> B["/plan"]
     B --> C["/deepen-plan"]
+    C -.->|"refine"| A
     C --> D["/orient"]
     D --> E["/dispatch"]
     E --> F["Workers: /start-task"]
