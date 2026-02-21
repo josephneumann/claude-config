@@ -17,6 +17,7 @@ Parse the following patterns:
 - `--plan-first` — Force all teammates into plan approval mode
 - `--no-plan` — Disable auto risk detection, all use bypassPermissions
 - `--yes` — Skip dispatch confirmation (used by /auto-run for autonomous operation)
+- `--model opus|sonnet` — Override model selection for all tasks
 - `<task-id>` — Specific task to dispatch
 - `<task-id>:"context"` — Task with custom context (e.g., `MoneyPrinter-ajq:"Use PriceCache"`)
 
@@ -43,11 +44,28 @@ Validate each task exists:
 bd show <task-id>
 ```
 
-## Step 2.5: Risk Assessment (Plan Mode Detection)
+## Step 2.5: Risk Assessment (Plan Mode Detection + Risk Tiers)
 
 **Skip if `--no-plan` was specified.** If `--plan-first` was specified, mark ALL tasks `[PLAN]`.
 
-Otherwise, for each task, check its title + description (from `bd show`) for high-risk keywords (case-insensitive). These are the same categories used in `start-task` Step 6.5:
+### Risk Tier Configuration
+
+First, check for a project-level risk tiers config:
+
+```bash
+cat .claude/risk-tiers.json 2>/dev/null || echo "No risk-tiers.json found"
+```
+
+**With `risk-tiers.json`:** Match task file paths (from `bd show` description or related files) against tier patterns. The highest matching tier determines the task's risk level:
+
+| Risk Tier | Dispatch Mode |
+|-----------|---------------|
+| critical | `[PLAN]` |
+| high | `[PLAN]` |
+| medium | `[AUTO]` |
+| low | `[AUTO]` |
+
+**Without `risk-tiers.json` (keyword fallback):** For each task, check its title + description (from `bd show`) for high-risk keywords (case-insensitive):
 
 - **Security**: `auth`, `authentication`, `authorization`, `encrypt`, `secret`, `password`, `token`, `credential`
 - **Data**: `migration`, `migrate`, `schema change`, `drop table`, `delete data`
@@ -61,6 +79,25 @@ Mark matching tasks `[PLAN]`, others `[AUTO]`.
 For each pair of dispatched tasks, check if they share a dependency edge *within this dispatch batch*. Run `bd show <id>` for each task and check BLOCKS/BLOCKED BY fields. Only flag pairs where BOTH tasks are being dispatched together — external dependencies are irrelevant for peer messaging.
 
 Build peer pairs: `[(task-A, task-B, "description of shared interface")]`
+
+## Step 2.7: Model Selection
+
+**If `--model` flag was specified:** Use that model for ALL tasks (overrides all other logic).
+
+**With `risk-tiers.json`:**
+
+| Risk Tier | Model |
+|-----------|-------|
+| critical | opus |
+| high | opus |
+| medium | sonnet |
+| low | sonnet |
+
+**Without `risk-tiers.json` (keyword fallback):**
+- Keywords `architecture`, `security`, `auth`, `migration`, `rewrite`, `redesign` in task title/description → `opus`
+- Everything else → `sonnet`
+
+Display the model in the dispatch summary: `[AUTO/sonnet]` or `[PLAN/opus]`.
 
 ## Step 2: Generate Context
 
@@ -84,16 +121,16 @@ Present a summary to the user:
 ```
 Ready to dispatch N teammates:
 
-1. <task-id> (P1 <type>) [PLAN]: <title>
+1. <task-id> (P1 <type>) [PLAN/opus]: <title>
    Context: "<generated or provided context>"
 
-2. <task-id> (P2 <type>) [AUTO]: <title>
+2. <task-id> (P2 <type>) [AUTO/sonnet]: <title>
    Context: "<generated or provided context>"
 
 ...
 ```
 
-The `[PLAN]` / `[AUTO]` tags indicate whether the teammate will spawn in plan approval mode or autonomous mode.
+The `[PLAN/AUTO]` tags indicate dispatch mode. The `[opus/sonnet]` tags indicate the model selection from Step 2.7.
 
 **If `--yes` was specified:**
 Skip the AskUserQuestion confirmation and proceed directly to Step 4.
@@ -125,6 +162,8 @@ If user selects "No, cancel", abort dispatch.
    **Mode selection:**
    - `[AUTO]` tasks: spawn with `mode: "bypassPermissions"` (default behavior)
    - `[PLAN]` tasks: spawn with `mode: "plan"`
+
+   **Model selection:** Pass `model: "<selected>"` from Step 2.7 in the Task tool call (e.g., `model: "opus"` or `model: "sonnet"`).
 
    **Spawn prompt for `[AUTO]` tasks:**
    ```
@@ -234,4 +273,9 @@ When you receive a plan_approval_request, review the plan and respond:
 **With custom context:**
 ```
 /dispatch MoneyPrinter-ajq:"Use existing ticker format"
+```
+
+**Force all tasks to use Opus:**
+```
+/dispatch --count 3 --model opus
 ```

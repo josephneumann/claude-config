@@ -129,6 +129,7 @@ Branch: <branch-name>
 Commits: <count in this session>
 PR: <URL or "Not created">
 Merged to: <target branch or "Not merged">
+Model: <opus|sonnet|inherited>
 
 BEADS STATUS
 ------------

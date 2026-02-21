@@ -58,14 +58,20 @@ Task general-purpose: "Analyze the conversation history to identify:
 - Observable symptoms and error messages
 - Investigation steps taken
 - Technologies and frameworks involved
+- Whether this is a bug fix (is_bug_fix: true/false)
+- Whether a regression test was added (has_regression_test: true/false)
+- List of test files modified (test_files_modified: [])
 
 Return a YAML frontmatter skeleton with:
-scope, module, date, problem_type, symptoms, root_cause, severity, tags
+scope, module, date, problem_type, symptoms, root_cause, severity, tags, is_bug_fix, has_regression_test, test_files_modified
 
 Use this schema:
   problem_type: one of [build-error, test-failure, runtime-error, performance, database, security, integration, logic-error, workflow]
   root_cause: one of [missing-dependency, config-error, race-condition, incorrect-assumption, api-change, missing-validation, resource-exhaustion, logic-flaw, documentation-gap, other]
-  severity: one of [critical, high, medium, low]"
+  severity: one of [critical, high, medium, low]
+  is_bug_fix: boolean
+  has_regression_test: boolean
+  test_files_modified: list of file paths"
 ```
 
 ### Agent 2: Solution Extractor
@@ -173,6 +179,41 @@ mkdir -p [target-dir]/[category]
 
 [From Related Docs Finder — links to related docs, issues, solutions]
 ```
+
+## Step 3.5: Regression Test Prompt (Bug Fixes Only)
+
+**Only triggers when `is_bug_fix: true` from Context Analyzer output.**
+
+Check recent commits for test file changes:
+
+```bash
+git diff --name-only HEAD~5 | grep -E '(test_|_test\.|\.test\.|spec\.)'
+```
+
+If no regression test is detected (`has_regression_test: false` AND no test files in git diff), use `AskUserQuestion`:
+
+```
+This was a bug fix. A regression test helps prevent this bug from recurring.
+
+1. **Yes — draft regression test** (I'll generate test code targeting your project's test framework)
+2. **Already added** (I'll note the test files from your recent changes)
+3. **No — skip** (I'll note this was skipped)
+```
+
+**If "Yes — draft regression test":**
+- Launch a subagent (Task tool, general-purpose, model: sonnet) to write a regression test:
+  - Target the project's test framework (detect from existing test files: pytest, jest, vitest, etc.)
+  - Test the specific scenario that triggered the bug
+  - Include a comment explaining what bug this prevents
+- Add a "Regression Test" section to the solution document with the generated test code and recommended file path
+
+**If "Already added":**
+- Note the test files from `git diff` in the document under a "Regression Test" section
+
+**If "No — skip":**
+- Note as skipped with the user's reason in the document
+
+Add to YAML frontmatter: `regression_test_status: recommended|added|skipped`
 
 ## Step 4: Optional Specialized Agent Review
 

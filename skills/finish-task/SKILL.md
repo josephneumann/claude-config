@@ -138,6 +138,25 @@ Confirm:
 - Task status is `closed`
 - `bd sync` shows "no changes" or "already up to date"
 
+## 10.5. Frontend Evidence Prompt
+
+Check if the PR includes frontend changes:
+
+```bash
+git diff main...HEAD --name-only | grep -E '\.(tsx|jsx|css|scss)$'
+```
+
+If frontend files are present, inform the user:
+
+```
+This PR includes frontend changes. Consider capturing screenshots for the PR:
+  - Run the dev server and take desktop + mobile screenshots
+  - Add them to the PR description or as GitHub comments
+  - If spec/design images exist, compare visually
+```
+
+This is informational only — do not block on evidence capture.
+
 ## 11. Create Pull Request
 
 Create a PR for the completed work:
@@ -338,6 +357,7 @@ Branch: <branch-name>
 Commits: <count>
 PR: <URL or "Not created">
 Merged to: <target branch>
+Model: <opus|sonnet|inherited>
 
 BEADS STATUS
 ------------

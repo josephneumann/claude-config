@@ -27,6 +27,25 @@ git diff HEAD~5 --name-only
 
 List the changed files and their types (e.g., `.py`, `.ts`, `.go`).
 
+### Step 1.5: Load Risk Tiers Configuration
+
+Check for a project-level risk tiers configuration:
+
+```bash
+# Check project root for risk-tiers.json
+cat .claude/risk-tiers.json 2>/dev/null || echo "No risk-tiers.json found"
+```
+
+If found, parse the configuration:
+- `tiers`: Maps risk levels (critical, high, medium, low) to file glob patterns
+- `frameworks`: Lists framework-specific reviewers to activate
+
+**Risk tier resolution:** For each changed file, match against tier patterns (most specific match wins). If a file matches multiple tiers, use the highest tier. If no match, default to `medium`.
+
+Determine the **overall PR risk tier** = the highest tier among all changed files.
+
+If no `risk-tiers.json` exists, fall back to the keyword-based behavior in Step 2.
+
 ### Step 2: Analyze Change Types
 
 Categorize the changes to select appropriate reviewers:
@@ -42,19 +61,46 @@ Categorize the changes to select appropriate reviewers:
 | Database migrations | db/migrate/*, schema changes, data backfills | data-integrity-guardian, data-migration-expert |
 | Frontend/UI | .tsx, .jsx, .vue, .svelte, .html, .css, templates | (browser testing — see Step 9) |
 
+### Step 2.5: Framework Detection
+
+If `risk-tiers.json` declares `frameworks`, map changed files to framework reviewers:
+
+| File Patterns | Framework | Agent |
+|--------------|-----------|-------|
+| `*.tsx`, `*.jsx`, `next.config.*`, `middleware.ts` | `nextjs` | `nextjs-reviewer` |
+| `*.css`, `tailwind.*`, `components/ui/**` | `tailwind` | `tailwind-reviewer` |
+| `*.py`, `alembic/**` | `python-backend` | `python-backend-reviewer` |
+
+Only activate framework reviewers that are both:
+1. Listed in the `frameworks` array of `risk-tiers.json`
+2. Matched by at least one changed file
+
 ### Step 3: Select Reviewers
 
 **Always include:**
 - `code-simplicity-reviewer` (YAGNI, complexity)
 - `pattern-recognition-specialist` (anti-patterns, conventions)
 
-**Conditionally include:**
+**Conditionally include (keyword-based):**
 - `security-sentinel` — if auth, input handling, secrets, or user data
 - `performance-oracle` — if database queries, loops, caching, or data operations
 - `architecture-strategist` — if structural changes, new modules, or interface changes
 - `agent-native-reviewer` — if agent definitions, skill files, system prompts, or tool configurations
 - `data-integrity-guardian` — if database migrations, schema changes, or data model modifications
 - `data-migration-expert` — if data backfills, ID mappings, enum conversions, or column renames
+
+**Tier-based reviewer selection (when risk-tiers.json exists):**
+
+Use the overall PR risk tier from Step 1.5 to adjust reviewer selection:
+
+| Tier | Reviewers |
+|------|-----------|
+| **critical** | All conditional reviewers that match + ALL matched framework agents |
+| **high** | `security-sentinel` + `performance-oracle` + matched framework agents |
+| **medium** | `code-simplicity-reviewer` + `pattern-recognition-specialist` + matched framework agents |
+| **low** | `code-simplicity-reviewer` + up to 1 matched framework agent |
+
+Always include `code-simplicity-reviewer` and `pattern-recognition-specialist` regardless of tier.
 
 **Select 3-7 reviewers** based on the change types identified.
 
@@ -82,7 +128,9 @@ cat ~/.claude/agents/review/<agent-name>.md
 
 ### Step 5: Launch Parallel Reviews
 
-Use the Task tool to spawn parallel review agents (use Sonnet model for efficiency):
+Use the Task tool to spawn parallel review agents.
+
+**Model selection:** Default to Sonnet for efficiency. When `risk-tiers.json` exists and the PR risk tier is **critical**, use Opus for `security-sentinel` and `architecture-strategist` (these benefit most from deeper reasoning on critical code). All other reviewers use Sonnet regardless of tier.
 
 ```
 Launch these agents in parallel:
@@ -97,7 +145,12 @@ Launch these agents in parallel:
    - Model: sonnet
    - Prompt: [agent definition] + [files to review]
 
-3. Task: [additional selected reviewer]
+3. Task: security-sentinel (if critical tier)
+   - Subagent type: general-purpose
+   - Model: opus (critical tier) or sonnet (other tiers)
+   - Prompt: [agent definition] + [files to review]
+
+4. Task: [additional selected reviewer]
    ...
 ```
 
@@ -255,6 +308,23 @@ This PR includes frontend changes. Would you like me to test the UI in the brows
 **Include when**: Data backfills, ID mappings, enum conversions, column renames
 **Path**: `agents/review/data-migration-expert.md`
 
+### Framework-Specific Reviewers (Conditionally Included via risk-tiers.json)
+
+#### nextjs-reviewer
+**Focus**: App Router conventions, Server vs Client Components, Server Actions security, metadata, routing
+**Include when**: `nextjs` in `frameworks` AND changed files match `*.tsx`, `*.jsx`, `next.config.*`, `middleware.ts`
+**Path**: `agents/review/nextjs-reviewer.md`
+
+#### tailwind-reviewer
+**Focus**: Tailwind/shadcn patterns, accessibility, responsive design, dark mode, WCAG 2.1 AA
+**Include when**: `tailwind` in `frameworks` AND changed files match `*.css`, `tailwind.*`, `components/ui/**`
+**Path**: `agents/review/tailwind-reviewer.md`
+
+#### python-backend-reviewer
+**Focus**: FastAPI, SQLAlchemy 2.0, Alembic, async Python, Pydantic v2, pytest
+**Include when**: `python-backend` in `frameworks` AND changed files match `*.py`, `alembic/**`
+**Path**: `agents/review/python-backend-reviewer.md`
+
 ## Important Notes
 
 - Parallel execution is key — don't run reviewers sequentially
@@ -263,3 +333,4 @@ This PR includes frontend changes. Would you like me to test the UI in the brows
 - Maximum 3 review cycles for auto-fix iterations
 - Migration reviewers should always run together (integrity + migration expert)
 - Browser testing is optional and requires user consent
+- Framework reviewers are only activated when declared in `risk-tiers.json` — they don't auto-detect

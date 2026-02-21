@@ -84,7 +84,7 @@ All workflow capabilities are implemented as skills in `skills/`.
 | `/start-task <id>` | Claim task, gather context, define criteria | Beginning a task |
 | `/finish-task <id>` | Tests, commit, PR, cleanup, close | Task complete |
 | `/dispatch` | Spawn Agent Teams teammates | Multiple ready tasks |
-| | Flags: `--plan-first`, `--no-plan`, `--yes`, `--count N`, task IDs with context | |
+| | Flags: `--plan-first`, `--no-plan`, `--yes`, `--count N`, `--model opus\|sonnet`, task IDs with context | |
 | `/auto-run` | Autonomous dispatch-reconcile loop | Batch processing, overnight runs |
 | | Flags: `--through <id>`, `--epic <id>`, `--only <ids>`, `--max-batches N`, `--max-hours H`, `--max-concurrent N`, `--dry-run` | |
 | `/summarize-session <id>` | Progress summary (read-only) | Mid-session checkpoint |
@@ -129,6 +129,16 @@ Used by `/multi-review` for specialized parallel review:
 | `data-integrity-guardian` | Migration safety, ACID, GDPR/CCPA |
 | `data-migration-expert` | Validates mappings against production |
 
+### Framework-Specific Review Agents
+
+Activated via `risk-tiers.json` configuration (see Project Configuration below):
+
+| Agent | Focus |
+|-------|-------|
+| `nextjs-reviewer` | App Router, RSC, metadata, routing, middleware |
+| `tailwind-reviewer` | Tailwind/shadcn, accessibility, responsive, WCAG |
+| `python-backend-reviewer` | FastAPI, SQLAlchemy, async, Alembic, pytest |
+
 ---
 
 ## Workflow Agents
@@ -136,6 +146,32 @@ Used by `/multi-review` for specialized parallel review:
 | Agent | Purpose |
 |-------|---------|
 | `spec-flow-analyzer` | Analyze specs for dependencies, gaps, feasibility |
+
+---
+
+## Project Configuration
+
+### Risk Tiers (`risk-tiers.json`)
+
+Projects can optionally define a `.claude/risk-tiers.json` file to configure risk-based review and dispatch behavior. This file drives:
+- **`/multi-review`**: Tier-based reviewer selection (more reviewers for higher-risk files)
+- **`/dispatch`**: Automatic plan-mode for critical/high-risk tasks, model selection (opus for critical/high, sonnet for medium/low)
+- **Framework-specific reviewers**: Only activated when declared in this file
+
+See `docs/examples/risk-tiers-cruxmd.json` and `docs/examples/risk-tiers-intactus.json` for examples.
+
+```json
+{
+  "version": "1",
+  "tiers": {
+    "critical": ["backend/app/auth.py", "backend/alembic/**"],
+    "high": ["backend/app/models/**", "docker-compose*.yml"],
+    "medium": ["backend/app/routes/**", "frontend/app/api/**"],
+    "low": ["frontend/components/**", "docs/**"]
+  },
+  "frameworks": ["nextjs", "tailwind", "python-backend"]
+}
+```
 
 ---
 

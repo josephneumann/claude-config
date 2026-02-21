@@ -112,6 +112,17 @@ ls docs/session_summaries/<task-id>*.txt 2>/dev/null
 **If summary exists:**
 Call `/reconcile-summary <task-id> --no-cleanup --yes` via Skill tool.
 
+After reconciliation, check if the completed task touched frontend files:
+```bash
+# Check the session summary for frontend file extensions
+grep -E '\.(tsx|jsx|css|scss)' docs/session_summaries/<task-id>*.txt 2>/dev/null
+```
+
+If frontend files were modified, create a follow-up task for UI review:
+```bash
+bd create --title="Review UI changes for <task-id>" --type=task --priority=3
+```
+
 **If no summary (teammate may have failed):**
 1. Send one follow-up message to the teammate asking for status (SendMessage)
 2. If still stuck after the follow-up: mark as failed

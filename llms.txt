@@ -13,7 +13,8 @@ claude-corps provides skills, agents, hooks, and scripts that extend Claude Code
 - /start-task: Claim a task, create a worktree, gather context, define acceptance criteria
 - /finish-task: Tests, commit, PR, code review, session summary, close
 - /compound: Capture learnings for future sessions (compound engineering)
-- /multi-review: Parallel specialized code review with 8 agent types
+- /multi-review: Parallel specialized code review with 11 agent types (including framework-specific reviewers for Next.js, Tailwind/shadcn, and Python backend)
+- Risk-tier configuration: Per-project .claude/risk-tiers.json for risk-based review depth and smart model selection (Opus for critical/high, Sonnet for medium/low)
 
 ## Architecture
 
