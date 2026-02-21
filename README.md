@@ -238,7 +238,7 @@ Deployed by `/multi-review` for parallel specialized review.
 | `tailwind-reviewer` | Tailwind/shadcn, accessibility, responsive |
 | `python-backend-reviewer` | FastAPI, SQLAlchemy, async, Alembic, pytest |
 
-> **Note:** The 3 framework-specific reviewers (`nextjs`, `tailwind`, `python-backend`) are only activated when declared in your project's `.claude/risk-tiers.json`. See [Setting Up a New Project](#setting-up-a-new-project).
+> **Note:** The 3 framework-specific reviewers (`nextjs`, `tailwind`, `python-backend`) auto-detect from changed files. Use `reviewers.exclude` in `.claude/review.json` to suppress. See [Setting Up a New Project](#setting-up-a-new-project).
 
 ### Workflow Agents
 
@@ -254,7 +254,7 @@ Deployed by `/multi-review` for parallel specialized review.
 project-root/
 ├── CLAUDE.md                        # Project-specific config (you write this)
 ├── .claude/
-│   ├── risk-tiers.json              # Optional: risk tiers + framework reviewers
+│   ├── review.json                  # Optional: review config (tiers, reviewer overrides)
 │   └── worktrees/                   # Isolated worktrees for each task
 ├── docs/
 │   ├── session_summaries/           # Worker outputs (created by /finish-task)
@@ -347,7 +347,7 @@ claude
 
 Your project `CLAUDE.md` should include: project summary, dev commands (`uv run pytest`, `pnpm dev`, etc.), critical rules, and architecture overview. Everything else comes from the global config.
 
-Optionally, create a `.claude/risk-tiers.json` to configure risk-based review and dispatch behavior. This enables framework-specific code review agents and smart model selection. See [`docs/examples/risk-tiers-cruxmd.json`](docs/examples/risk-tiers-cruxmd.json) for an example.
+Optionally, create a `.claude/review.json` to configure risk tiers and reviewer overrides. Framework-specific reviewers auto-detect from changed files — no config needed. See [`docs/examples/review-fullstack.json`](docs/examples/review-fullstack.json) for an example.
 
 ---
 
@@ -369,9 +369,9 @@ The idea that AI-assisted development should improve over time. Every solved pro
 
 Yes. [beads](https://github.com/josephneumann/beads) (`bd`) is the task management backend. Skills use it for task tracking, dependencies, dispatch, and coordination. Run `bd init` in your project to set up.
 
-### What are risk tiers?
+### What is the review config?
 
-Risk tiers let you configure per-project file sensitivity levels in `.claude/risk-tiers.json`. They drive three behaviors: (1) `/multi-review` selects more reviewers for higher-risk files, (2) `/dispatch` uses plan-mode for critical/high-risk tasks, and (3) model selection routes critical/high tasks to Opus and medium/low to Sonnet. Without a config file, skills fall back to keyword-based detection.
+The review config (`.claude/review.json`) lets you configure per-project file sensitivity levels and reviewer overrides. It drives three behaviors: (1) `/multi-review` selects more reviewers for higher-risk files, (2) `/dispatch` uses plan-mode for critical/high-risk tasks, and (3) model selection routes critical/high tasks to Opus and medium/low to Sonnet. Framework-specific reviewers auto-detect from changed files — use `reviewers.exclude` to suppress false positives and `reviewers.include` to force always-on reviewers. Without a config file, skills fall back to keyword-based detection.
 
 ### How does smart model selection work?
 

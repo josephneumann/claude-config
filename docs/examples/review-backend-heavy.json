@@ -1,0 +1,13 @@
+{
+  "version": "2",
+  "tiers": {
+    "critical": ["backend/app/auth/**", "backend/app/config.py", "backend/alembic/**"],
+    "high": ["backend/app/services/**", "backend/app/celery/**", "backend/app/models/**", "docker-compose*.yml", "infrastructure/**"],
+    "medium": ["backend/app/routes/**", "backend/app/tasks/**"],
+    "low": ["frontend/components/**", "docs/**", "tests/**", "scripts/**"]
+  },
+  "reviewers": {
+    "exclude": [],
+    "include": []
+  }
+}

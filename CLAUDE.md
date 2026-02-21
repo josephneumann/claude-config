@@ -136,7 +136,7 @@ Used by `/multi-review` for specialized parallel review:
 
 ### Framework-Specific Review Agents
 
-Activated via `risk-tiers.json` configuration (see Project Configuration below):
+Auto-detected from changed files. Can be suppressed via `reviewers.exclude` in `review.json`:
 
 | Agent | Focus |
 |-------|-------|
@@ -156,25 +156,28 @@ Activated via `risk-tiers.json` configuration (see Project Configuration below):
 
 ## Project Configuration
 
-### Risk Tiers (`risk-tiers.json`)
+### Review Configuration (`review.json`)
 
-Projects can optionally define a `.claude/risk-tiers.json` file to configure risk-based review and dispatch behavior. This file drives:
+Projects can optionally define a `.claude/review.json` file to configure risk-based review and dispatch behavior. For backward compatibility, `.claude/risk-tiers.json` is also supported. This file drives:
 - **`/multi-review`**: Tier-based reviewer selection (more reviewers for higher-risk files)
 - **`/dispatch`**: Automatic plan-mode for critical/high-risk tasks, model selection (opus for critical/high, sonnet for medium/low)
-- **Framework-specific reviewers**: Only activated when declared in this file
+- **Reviewer overrides**: Exclude auto-detected reviewers or force-include additional ones
 
-See `docs/examples/risk-tiers-cruxmd.json` and `docs/examples/risk-tiers-intactus.json` for examples.
+See `docs/examples/review-fullstack.json` and `docs/examples/review-backend-heavy.json` for examples.
 
 ```json
 {
-  "version": "1",
+  "version": "2",
   "tiers": {
     "critical": ["backend/app/auth.py", "backend/alembic/**"],
     "high": ["backend/app/models/**", "docker-compose*.yml"],
     "medium": ["backend/app/routes/**", "frontend/app/api/**"],
-    "low": ["frontend/components/**", "docs/**"]
+    "low": ["frontend/components/**", "docs/**", "tests/**"]
   },
-  "frameworks": ["nextjs", "tailwind", "python-backend"]
+  "reviewers": {
+    "exclude": [],
+    "include": []
+  }
 }
 ```
 

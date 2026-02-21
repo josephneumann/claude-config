@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.0] - 2026-02-21
+
+### Changed
+
+- **Renamed `risk-tiers.json` to `review.json`** — Clearer name. Both filenames supported for backward compatibility.
+- **Framework reviewers now auto-detect** — `nextjs-reviewer`, `tailwind-reviewer`, and `python-backend-reviewer` activate automatically when changed files match their patterns. No `frameworks` array needed.
+- **New `reviewers` config object** — `reviewers.exclude` suppresses false positives, `reviewers.include` forces always-on reviewers. Replaces the `frameworks` array.
+- **Schema version bumped to 2** — v1 configs with `frameworks` array still work (deprecated).
+
 ## [1.0.0] - 2026-02-21
 
 ### Added

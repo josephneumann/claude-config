@@ -27,24 +27,26 @@ git diff HEAD~5 --name-only
 
 List the changed files and their types (e.g., `.py`, `.ts`, `.go`).
 
-### Step 1.5: Load Risk Tiers Configuration
+### Step 1.5: Load Review Configuration
 
-Check for a project-level risk tiers configuration:
+Check for a project-level review configuration:
 
 ```bash
-# Check project root for risk-tiers.json
-cat .claude/risk-tiers.json 2>/dev/null || echo "No risk-tiers.json found"
+# Prefer review.json, fall back to risk-tiers.json for backward compatibility
+cat .claude/review.json 2>/dev/null || cat .claude/risk-tiers.json 2>/dev/null || echo "No review config found"
 ```
 
 If found, parse the configuration:
 - `tiers`: Maps risk levels (critical, high, medium, low) to file glob patterns
-- `frameworks`: Lists framework-specific reviewers to activate
+- `reviewers` (v2): Optional object with `exclude` and `include` arrays for reviewer control
+
+**Backward compatibility:** If the config contains a v1 `frameworks` key, honor it as a gate for framework reviewers and log a deprecation note: "Deprecation: `frameworks` array in risk-tiers.json is deprecated. Framework reviewers now auto-detect. Migrate to review.json v2 schema."
 
 **Risk tier resolution:** For each changed file, match against tier patterns (most specific match wins). If a file matches multiple tiers, use the highest tier. If no match, default to `medium`.
 
 Determine the **overall PR risk tier** = the highest tier among all changed files.
 
-If no `risk-tiers.json` exists, fall back to the keyword-based behavior in Step 2.
+If no review config exists, fall back to the keyword-based behavior in Step 2.
 
 ### Step 2: Analyze Change Types
 
@@ -61,9 +63,9 @@ Categorize the changes to select appropriate reviewers:
 | Database migrations | db/migrate/*, schema changes, data backfills | data-integrity-guardian, data-migration-expert |
 | Frontend/UI | .tsx, .jsx, .vue, .svelte, .html, .css, templates | (browser testing — see Step 9) |
 
-### Step 2.5: Framework Detection
+### Step 2.5: Framework Auto-Detection
 
-If `risk-tiers.json` declares `frameworks`, map changed files to framework reviewers:
+Map changed files to framework reviewers. A framework reviewer is activated when at least one changed file matches its patterns. No config required.
 
 | File Patterns | Framework | Agent |
 |--------------|-----------|-------|
@@ -71,9 +73,11 @@ If `risk-tiers.json` declares `frameworks`, map changed files to framework revie
 | `*.css`, `tailwind.*`, `components/ui/**` | `tailwind` | `tailwind-reviewer` |
 | `*.py`, `alembic/**` | `python-backend` | `python-backend-reviewer` |
 
-Only activate framework reviewers that are both:
-1. Listed in the `frameworks` array of `risk-tiers.json`
-2. Matched by at least one changed file
+**Reviewer overrides (v2 config):**
+- `reviewers.exclude`: Suppress auto-detected reviewers (e.g., `["tailwind-reviewer"]` to prevent false positives)
+- `reviewers.include`: Force always-on reviewers regardless of changed files (e.g., `["security-sentinel"]`)
+
+**Backward compatibility:** If a v1 config with a `frameworks` key is loaded, use it as a gate — only activate framework reviewers that are both listed in `frameworks` AND matched by changed files (preserves old behavior).
 
 ### Step 3: Select Reviewers
 
@@ -89,7 +93,7 @@ Only activate framework reviewers that are both:
 - `data-integrity-guardian` — if database migrations, schema changes, or data model modifications
 - `data-migration-expert` — if data backfills, ID mappings, enum conversions, or column renames
 
-**Tier-based reviewer selection (when risk-tiers.json exists):**
+**Tier-based reviewer selection (when review config exists):**
 
 Use the overall PR risk tier from Step 1.5 to adjust reviewer selection:
 
@@ -130,7 +134,7 @@ cat ~/.claude/agents/review/<agent-name>.md
 
 Use the Task tool to spawn parallel review agents.
 
-**Model selection:** Default to Sonnet for efficiency. When `risk-tiers.json` exists and the PR risk tier is **critical**, use Opus for `security-sentinel` and `architecture-strategist` (these benefit most from deeper reasoning on critical code). All other reviewers use Sonnet regardless of tier.
+**Model selection:** Default to Sonnet for efficiency. When review config exists and the PR risk tier is **critical**, use Opus for `security-sentinel` and `architecture-strategist` (these benefit most from deeper reasoning on critical code). All other reviewers use Sonnet regardless of tier.
 
 ```
 Launch these agents in parallel:
@@ -308,21 +312,21 @@ This PR includes frontend changes. Would you like me to test the UI in the brows
 **Include when**: Data backfills, ID mappings, enum conversions, column renames
 **Path**: `agents/review/data-migration-expert.md`
 
-### Framework-Specific Reviewers (Conditionally Included via risk-tiers.json)
+### Framework-Specific Reviewers (Auto-detected from changed files)
 
 #### nextjs-reviewer
 **Focus**: App Router conventions, Server vs Client Components, Server Actions security, metadata, routing
-**Include when**: `nextjs` in `frameworks` AND changed files match `*.tsx`, `*.jsx`, `next.config.*`, `middleware.ts`
+**Auto-detected when**: Changed files match `*.tsx`, `*.jsx`, `next.config.*`, `middleware.ts`
 **Path**: `agents/review/nextjs-reviewer.md`
 
 #### tailwind-reviewer
 **Focus**: Tailwind/shadcn patterns, accessibility, responsive design, dark mode, WCAG 2.1 AA
-**Include when**: `tailwind` in `frameworks` AND changed files match `*.css`, `tailwind.*`, `components/ui/**`
+**Auto-detected when**: Changed files match `*.css`, `tailwind.*`, `components/ui/**`
 **Path**: `agents/review/tailwind-reviewer.md`
 
 #### python-backend-reviewer
 **Focus**: FastAPI, SQLAlchemy 2.0, Alembic, async Python, Pydantic v2, pytest
-**Include when**: `python-backend` in `frameworks` AND changed files match `*.py`, `alembic/**`
+**Auto-detected when**: Changed files match `*.py`, `alembic/**`
 **Path**: `agents/review/python-backend-reviewer.md`
 
 ## Important Notes
@@ -333,4 +337,4 @@ This PR includes frontend changes. Would you like me to test the UI in the brows
 - Maximum 3 review cycles for auto-fix iterations
 - Migration reviewers should always run together (integrity + migration expert)
 - Browser testing is optional and requires user consent
-- Framework reviewers are only activated when declared in `risk-tiers.json` — they don't auto-detect
+- Framework reviewers auto-detect from changed files. Use `reviewers.exclude` in `review.json` to suppress false positives.
