@@ -1,0 +1,34 @@
+# claude-corps
+
+> Parallel agentic development framework for Claude Code
+
+claude-corps provides skills, agents, hooks, and scripts that extend Claude Code (Anthropic's agentic coding CLI) into an autonomous multi-session development team. Multiple Claude agents work simultaneously in isolated git worktrees, coordinated by an orchestrator that dispatches tasks, reconciles results, and compounds learnings across sessions.
+
+## Key Capabilities
+
+- /dispatch: Spawn parallel agent teammates via Agent Teams, each in an isolated git worktree
+- /auto-run: Autonomous multi-hour orchestration loop (dispatch, reconcile, repeat)
+- /plan: Research-driven planning with parallel agents, decomposing into tasks with dependencies
+- /orient: Survey a project and identify parallel work streams
+- /start-task: Claim a task, create a worktree, gather context, define acceptance criteria
+- /finish-task: Tests, commit, PR, code review, session summary, close
+- /compound: Capture learnings for future sessions (compound engineering)
+- /multi-review: Parallel specialized code review with 8 agent types
+
+## Architecture
+
+Orchestrator + Workers pattern. One Claude session orients and dispatches work via Agent Teams.
+Worker sessions execute tasks in isolated git worktrees and report back with session summaries.
+The orchestrator reconciles results, updates the task board, and dispatches newly unblocked work.
+
+## Dependencies
+
+- Claude Code (Anthropic's CLI): https://docs.anthropic.com/en/docs/claude-code
+- beads (task management): https://github.com/josephneumann/beads
+- Agent Teams (multi-agent): https://docs.anthropic.com/en/docs/claude-code/agent-teams
+
+## Links
+
+- Repository: https://github.com/josephneumann/claude-corps
+- README: https://github.com/josephneumann/claude-corps/blob/main/README.md
+- Install: https://github.com/josephneumann/claude-corps#installation

@@ -45,7 +45,7 @@ I'd like to document this solution. First, is this learning:
 
 **Routing:**
 - **Project-specific** → `./docs/solutions/` (current project)
-- **Global** → `~/.claude/docs/solutions/` (claude-config, shared across all projects)
+- **Global** → `~/.claude/docs/solutions/` (claude-corps, shared across all projects)
 
 ## Step 2: Launch Parallel Subagents
 
@@ -228,7 +228,7 @@ If directories don't exist, create them:
 # Project-specific
 mkdir -p docs/solutions/{build-errors,test-failures,runtime-errors,performance,database,security,integration,logic-errors,workflow}
 
-# Global (should already exist via claude-config)
+# Global (should already exist via claude-corps)
 mkdir -p ~/.claude/docs/solutions/{build-errors,test-failures,runtime-errors,performance,database,security,integration,logic-errors,workflow}
 ```
 

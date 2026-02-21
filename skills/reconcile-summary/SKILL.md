@@ -8,6 +8,17 @@ allowed-tools: Read, Bash, Glob, Grep, Edit, Write, SendMessage, TeamDelete, Tas
 
 You are an orchestrating agent reviewing a completed worker session. Your job is to ensure the beads task board accurately reflects what was actually built, not just what was originally specified.
 
+## `--yes` Mode (Autonomous Operation)
+
+If `$ARGUMENTS` contains `--yes`, auto-answer ALL `AskUserQuestion` prompts:
+- **Which summary to process** → "All of them" (process all unreconciled summaries sequentially)
+- **Update PROJECT_SPEC.md or CLAUDE.md** → "No, beads only"
+- **Copy to clipboard** → "No, skip"
+- **Shut down team** → "No, keep active" (caller manages team lifecycle)
+- **Next action** → Skip prompt, return control to caller
+
+Strip `--yes` from `$ARGUMENTS` before processing task IDs. The `--yes` flag is composable with `--no-cleanup` and task ID arguments.
+
 ## 1. Discover Session Summaries
 
 The command can receive input in multiple ways. Try them in order:

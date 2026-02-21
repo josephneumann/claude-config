@@ -16,6 +16,7 @@ Parse the following patterns:
 - `--count N` — Auto-select N ready tasks from `bd ready`
 - `--plan-first` — Force all teammates into plan approval mode
 - `--no-plan` — Disable auto risk detection, all use bypassPermissions
+- `--yes` — Skip dispatch confirmation (used by /auto-run for autonomous operation)
 - `<task-id>` — Specific task to dispatch
 - `<task-id>:"context"` — Task with custom context (e.g., `MoneyPrinter-ajq:"Use PriceCache"`)
 
@@ -94,7 +95,10 @@ Ready to dispatch N teammates:
 
 The `[PLAN]` / `[AUTO]` tags indicate whether the teammate will spawn in plan approval mode or autonomous mode.
 
-**Use AskUserQuestion to confirm:**
+**If `--yes` was specified:**
+Skip the AskUserQuestion confirmation and proceed directly to Step 4.
+
+**Otherwise, use AskUserQuestion to confirm:**
 
 Ask: "Confirm dispatch of N teammates?"
 - Options: "Yes, dispatch" / "No, cancel"

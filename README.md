@@ -1,250 +1,193 @@
-# Claude Config
+<h1 align="center">claude-corps</h1>
 
-Custom skills, agents, and hooks for Claude Code, designed for the **beads** task management workflow.
+<p align="center">
+  <strong>Parallel agentic development framework for Claude Code</strong>
+  <br>
+  Turn Claude Code into an autonomous development team &mdash; multiple agents working
+  simultaneously in isolated git worktrees, coordinated by an orchestrator, with
+  knowledge that compounds across sessions.
+</p>
 
-## Quick Install
+<p align="center">
+  <a href="#quick-start">Quick Start</a> &middot;
+  <a href="#why-claude-corps">Why?</a> &middot;
+  <a href="#claude-code-skills-reference">Skills</a> &middot;
+  <a href="#autonomous-multi-hour-orchestration">Auto-Run</a> &middot;
+  <a href="#faq">FAQ</a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/josephneumann/claude-corps/blob/main/LICENSE"><img src="https://img.shields.io/github/license/josephneumann/claude-corps" alt="License"></a>
+  <a href="https://github.com/josephneumann/claude-corps/stargazers"><img src="https://img.shields.io/github/stars/josephneumann/claude-corps" alt="Stars"></a>
+  <a href="https://github.com/josephneumann/claude-corps/commits/main"><img src="https://img.shields.io/github/last-commit/josephneumann/claude-corps" alt="Last Commit"></a>
+  <img src="https://img.shields.io/badge/Claude%20Code-compatible-blueviolet" alt="Claude Code Compatible">
+  <img src="https://img.shields.io/badge/Agent%20Teams-supported-green" alt="Agent Teams">
+</p>
+
+---
+
+## Why claude-corps?
+
+Claude Code is powerful on its own. claude-corps makes it a **team**.
+
+- **Parallel execution** &mdash; Dispatch 3-5 Claude agents working simultaneously on different tasks, each in an isolated git worktree
+- **Full lifecycle coverage** &mdash; From brainstorm to plan to dispatch to PR to code review, every step has a skill
+- **Autonomous multi-hour runs** &mdash; `/auto-run` chains dispatch, reconcile, and repeat until your entire backlog is done
+- **Compound engineering** &mdash; Every solved problem is captured for future sessions. Knowledge and process accumulate over time
+- **Human in the loop** &mdash; Agents execute, you decide. PRs are created, never auto-merged
+
+---
+
+## Quick Start
 
 ```bash
-git clone https://github.com/josephneumann/claude-config.git ~/Code/claude-config
-cd ~/Code/claude-config
-./install.sh
+git clone https://github.com/josephneumann/claude-corps.git ~/Code/claude-corps
+cd ~/Code/claude-corps && ./install.sh
 ```
 
-This creates symlinks from `~/.claude/` to this repo:
-- `CLAUDE.md` - Global workflow guidance (read by all projects)
-- `skills/` - Slash commands for the full workflow lifecycle
-- `hooks/` - Event hooks for Claude Code
-- `agents/` - Specialized agent definitions for research, review, and workflow
-- `docs/` - Global learnings and solutions (shared across projects)
+This symlinks skills, agents, hooks, scripts, and docs into `~/.claude/` so they're available globally across all your projects.
+
+Then in any project:
+
+```bash
+claude
+> /orient              # Survey your project and identify parallel work
+> /dispatch --count 3  # Spawn 3 agent teammates in parallel worktrees
+> /auto-run            # Or go fully autonomous
+```
 
 ---
 
 ## The Workflow
 
+```mermaid
+graph LR
+    A["/brainstorm"] --> B["/plan"]
+    B --> C["/deepen-plan"]
+    C --> D["/orient"]
+    D --> E["/dispatch"]
+    E --> F["Workers: /start-task"]
+    F --> G["Workers: /finish-task"]
+    G --> H["/reconcile-summary"]
+    H --> I["/compound"]
+    E -.->|"/auto-run loop"| H
 ```
-brainstorm → plan → deepen-plan → orient → dispatch → start-task → finish-task → compound
-└─────────── Plan ───────────┘   └────────────── Execute ──────────────────────┘   └ Learn ┘
-```
 
-**Plan phase**: Start with `/brainstorm` to explore ideas through interactive Q&A. Feed the result into `/plan`, which researches the codebase, analyzes feasibility with parallel agents, and decomposes into beads tasks with dependencies. Use `/deepen-plan` to enhance any section with targeted research.
-
-**Execute phase**: Run `/orient` to survey the project and identify parallel work streams. Use `/dispatch` to spawn Agent Teams teammates — each gets a task with context and runs `/start-task` (creates a git worktree, claims the task, gathers context) and `/finish-task` (tests, commit, PR, code review, session summary) autonomously. The team lead coordinates via inter-agent messaging and runs `/reconcile-summary` before ending the session.
-
-**Learn phase**: After solving problems, run `/compound` to capture the solution in `docs/solutions/` for future sessions. `/multi-review` provides parallel specialized code review. The orchestrator runs `/reconcile-summary` to sync worker output with the task board.
+| Phase | What happens |
+|-------|-------------|
+| **Plan** | `/brainstorm` explores ideas via Q&A. `/plan` researches the codebase with parallel agents and decomposes into tasks with dependencies. `/deepen-plan` adds detail with targeted research. |
+| **Execute** | `/orient` surveys the project. `/dispatch` spawns Agent Teams teammates &mdash; each gets a task, creates a worktree, implements, runs tests, creates a PR, and writes a session summary. `/auto-run` does this in a loop until all tasks are done. |
+| **Learn** | `/compound` captures solutions in `docs/solutions/` for future sessions. `/multi-review` runs parallel specialized code review. `/reconcile-summary` syncs worker output with the task board. |
 
 ---
 
-## Philosophy: Parallel Agentic Development
+## Claude Code Skills Reference
 
-1. **Parallel by default** — Multiple Claude sessions work simultaneously in isolated git worktrees. No waiting; use `/dispatch` to spawn Agent Teams teammates.
+All workflow capabilities are implemented as slash commands in `skills/`.
 
-2. **Orchestrator + Workers** — One session orients (`/orient`) and coordinates via Agent Teams; teammates execute discrete tasks (`/start-task`) and report back with session summaries. The orchestrator sees the big picture, teammates focus deeply.
+| Skill | Purpose |
+|-------|---------|
+| `/brainstorm` | Explore what to build via interactive Q&A |
+| `/plan` | Research, design, decompose into tasks with dependencies |
+| `/deepen-plan` | Enhance an existing plan with parallel research |
+| `/orient` | Survey project, identify parallel work streams |
+| `/dispatch` | Spawn parallel Agent Teams teammates in worktrees |
+| `/auto-run` | Autonomous dispatch-reconcile loop for multi-hour runs |
+| `/start-task <id>` | Claim task, create worktree, gather context |
+| `/finish-task <id>` | Tests, commit, PR, code review, session summary, close |
+| `/reconcile-summary` | Sync worker output with task board |
+| `/summarize-session <id>` | Mid-session progress checkpoint (read-only) |
+| `/compound` | Capture learnings in `docs/solutions/` |
+| `/multi-review` | Parallel code review with specialized agents |
 
-3. **Task-sized work** — Break work into chunks that fit comfortably in context. Big enough to be a meaningful atomic change, small enough to complete without exhausting the context window. If you're compacting mid-task, the task was too big.
+<details>
+<summary><strong>Skill details</strong> (click to expand)</summary>
 
-4. **Bounded autonomy** — Clarify requirements and define acceptance criteria before coding. Then execute autonomously within those bounds. Autonomy with guardrails.
+### Planning Skills
 
-5. **Tests as the contract** — "Done" means tests pass. No subjective completion criteria. The code proves itself.
+**`/brainstorm`** &mdash; Interactive Q&A dialogue to move from a vague idea to a clear concept. Writes output to `docs/brainstorms/`. Suggests `/plan` as next step.
 
-6. **Human in the loop** — Humans approve PRs, prioritize tasks, and make architectural decisions. AI executes, human directs.
+**`/plan`** &mdash; Checks for brainstorm files, runs parallel research agents (repo-research-analyst, learnings-researcher, spec-flow-analyzer, and conditionally best-practices-researcher and framework-docs-researcher). Writes plan to `docs/plans/`, then decomposes into tasks with dependencies via `bd create` and `bd dep add`.
 
-7. **Handoffs over context bloat** — When context grows large, the team lead spawns a replacement teammate with the prior context rather than degrading quality. Fresh context beats exhausted context.
+**`/deepen-plan`** &mdash; Finds the most recent plan in `docs/plans/`, identifies sections needing more detail, runs parallel research agents per-section, updates the plan document and tasks.
 
-8. **Session summaries** — Every completed task outputs a detailed summary enabling asynchronous coordination. Each session leaves breadcrumbs for the next.
+### Execution Skills
 
-9. **Compound your learnings** — After solving problems, document solutions with `/compound` in `docs/solutions/`. Knowledge compounds across sessions and projects.
+**`/orient`** &mdash; Discovers project structure, reads CLAUDE.md/README/PROJECT_SPEC, analyzes task state, checks git health, outputs a structured orientation report with recommended parallel work streams. Always offers `/dispatch` as next action.
 
-10. **Codify the routine** — Repeated patterns become skills. If you do something twice, automate it. The skills in this repo exist because the workflow is routine.
+**`/dispatch`** &mdash; Identifies ready tasks, generates context, creates an Agent Teams team, and spawns teammates. Each teammate works in an isolated git worktree with full autonomy. Supports `--count N`, `--plan-first`, `--no-plan`, `--yes`, and custom per-task context.
 
-> **Compound Engineering**: Principles 9 and 10 work together — capture *knowledge* (learnings) and *process* (skills) so each session builds on the last. This is how AI-assisted development improves over time.
+**`/start-task <id>`** &mdash; Validates the task, claims it, creates a git worktree for isolation, gathers project context, optionally runs research agents, defines acceptance criteria, and begins implementation.
+
+**`/finish-task <id>`** &mdash; Runs quality gates (tests must pass), commits changes, pushes to remote, creates a PR, runs `/multi-review` with auto-fix, closes the task, outputs a session summary. Tests must pass or the command stops.
+
+**`/reconcile-summary`** &mdash; Auto-discovers unreconciled summaries in `docs/session_summaries/`, analyzes spec divergences, updates affected tasks, creates new tasks for discovered work, closes obsoleted tasks. Supports `--yes` for autonomous operation and `--no-cleanup` to skip team shutdown.
+
+**`/summarize-session <id>`** &mdash; Read-only progress snapshot. Does not commit, push, or close anything.
+
+### Learning Skills
+
+**`/compound`** &mdash; Captures solutions in project-specific (`docs/solutions/`) or global (`~/.claude/docs/solutions/`) storage with YAML frontmatter for searchability.
+
+**`/multi-review`** &mdash; Selects 3-5 review agents based on change types, runs them in parallel, aggregates findings by severity, auto-fixes high-confidence issues. Maximum 3 review cycles.
+
+</details>
 
 ---
 
-## Setting Up a New Project
+## Autonomous Multi-Hour Orchestration
 
-Workflow docs are loaded globally from `~/.claude/CLAUDE.md`. Projects only need their own `CLAUDE.md` for project-specific details.
+`/auto-run` enables fully autonomous operation. It dispatches workers, waits for completions (Agent Teams delivers messages as conversation turns), reconciles results, dispatches newly unblocked tasks, and repeats.
 
-1. **Create project CLAUDE.md** with just:
-   - Project summary (what it does)
-   - Development commands (`uv run pytest`, `pnpm dev`, etc.)
-   - Critical rules (project-specific constraints)
-   - Architecture overview
-
-2. **Initialize beads:**
-   ```bash
-   cd /path/to/your/project
-   bd init
-   ```
-
-3. **Start using the workflow:**
-   ```
-   /orient
-   /start-task <task-id>
-   ```
-
-Workflow guidance (skills, philosophy) comes automatically from the global config.
-
----
-
-## Skills Reference
-
-All workflow capabilities are implemented as skills in `skills/`. Full documentation lives in each `SKILL.md` file.
-
-| Skill | Phase | Purpose |
-|-------|-------|---------|
-| `/brainstorm` | Plan | Explore what to build via interactive Q&A |
-| `/plan` | Plan | Research, design, decompose into beads tasks |
-| `/deepen-plan` | Plan | Enhance plan with parallel research |
-| `/orient` | Execute | Survey project, identify parallel work streams |
-| `/dispatch` | Execute | Spawn Agent Teams teammates for parallel work |
-| `/start-task <id>` | Execute | Claim task, create worktree, gather context |
-| `/finish-task <id>` | Execute | Tests, PR, code review, cleanup, close |
-| `/summarize-session <id>` | Execute | Progress checkpoint (read-only) |
-| `/reconcile-summary` | Execute | Sync worker output with task board |
-| `/compound` | Learn | Capture learnings in `docs/solutions/` |
-| `/multi-review` | Learn | Parallel code review with specialized agents |
-| `/last30days` | Research | Ad-hoc research across recent activity and changes |
-
-<details>
-<summary><strong>/brainstorm</strong> — Collaborative idea exploration</summary>
-
-Interactive Q&A dialogue to move from a vague idea to a clear concept. Writes output to `docs/brainstorms/YYYY-MM-DD-<topic>-brainstorm.md`. Suggests `/plan` as next step.
-
-</details>
-
-<details>
-<summary><strong>/plan</strong> — Research, design, and task decomposition</summary>
-
-Replaces `/init-prd`. Checks for brainstorm files, runs parallel research agents (repo-research-analyst, learnings-researcher, spec-flow-analyzer, and conditionally best-practices-researcher and framework-docs-researcher). Writes plan to `docs/plans/`, then decomposes into beads tasks with dependencies via `bd create` and `bd dep add`.
-
-</details>
-
-<details>
-<summary><strong>/deepen-plan</strong> — Enhance existing plans</summary>
-
-Finds the most recent plan in `docs/plans/`, identifies sections needing more detail, runs parallel research agents per-section, updates the plan document and beads tasks.
-
-</details>
-
-<details>
-<summary><strong>/orient</strong> — Project orientation and parallel work identification</summary>
-
-Discovers project structure, reads CLAUDE.md/README/PROJECT_SPEC, analyzes beads task state, checks git health, and outputs a structured orientation report with recommended parallel work streams. Always offers `/dispatch` as the primary next action.
-
-</details>
-
-<details>
-<summary><strong>/dispatch</strong> — Spawn Agent Teams teammates</summary>
-
-Identifies ready tasks from `bd ready`, generates context, creates an Agent Teams team, and spawns teammates — one per task. Each teammate receives task context and the instruction to run `/start-task`. Teammates work in isolated git worktrees and coordinate via inter-agent messaging.
-
-**Usage:**
 ```bash
-/dispatch --count 3                    # Auto-select 3 ready tasks
-/dispatch task-id1 task-id2 task-id3   # Specific tasks
-/dispatch task-id:"Use PriceCache"     # With custom context
+# All ready tasks
+/auto-run
+
+# Everything needed to complete a specific task (resolves dependency graph)
+/auto-run --through Proj-xyz
+
+# All tasks in an epic
+/auto-run --epic Proj-abc
+
+# Specific tasks plus their blockers
+/auto-run --only Proj-abc Proj-def
+
+# With limits
+/auto-run --max-batches 3 --max-hours 4 --max-concurrent 5
 ```
 
-Use Shift+Up/Down to switch between teammates (in-process mode).
+### Unattended Mode (Wrapper Script)
 
-**IMPORTANT:** Before ending the orchestrator session, run `/reconcile-summary` to sync all teammate work back to beads — Agent Teams state is session-scoped and lost on exit.
+For runs that outlast a single context window, the wrapper script provides process-level resilience:
 
-</details>
-
-<details>
-<summary><strong>/start-task</strong> — Begin work on a task</summary>
-
-1. Validates the task exists (`bd show`)
-2. Claims the task (`bd update --status in_progress`)
-3. Creates a **git worktree** for isolation
-4. Disables beads daemon (`BEADS_NO_DAEMON=1`)
-5. Gathers project context (CLAUDE.md, README, etc.)
-6. Optionally runs research agents for complex tasks
-7. Defines acceptance criteria with the user
-8. Confirms before implementation begins
-
-Supports `--handoff "<context>"` for passing additional context from the team lead.
-
-**Examples:**
 ```bash
-/start-task MoneyPrinter-46j.1
-/start-task MoneyPrinter-46j.1 --handoff "Use 3% tolerance for price matching"
+~/.claude/scripts/auto-run.sh --max-hours 8
+~/.claude/scripts/auto-run.sh --through Proj-xyz --max-hours 4
 ```
 
-After starting, you'll be in a separate worktree — all changes are isolated from the main branch.
-
-</details>
-
-<details>
-<summary><strong>/finish-task</strong> — Complete a task with full quality checks</summary>
-
-1. Verifies current state (correct worktree, task in-progress)
-2. Runs quality gates (tests must pass)
-3. Reviews and updates documentation
-4. Creates follow-up issues for discovered work
-5. Commits all changes with proper format
-6. Syncs beads and pushes to remote
-7. Closes the task (`bd close`)
-8. Creates a pull request
-9. Runs `/multi-review` with auto-fix (high-confidence issues ≥80% fixed automatically, max 3 cycles)
-10. Optionally merges PR and cleans up worktree (using absolute paths)
-11. Outputs a detailed **Session Summary** to `docs/session_summaries/`
-
-**Critical:** Tests must pass before the task can be finished. The command will stop if tests fail.
-
-</details>
-
-<details>
-<summary><strong>/summarize-session</strong> — Read-only progress summary</summary>
-
-Generates a structured session summary without committing, pushing, or closing the task. Use for mid-session checkpoints or before handoffs.
-
-**Difference from `/finish-task`:** This command is read-only. It doesn't commit, push, close the task, or make any changes.
-
-</details>
-
-<details>
-<summary><strong>/reconcile-summary</strong> — Sync worker output with task board</summary>
-
-Auto-discovers unreconciled summaries in `docs/session_summaries/`, analyzes spec divergences, updates affected beads tasks, creates new tasks for discovered work, and closes obsoleted tasks. Moves processed summaries to `docs/session_summaries/reconciled/`.
-
-</details>
-
-<details>
-<summary><strong>/compound</strong> — Capture learnings</summary>
-
-Triggers on "that worked", "fixed it", or explicit invocation. Routes to project-specific (`docs/solutions/`) or global (`~/.claude/docs/solutions/`) storage. Creates structured solution documents with YAML frontmatter for searchability.
-
-</details>
-
-<details>
-<summary><strong>/multi-review</strong> — Parallel specialized code review</summary>
-
-Identifies changed files, selects 3-5 appropriate review agents based on change types, launches them in parallel, aggregates findings by severity, and offers auto-fix for high-confidence (≥80%) issues. Maximum 3 review cycles.
-
-</details>
+The wrapper uses `expect` to allocate a pty (Agent Teams requires interactive mode), sends `/auto-run --resume` into each fresh Claude session, and checks task state between iterations. State is checkpointed to `docs/auto-run-checkpoint.json` and survives restarts.
 
 ---
 
-## Agents Reference
+## Specialized Agents
 
-Agent definitions live in `agents/` and are used by skills for specialized tasks.
+Agent definitions in `agents/` are used by skills for research and review.
 
 ### Research Agents
 
-Used by `/orient` and `/start-task` to gather context before implementation.
+Deployed by `/orient` and `/start-task` to gather context before implementation.
 
-| Agent | Purpose | Used By |
-|-------|---------|---------|
-| `repo-research-analyst` | Map architecture, conventions | `/orient` Phase 1.5 |
-| `git-history-analyzer` | Historical context, contributors | `/orient` Phase 1.5 |
-| `framework-docs-researcher` | Library docs, deprecation checks | `/start-task` Step 6.5 |
-| `learnings-researcher` | Search docs/solutions/ | `/start-task` Step 6.5 |
-| `best-practices-researcher` | External best practices | `/start-task` Step 6.5 |
+| Agent | Purpose |
+|-------|---------|
+| `repo-research-analyst` | Map architecture and conventions |
+| `git-history-analyzer` | Historical context and contributors |
+| `framework-docs-researcher` | Library docs and deprecation checks |
+| `learnings-researcher` | Search `docs/solutions/` for prior work |
+| `best-practices-researcher` | Industry patterns and recommendations |
 
-### Review Agents
+### Code Review Agents
 
-Used by `/multi-review` for specialized code review.
+Deployed by `/multi-review` for parallel specialized review.
 
 | Agent | Focus |
 |-------|-------|
@@ -259,183 +202,143 @@ Used by `/multi-review` for specialized code review.
 
 ### Workflow Agents
 
-| Agent | Purpose | Used By |
-|-------|---------|---------|
-| `spec-flow-analyzer` | Analyze specs for dependencies, gaps, feasibility | `/plan` Phase 2 |
+| Agent | Purpose |
+|-------|---------|
+| `spec-flow-analyzer` | Analyze specs for dependencies, gaps, feasibility |
 
 ---
 
-## Session Summaries (Persistent I/O)
-
-Session summaries provide cross-session continuity for completed work.
-
-- **`docs/session_summaries/`** — Written by `/finish-task`, read by `/reconcile-summary`
-
-### Storage Location
+## How It All Fits Together
 
 ```
 project-root/
+├── CLAUDE.md                        # Project-specific config (you write this)
 ├── docs/
-│   ├── session_summaries/          # Worker outputs (created by /finish-task)
-│   │   ├── MoneyPrinter-ajq_260117-143052.txt
-│   │   ├── MoneyPrinter-4b3_260117-151230.txt
-│   │   └── reconciled/             # Moved here after reconciliation
-│   └── solutions/                  # Learnings from /compound
-├── .gitignore                      # Contains session_summaries/
-└── ...
+│   ├── session_summaries/           # Worker outputs (created by /finish-task)
+│   │   └── reconciled/              # Processed by /reconcile-summary
+│   ├── solutions/                   # Learnings from /compound
+│   ├── plans/                       # Output from /plan
+│   ├── brainstorms/                 # Output from /brainstorm
+│   ├── auto-run-checkpoint.json     # Auto-run state (survives restarts)
+│   └── auto-run-logs/               # Wrapper iteration logs
+└── .claude/worktrees/               # Isolated worktrees for each task
+
+~/.claude/                           # Global config (symlinked from this repo)
+├── CLAUDE.md                        # Global workflow guidance
+├── skills/                          # Slash commands
+├── agents/                          # Specialized agent definitions
+├── hooks/                           # Event hooks
+├── scripts/                         # Wrapper scripts (auto-run.sh)
+└── docs/solutions/                  # Global learnings
 ```
 
-### Filename Format
+---
 
-```
-<taskid>_YYMMDD-HHMMSS.txt
-```
+## Principles
 
-Example: `MoneyPrinter-ajq_260117-143052.txt` (task ajq, Jan 17 2026, 2:30:52 PM)
-
-### Orchestrator Usage
-
-Orchestrators can discover and read completed work:
-
-```bash
-# List recent summaries (sorted by modification time)
-ls -lt docs/session_summaries/
-
-# Read a specific summary
-cat docs/session_summaries/MoneyPrinter-ajq_260117-143052.txt
-
-# Find summaries for a specific task
-ls docs/session_summaries/*ajq*
-
-# Find summaries from today
-ls docs/session_summaries/*$(date +%y%m%d)*
-```
-
-### Automatic Gitignore
-
-The skills automatically add `docs/session_summaries/` to `.gitignore` if not present. This ensures:
-- Summaries don't clutter git history
-- Each machine maintains its own local archive
-- No conflicts between parallel workers
+1. **Parallel by default** &mdash; Multiple Claude sessions work simultaneously in isolated git worktrees.
+2. **Orchestrator + Workers** &mdash; One session coordinates, teammates execute discrete tasks and report back.
+3. **Task-sized work** &mdash; Big enough to be a meaningful atomic change, small enough to complete without exhausting context.
+4. **Bounded autonomy** &mdash; Clarify requirements first, then execute autonomously within those bounds.
+5. **Tests as the contract** &mdash; "Done" means tests pass. The code proves itself.
+6. **Human in the loop** &mdash; Humans approve PRs, prioritize tasks, and make architectural decisions.
+7. **Handoffs over context bloat** &mdash; Fresh context beats exhausted context.
+8. **Session summaries** &mdash; Every completed task leaves breadcrumbs for the next session.
+9. **Compound your learnings** &mdash; Document solutions so knowledge accumulates across sessions and projects.
+10. **Codify the routine** &mdash; Repeated patterns become skills. If you do something twice, automate it.
 
 ---
 
 ## Workflow Examples
 
-### 1. Planning a New Project
+### Single-Session
 
 ```bash
-# Explore the idea
+/orient
+/start-task Project-abc
+# implement...
+/finish-task Project-abc
+```
+
+### Multi-Agent Parallel
+
+```bash
+/orient
+/dispatch --count 3
+# 3 teammates spawn, each in a worktree, working in parallel
+# Use Shift+Up/Down to switch between teammates
+/reconcile-summary
+```
+
+### Fully Autonomous
+
+```bash
+# Interactive
+/auto-run --through target-task-id
+
+# Unattended (hours-long, restarts across context exhaustions)
+~/.claude/scripts/auto-run.sh --max-hours 8
+```
+
+### Full Planning Pipeline
+
+```bash
 /brainstorm "real-time price alerts for crypto"
-
-# Research and decompose into tasks
 /plan
-
-# Optionally add more detail
 /deepen-plan
-
-# Orient and dispatch workers
 /orient
 /dispatch
 ```
 
-### 2. Single-Session Workflow
+---
+
+## Setting Up a New Project
+
+Global workflow config loads automatically from `~/.claude/CLAUDE.md`. Each project only needs its own `CLAUDE.md` for project-specific details:
 
 ```bash
-/orient
-/start-task beads-abc123
-# Do the work...
-/finish-task beads-abc123
+cd /path/to/your/project
+bd init                    # Initialize task management
+claude
+> /orient                  # Start working
 ```
 
-### 3. Multi-Session Parallel Workflow (Agent Teams)
-
-```bash
-# Orchestrator session
-/orient
-/dispatch --count 3
-# Teammates auto-spawn, run /start-task, implement, run /finish-task
-# Use Shift+Up/Down to switch between teammates
-# Before ending:
-/reconcile-summary
-```
+Your project `CLAUDE.md` should include: project summary, dev commands (`uv run pytest`, `pnpm dev`, etc.), critical rules, and architecture overview. Everything else comes from the global config.
 
 ---
 
-## Installation on a New Machine
+## FAQ
 
-1. **Clone the repo:**
-   ```bash
-   git clone https://github.com/josephneumann/claude-config.git ~/Code/claude-config
-   ```
+### How is this different from using Claude Code directly?
 
-2. **Run the installer:**
-   ```bash
-   cd ~/Code/claude-config
-   ./install.sh
-   ```
+Claude Code runs as a single agent. claude-corps adds orchestration &mdash; multiple Claude sessions working in parallel on different tasks, each in isolated git worktrees, coordinated by a team lead session that dispatches work and reconciles results.
 
-3. **Source your shell config:**
-   ```bash
-   source ~/.zshrc
-   ```
+### Can I run this unattended for hours?
 
-4. **Verify:**
-   ```bash
-   ls -la ~/.claude/hooks     # Should show symlink
-   ls -la ~/.claude/agents    # Should show symlink
-   ls -la ~/.claude/skills    # Should show symlink
-   ls -la ~/.claude/docs      # Should show symlink
-   ```
+Yes. `/auto-run` with the wrapper script (`~/.claude/scripts/auto-run.sh`) runs for hours, restarting Claude when context is exhausted. State is checkpointed and restored across restarts. PRs are created but never auto-merged &mdash; you review when ready.
 
-The installer:
-- Creates `~/.claude/` if needed
-- Backs up existing directories (if any)
-- Creates symlinks to the repo
-- Removes legacy `commands/` symlink if present
-- Is idempotent (safe to run multiple times)
+### What is compound engineering?
+
+The idea that AI-assisted development should improve over time. Every solved problem gets documented (via `/compound`) and every repeated process gets automated (as a skill). Future sessions search prior solutions before starting new work.
+
+### Do I need beads?
+
+Yes. [beads](https://github.com/josephneumann/beads) (`bd`) is the task management backend. Skills use it for task tracking, dependencies, dispatch, and coordination. Run `bd init` in your project to set up.
+
+### Can I use this without Agent Teams?
+
+Partially. `/orient`, `/start-task`, `/finish-task`, `/compound`, and `/multi-review` all work without Agent Teams. `/dispatch` and `/auto-run` require it &mdash; they spawn parallel teammates.
 
 ---
 
-## Adding New Skills and Hooks
+## How claude-corps Fits the Ecosystem
 
-### Adding a Skill
-
-1. Create a new directory in `skills/`:
-   ```bash
-   mkdir ~/Code/claude-config/skills/my-skill
-   ```
-
-2. Create `SKILL.md` with frontmatter:
-   ```markdown
-   ---
-   name: my-skill
-   description: "This skill should be used when..."
-   allowed-tools: Read, Bash, Glob, Grep
-   ---
-
-   # My Skill: $ARGUMENTS
-
-   Instructions for Claude...
-   ```
-
-3. Commit and push — available as `/my-skill`
-
-**Frontmatter options:**
-- `name` (required): Skill name, used as the slash command
-- `description` (required): When to invoke this skill
-- `allowed-tools`: Comma-separated list of tools the skill can use
-- `disable-model-invocation: true`: Prevent auto-invocation (for heavyweight workflows)
-
-### Adding a Hook
-
-1. Create a new script in `hooks/`:
-   ```bash
-   vim ~/Code/claude-config/hooks/my-hook.sh
-   chmod +x ~/Code/claude-config/hooks/my-hook.sh
-   ```
-
-2. Commit and push
+| Tool | What It Does | Relationship |
+|------|-------------|--------------|
+| [Claude Code](https://docs.anthropic.com/en/docs/claude-code) | Anthropic's agentic coding CLI | **Required** &mdash; claude-corps extends it |
+| [beads](https://github.com/josephneumann/beads) | Task management CLI with dependencies | **Required** &mdash; skills use `bd` for task tracking |
+| [Claude Squad](https://github.com/smtg-ai/claude-squad) | Manage multiple terminal Claude agents | Alternative approach to multi-agent |
+| [Aider](https://github.com/Aider-AI/aider) | AI pair programming in your terminal | Different paradigm (pair vs team) |
 
 ---
 
@@ -443,20 +346,14 @@ The installer:
 
 ### Required
 
-- **[beads](https://github.com/josephneumann/beads)** (`bd`) - Task management CLI
-  - All skills use `bd` for task tracking, dependencies, and sync
-  - Run `bd init` in your project to set up beads
+- **[Claude Code](https://docs.anthropic.com/en/docs/claude-code)** &mdash; Anthropic's CLI for Claude
+- **[beads](https://github.com/josephneumann/beads)** (`bd`) &mdash; Task management with dependencies. Run `bd init` in your project.
+- **git** &mdash; With worktree support (standard in modern git)
+- **[gh](https://cli.github.com/)** &mdash; GitHub CLI for PR creation. Install: `brew install gh`
 
-- **git** - With worktree support (standard in modern git)
-  - `/start-task` creates isolated worktrees for each task
-  - `/finish-task` handles commits, pushes, and worktree cleanup
+### For Parallel Agent Dispatch
 
-- **gh** - [GitHub CLI](https://cli.github.com/)
-  - Used by `/finish-task` to create pull requests
-  - Install: `brew install gh` (macOS) or see [installation docs](https://github.com/cli/cli#installation)
-  - Authenticate: `gh auth login`
-
-- **Agent Teams** - Required for `/dispatch`. Enable in `~/.claude/settings.json`:
+- **[Agent Teams](https://docs.anthropic.com/en/docs/claude-code/agent-teams)** &mdash; Required for `/dispatch` and `/auto-run`. Enable in `~/.claude/settings.json`:
   ```json
   {
     "env": {
@@ -465,19 +362,61 @@ The installer:
     "teammateMode": "in-process"
   }
   ```
-  - `teammateMode` options: `"in-process"` (Shift+Up/Down in any terminal), `"tmux"` (split panes, requires tmux or iTerm2), `"auto"` (detects tmux, falls back to in-process)
-  - See [Agent Teams docs](https://code.claude.com/docs/en/agent-teams) for full reference
 
-### Claude Code Setup
+### For Unattended Auto-Run
 
-1. **Install Claude Code**
-2. **Run the installer** - `./install.sh`
-3. **Verify** - In Claude Code, type `/orient` to test
+- **expect** &mdash; Allocates a pty for the wrapper script. Install: `brew install expect` (macOS) or `apt install expect` (Linux). Not needed if using `/auto-run` interactively.
 
-### Without These Prerequisites
+---
 
-- **Without beads:** Skills will fail on `bd` calls. You'd need to remove/replace beads references.
-- **Without gh:** `/finish-task` won't create PRs. You can create them manually.
+## Installation
+
+```bash
+git clone https://github.com/josephneumann/claude-corps.git ~/Code/claude-corps
+cd ~/Code/claude-corps && ./install.sh
+source ~/.zshrc
+```
+
+The installer creates symlinks from `~/.claude/` to this repo. It's idempotent &mdash; safe to run multiple times. Existing directories are backed up.
+
+Verify:
+```bash
+ls -la ~/.claude/skills ~/.claude/hooks ~/.claude/agents ~/.claude/scripts ~/.claude/docs
+```
+
+<details>
+<summary><strong>Adding custom skills and hooks</strong></summary>
+
+### Adding a Skill
+
+Create `skills/my-skill/SKILL.md` with frontmatter:
+
+```markdown
+---
+name: my-skill
+description: "When to invoke this skill"
+allowed-tools: Read, Bash, Glob, Grep
+---
+
+# My Skill: $ARGUMENTS
+
+Instructions for Claude...
+```
+
+Commit and push &mdash; available as `/my-skill` in all projects.
+
+### Adding a Hook
+
+Create an executable script in `hooks/`:
+
+```bash
+vim ~/Code/claude-corps/hooks/my-hook.sh
+chmod +x ~/Code/claude-corps/hooks/my-hook.sh
+```
+
+Register it in `~/.claude/settings.json` under the appropriate event.
+
+</details>
 
 ---
 

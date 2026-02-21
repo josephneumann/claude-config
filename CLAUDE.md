@@ -84,10 +84,12 @@ All workflow capabilities are implemented as skills in `skills/`.
 | `/start-task <id>` | Claim task, gather context, define criteria | Beginning a task |
 | `/finish-task <id>` | Tests, commit, PR, cleanup, close | Task complete |
 | `/dispatch` | Spawn Agent Teams teammates | Multiple ready tasks |
-| | Flags: `--plan-first`, `--no-plan`, `--count N`, task IDs with context | |
+| | Flags: `--plan-first`, `--no-plan`, `--yes`, `--count N`, task IDs with context | |
+| `/auto-run` | Autonomous dispatch-reconcile loop | Batch processing, overnight runs |
+| | Flags: `--through <id>`, `--epic <id>`, `--only <ids>`, `--max-batches N`, `--max-hours H`, `--max-concurrent N`, `--dry-run` | |
 | `/summarize-session <id>` | Progress summary (read-only) | Mid-session checkpoint |
 | `/reconcile-summary` | Sync beads with implementation reality | After worker completes |
-| | Flag: `--no-cleanup` skips team shutdown prompt | |
+| | Flags: `--no-cleanup`, `--yes` (auto-confirm all prompts) | |
 
 ### Compound Engineering
 
@@ -165,7 +167,62 @@ orchestrator: /reconcile-summary → auto-discovers summaries → update beads
 
 # IMPORTANT: Before ending an orchestrator session, always run:
 /reconcile-summary
+
+# Fully autonomous (hours-long, scoped)
+/auto-run --through <target-task>
+# Or unattended with wrapper: ~/.claude/scripts/auto-run.sh --max-hours 8
 ```
+
+---
+
+## Autonomous Orchestration (`/auto-run`)
+
+For fully autonomous multi-hour runs. Chains `/dispatch` → wait → `/reconcile-summary` → repeat.
+
+### Quick Start
+
+```bash
+# From an interactive session
+/auto-run                                    # All ready tasks
+/auto-run --through Proj-xyz                 # Everything needed for task xyz
+/auto-run --epic Proj-abc                    # All tasks in an epic
+/auto-run --only Proj-abc Proj-def           # Specific tasks + blockers
+
+# Unattended (wrapper restarts on context exhaustion)
+~/.claude/scripts/auto-run.sh --max-hours 8
+~/.claude/scripts/auto-run.sh --through Proj-xyz --max-hours 4
+```
+
+### How It Works
+
+1. Orchestrator orients (or reads checkpoint on `--resume`), dispatches first batch
+2. Workers complete → Agent Teams delivers completion messages → orchestrator reconciles inline
+3. Orchestrator checks `bd ready` for newly unblocked tasks, dispatches next batch
+4. Context exhaustion → checkpoint written → exit (wrapper restarts if running)
+5. All tasks done → final report, team cleanup
+
+### State Files
+
+- **Checkpoint**: `docs/auto-run-checkpoint.json` — survives session restarts, tracks scope/batch/progress
+- **Logs**: `docs/auto-run-logs/` — one log per wrapper iteration
+- **Workers**: standard session summaries in `docs/session_summaries/`
+
+### Scope Targeting
+
+- `--through <id>` — resolve dependency graph backward, complete everything needed for this task
+- `--epic <id>` — complete all children/subtasks of an epic
+- `--only <id> ...` — specific tasks plus their transitive blockers
+- No flag — all ready tasks (entire board)
+
+### Wrapper Script
+
+`~/.claude/scripts/auto-run.sh` provides process-level resilience using `expect` to allocate a pty (Agent Teams requires interactive mode). Each iteration sends `/auto-run --resume` into a fresh Claude session. Prerequisite: `expect` (`brew install expect`).
+
+### Limitations
+
+- All tasks dispatch with `--no-plan` — no human plan approval in auto-run
+- PRs created but NOT merged — human merges (consistent with principle 6)
+- `AskUserQuestion` prompts auto-answered via `--yes` flags on `/dispatch` and `/reconcile-summary`
 
 ---
 
@@ -212,7 +269,7 @@ Three hooks enforce workflow discipline during Agent Teams sessions:
 
 - **TeammateIdle**: Blocks teammates from going idle without running `/finish-task`. Only enforces for beads-task teammates (names containing a hyphen like `Project-abc`). Non-beads teammates pass through.
 - **TaskCompleted**: Blocks task completion without a session summary file in `docs/session_summaries/`. Same beads-name enforcement as TeammateIdle.
-- **Stop**: Reminds the orchestrator to run `/reconcile-summary` before ending a session. Only blocks if unreconciled `.txt` files exist in `docs/session_summaries/`. Solo sessions without summaries are unaffected.
+- **Stop**: Reminds the orchestrator to run `/reconcile-summary` before ending a session. Only blocks if unreconciled `.txt` files exist in `docs/session_summaries/`. Bypassed when auto-run checkpoint exists with status "running" (wrapper handles restart). Solo sessions without summaries are unaffected.
 
 These hooks are registered in `~/.claude/settings.json` and implemented in `hooks/`.
 
@@ -231,4 +288,4 @@ Add `.claude/worktrees/` to your project's `.gitignore`.
 
 ---
 
-*Full documentation: See skill definitions in `~/.claude/skills/` or the [claude-config repo](https://github.com/josephneumann/claude-config).*
+*Full documentation: See skill definitions in `~/.claude/skills/` or the [claude-corps repo](https://github.com/josephneumann/claude-corps).*

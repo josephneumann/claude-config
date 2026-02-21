@@ -20,6 +20,14 @@ MAIN_REPO=$(git worktree list 2>/dev/null | head -1 | awk '{print $1}')
 # If no session_summaries dir, nothing to reconcile
 [ -d "$MAIN_REPO/docs/session_summaries" ] || exit 0
 
+# AUTO-RUN BYPASS: checkpoint with status "running" means the wrapper
+# handles restart and reconciliation. Allow exit.
+CHECKPOINT="$MAIN_REPO/docs/auto-run-checkpoint.json"
+if [ -f "$CHECKPOINT" ]; then
+  STATUS=$(jq -r '.status // "unknown"' "$CHECKPOINT" 2>/dev/null)
+  [ "$STATUS" = "running" ] && exit 0
+fi
+
 # Count unreconciled summaries (top-level .txt files, not in reconciled/)
 UNRECONCILED=$(find "$MAIN_REPO/docs/session_summaries" -maxdepth 1 -name "*.txt" -type f 2>/dev/null | wc -l | tr -d ' ')
 

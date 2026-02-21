@@ -51,6 +51,7 @@ create_symlink "$SCRIPT_DIR/hooks" "$CLAUDE_DIR/hooks"
 create_symlink "$SCRIPT_DIR/agents" "$CLAUDE_DIR/agents"
 create_symlink "$SCRIPT_DIR/skills" "$CLAUDE_DIR/skills"
 create_symlink "$SCRIPT_DIR/docs" "$CLAUDE_DIR/docs"
+create_symlink "$SCRIPT_DIR/scripts" "$CLAUDE_DIR/scripts"
 
 # Clean up legacy commands symlink if present
 if [ -L "$CLAUDE_DIR/commands" ]; then
@@ -96,3 +97,4 @@ echo "  ls -la ~/.claude/hooks"
 echo "  ls -la ~/.claude/agents"
 echo "  ls -la ~/.claude/skills"
 echo "  ls -la ~/.claude/docs"
+echo "  ls -la ~/.claude/scripts"
