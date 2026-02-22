@@ -33,7 +33,7 @@
 Claude Code is powerful on its own. claude-corps makes it a **team**.
 
 - **Parallel execution** &mdash; Dispatch 3-5 Claude agents working simultaneously on different tasks, each in an isolated git worktree
-- **Full lifecycle coverage** &mdash; From brainstorm to plan to dispatch to PR to code review, every step has a skill
+- **Full lifecycle coverage** &mdash; From spec to dispatch to PR to code review, every step has a skill
 - **Autonomous multi-hour runs** &mdash; `/auto-run` chains dispatch, reconcile, and repeat until your entire backlog is done
 - **Compound engineering** &mdash; Every solved problem is captured for future sessions. Knowledge and process accumulate over time
 - **Human in the loop** &mdash; Agents execute, you decide. PRs are created, never auto-merged
@@ -77,10 +77,10 @@ claude
 
 ```mermaid
 graph LR
-    A["/brainstorm"] --> B["/plan"]
-    B --> C["/deepen-plan"]
-    C -.->|"refine"| A
-    C --> D["/orient"]
+    A["/spec"] --> B["/spec --deepen"]
+    B -.->|"refine"| A
+    B --> D["/orient"]
+    A --> D
     D --> E["/dispatch"]
     E --> F["Workers: /start-task"]
     F --> G["Workers: /finish-task"]
@@ -93,7 +93,7 @@ graph LR
 
 | Phase | What happens |
 |-------|-------------|
-| **Plan** | `/brainstorm` explores ideas via Q&A. `/plan` researches the codebase with parallel agents and decomposes into tasks with dependencies. `/deepen-plan` adds detail with targeted research. |
+| **Spec** | `/spec` refines ideas via Q&A, researches the codebase with parallel agents, writes a plan to `docs/plans/`, and decomposes into tasks with dependencies. `/spec --deepen` adds depth with targeted parallel research. |
 | **Execute** | `/orient` surveys the project. `/dispatch` spawns Agent Teams teammates &mdash; each gets a task, creates a worktree, implements, runs tests, creates a PR, and writes a session summary. `/auto-run` does this in a loop until all tasks are done. |
 | **Learn** | `/compound` captures solutions in `docs/solutions/` for future sessions. `/multi-review` runs parallel specialized code review. `/reconcile-summary` syncs worker output with the task board. |
 
@@ -107,9 +107,8 @@ All workflow capabilities are implemented as slash commands in `skills/`.
 
 | Skill | Purpose |
 |-------|---------|
-| `/brainstorm` | Explore what to build via interactive Q&A |
-| `/plan` | Research, design, decompose into tasks with dependencies |
-| `/deepen-plan` | Enhance an existing plan with parallel research |
+| `/spec` | Research, plan, decompose into tasks with dependencies |
+| `/spec --deepen` | Enhance an existing plan with parallel research |
 
 ### Execution
 
@@ -134,18 +133,20 @@ All workflow capabilities are implemented as slash commands in `skills/`.
 |-------|---------|
 | `/multi-review` | Parallel code review with specialized agents |
 | `/compound` | Capture learnings in `docs/solutions/` |
+| `/compound-docs` | Validate solution doc formatting (auto-invoked) |
 | `/humanizer` | Remove AI writing patterns, add natural voice |
+| `/verify` | Verification discipline — evidence before claims |
+| `/debug` | Systematic debugging methodology |
+| `/writing-skills` | Skill authoring guidance (structure, tone, persuasion) |
 
 <details>
 <summary><strong>Skill details</strong> (click to expand)</summary>
 
 ### Planning Skills
 
-**`/brainstorm`** &mdash; Interactive Q&A dialogue to move from a vague idea to a clear concept. Writes output to `docs/brainstorms/`. Suggests `/plan` as next step.
+**`/spec`** &mdash; Interactive refinement (Phase 0) moves from a vague idea to clear requirements. Runs parallel research agents (repo-research-analyst, learnings-researcher, spec-flow-analyzer, and conditionally best-practices-researcher and framework-docs-researcher). Writes plan to `docs/plans/`, then decomposes into tasks with dependencies via `bd create` and `bd dep add`.
 
-**`/plan`** &mdash; Checks for brainstorm files, runs parallel research agents (repo-research-analyst, learnings-researcher, spec-flow-analyzer, and conditionally best-practices-researcher and framework-docs-researcher). Writes plan to `docs/plans/`, then decomposes into tasks with dependencies via `bd create` and `bd dep add`.
-
-**`/deepen-plan`** &mdash; Finds the most recent plan in `docs/plans/`, identifies sections needing more detail, runs parallel research agents per-section, updates the plan document and tasks.
+**`/spec --deepen`** &mdash; Finds the most recent plan in `docs/plans/`, discovers and applies all available skills and learnings, runs parallel research agents per-section, launches all review agents, and merges findings back into the plan. Updates tasks accordingly.
 
 ### Execution Skills
 
@@ -157,7 +158,7 @@ All workflow capabilities are implemented as slash commands in `skills/`.
 
 **`/finish-task <id>`** &mdash; Runs quality gates (tests must pass), commits changes, pushes to remote, creates a PR, runs `/multi-review` with auto-fix, closes the task, outputs a session summary. Tests must pass or the command stops.
 
-**`/reconcile-summary`** &mdash; Auto-discovers unreconciled summaries in `docs/session_summaries/`, analyzes spec divergences, updates affected tasks, creates new tasks for discovered work, closes obsoleted tasks. Supports `--yes` for autonomous operation and `--no-cleanup` to skip team shutdown.
+**`/reconcile-summary`** &mdash; Auto-discovers unreconciled summaries in `docs/session_summaries/`, cross-references summary claims against PR/CI evidence before trusting them, analyzes spec divergences, updates affected tasks, creates new tasks for discovered work, closes obsoleted tasks. Supports `--yes` for autonomous operation and `--no-cleanup` to skip team shutdown.
 
 **`/summarize-session <id>`** &mdash; Read-only progress snapshot. Does not commit, push, or close anything.
 
@@ -168,6 +169,16 @@ All workflow capabilities are implemented as slash commands in `skills/`.
 **`/multi-review`** &mdash; Selects 3-5 review agents based on change types, runs them in parallel, aggregates findings by severity, auto-fixes high-confidence issues. Maximum 3 review cycles.
 
 **`/humanizer`** &mdash; Writing editor that identifies and removes AI writing patterns (significance inflation, sycophantic tone, filler phrases, em dash overuse, etc.) to make text sound natural and human. Based on [Wikipedia's Signs of AI writing](https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing). Outputs a draft rewrite, self-audit for remaining tells, and final revision.
+
+**`/compound-docs`** &mdash; Auto-invoked when working with files in `docs/solutions/`. Validates solution documents follow the correct schema (YAML frontmatter, required sections) and are properly categorized.
+
+### Discipline Skills
+
+**`/verify`** &mdash; Centralized verification discipline cross-referenced by other skills. Contains the Iron Law (no claims without evidence), anti-rationalization table, red flags list, verification checklist, and anti-sycophancy guidance. Inspired by obra/superpowers.
+
+**`/debug`** &mdash; Four-phase systematic debugging: reproduce, trace root cause, test hypotheses, minimal fix. Includes three-strikes rule (3 failed fixes = wrong assumptions). Adapted from obra/superpowers.
+
+**`/writing-skills`** &mdash; Meta-skill for authoring effective skills. Covers CSO (description design), word count targets, anti-rationalization patterns, tone guidance from the humanizer, and persuasion principles. Informed by obra/superpowers.
 
 </details>
 
@@ -310,8 +321,7 @@ project-root/
 │   ├── session_summaries/           # Worker outputs (created by /finish-task)
 │   │   └── reconciled/              # Processed by /reconcile-summary
 │   ├── solutions/                   # Learnings from /compound
-│   ├── plans/                       # Output from /plan
-│   ├── brainstorms/                 # Output from /brainstorm
+│   ├── plans/                       # Output from /spec
 │   ├── auto-run-checkpoint.json     # Auto-run state (survives restarts)
 │   └── auto-run-logs/               # Wrapper iteration logs
 
@@ -338,6 +348,7 @@ project-root/
 8. **Session summaries** &mdash; Every completed task leaves breadcrumbs for the next session.
 9. **Compound your learnings** &mdash; Document solutions so knowledge accumulates across sessions and projects.
 10. **Codify the routine** &mdash; Repeated patterns become skills. If you do something twice, automate it.
+11. **Evaluate, don't agree** &mdash; Verify claims against evidence before acting. No performative agreement.
 
 ---
 
@@ -375,9 +386,8 @@ project-root/
 ### Full Planning Pipeline
 
 ```bash
-/brainstorm "real-time price alerts for crypto"
-/plan
-/deepen-plan
+/spec "real-time price alerts for crypto"
+/spec --deepen   # optional: enhance with parallel research
 /orient
 /dispatch
 ```
@@ -525,6 +535,20 @@ chmod +x ~/Code/claude-corps/hooks/my-hook.sh
 Register it in `~/.claude/settings.json` under the appropriate event.
 
 </details>
+
+---
+
+## Inspiration
+
+claude-corps' verification discipline, debugging methodology, and skill authoring guidance draw from [obra/superpowers](https://github.com/obra/superpowers) — Jesse Vincent's excellent single-agent skills framework. Specific techniques adapted:
+
+- **Anti-rationalization tables** and **Iron Laws** for prompt-level compliance (verification-before-completion skill)
+- **CSO (Claude Search Optimization)** for skill description design (writing-skills skill)
+- **Systematic debugging methodology** (debug skill)
+- **Persuasion-informed skill design** based on Cialdini principles (writing-skills skill)
+- **Subagent distrust model** for processing agent reports (reconcile-summary skill)
+
+Where superpowers optimizes a single agent session, claude-corps orchestrates many agents in parallel. The two frameworks are complementary — we borrowed their single-agent discipline to strengthen our multi-agent system.
 
 ---
 

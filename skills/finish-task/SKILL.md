@@ -1,6 +1,6 @@
 ---
 name: finish-task
-description: "Complete a beads task - run checks, commit, push, close issue, cleanup worktree, generate session summary"
+description: "Use when implementation and tests are complete and you're ready to close out a beads task"
 allowed-tools: Read, Bash, Glob, Grep, Edit, Write, Skill
 ---
 
@@ -37,6 +37,8 @@ Acceptance Criteria Check:
 If any criterion is NOT met, either:
 1. Complete the missing work before proceeding
 2. Create a follow-up task for deferred items and note the reason
+
+> **Verification discipline** (from `/verify`): NEVER CLAIM SUCCESS WITHOUT FRESH VERIFICATION EVIDENCE IN THIS MESSAGE. For every claim you make below, run the command that proves it, read the full output, and confirm it supports your claim. No "tests passed earlier." No "should work." Run it now.
 
 ## 3. Run Quality Gates
 
@@ -219,7 +221,7 @@ The multi-review will:
 
 For each Critical or Important issue:
 
-1. **Review the finding** - Note the file, line, and reviewer that flagged it
+1. **Review the finding** - Note the file, line, and reviewer that flagged it. Verify each claim against actual code before implementing — reviewers hallucinate too. Push back on findings that are incorrect for this codebase or violate YAGNI. No performative agreement. Fix silently or explain disagreement.
 2. **Implement fix** - Make the minimal change to address the issue
 3. **Verify** - Ensure the fix doesn't introduce new problems
 

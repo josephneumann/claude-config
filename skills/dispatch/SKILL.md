@@ -1,6 +1,6 @@
 ---
 name: dispatch
-description: "Dispatch parallel Agent Teams teammates for beads tasks"
+description: "Use when multiple tasks are ready and you want to assign them to parallel workers"
 allowed-tools: Bash, Read, Glob, Grep, AskUserQuestion, TeamCreate, TaskCreate, TaskUpdate, TaskList, SendMessage, Task
 ---
 

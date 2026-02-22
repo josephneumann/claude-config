@@ -231,6 +231,8 @@ Only surface findings with **confidence >= 80%**. Lower confidence findings shou
 
 ### Step 8: Offer Auto-Fix
 
+> **Verification discipline** (from `/verify`): Before proposing any fix, read the actual code at the file:line the reviewer flagged. Reviewers hallucinate. Confirm the issue exists, then fix. If it doesn't exist, drop it — don't implement phantom fixes.
+
 For Critical and Important issues with clear fixes:
 
 ```

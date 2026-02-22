@@ -8,7 +8,7 @@ claude-corps provides skills, agents, hooks, and scripts that extend Claude Code
 
 - /dispatch: Spawn parallel agent teammates via Agent Teams, each in an isolated git worktree
 - /auto-run: Autonomous multi-hour orchestration loop (dispatch, reconcile, repeat)
-- /plan: Research-driven planning with parallel agents, decomposing into tasks with dependencies
+- /spec: Research-driven planning with parallel agents — interactive refinement, plan writing, task decomposition. Use --deepen to enhance an existing plan with parallel research
 - /orient: Survey a project and identify parallel work streams
 - /start-task: Claim a task, create a worktree, gather context, define acceptance criteria
 - /finish-task: Tests, commit, PR, code review, session summary, close
