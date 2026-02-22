@@ -1,2 +1,6 @@
 .claude/settings.local.json
 .claude/worktrees/
+docs/solutions/
+docs/session_summaries/
+docs/auto-run-checkpoint.json
+docs/auto-run-logs/
