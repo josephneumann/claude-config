@@ -550,6 +550,8 @@ claude-corps' verification discipline, debugging methodology, and skill authorin
 
 Where superpowers optimizes a single agent session, claude-corps orchestrates many agents in parallel. The two frameworks are complementary — we borrowed their single-agent discipline to strengthen our multi-agent system.
 
+claude-corps' compound engineering philosophy — the idea that AI-assisted development should improve over time through captured learnings and codified process — was influenced by [EveryInc/compound-engineering-plugin](https://github.com/EveryInc/compound-engineering-plugin), which implements a similar pattern of accumulating project knowledge across sessions.
+
 ---
 
 ## License
