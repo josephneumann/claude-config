@@ -46,7 +46,8 @@ Systematically check the following areas:
 ### 4. Responsive Design
 
 - Verify mobile-first approach (base styles for mobile, breakpoints for larger)
-- Check touch targets are minimum 44x44px on mobile
+- Check touch targets are minimum 44x44px on mobile (48px / `h-12` / `min-h-12` for client portal components)
+- Flag `Button size="sm"` or `size="icon-sm"` in client portal / mobile contexts without 48px override
 - Verify no horizontal scrolling on mobile viewports
 - Check text readability (minimum 16px base font on mobile)
 - Verify navigation patterns work on mobile (hamburger menu, bottom nav, etc.)
@@ -63,7 +64,40 @@ Systematically check the following areas:
 - Verify text-on-background contrast in both modes
 - Check that dynamic theme switching works (no flash of wrong theme)
 
-### 6. Design System Consistency
+### 6. Animation Token Compliance
+
+- Flag raw animation durations not matching semantic tokens (`duration-150`, `duration-200`, `duration-300`) — arbitrary values like `duration-[250ms]` or `duration-[400ms]` should use the nearest standard token
+- Flag `transition-*`, `animate-*`, or `duration-*` classes without a `motion-safe:` or `motion-reduce:` wrapper variant
+- Check for global reduced-motion CSS fallback in `globals.css` (`@media (prefers-reduced-motion: reduce)`)
+- Flag `animate-spin` without a corresponding `motion-reduce:animate-none` alternative
+- Verify animations use `ease-out` for entrances, `ease-in` for exits, and `ease-in-out` for state changes (not linear or default ease)
+
+### 7. ARIA & Screen Reader Compliance
+
+- Check `aria-live` regions on dynamic content areas (filter result counts, selection counts, toast containers, form validation summaries)
+- Check ARIA landmark structure: pages should have `role="banner"`, `role="navigation"`, `role="main"`, and `role="complementary"` where appropriate
+- Check `aria-expanded` on all collapsible/toggle elements (accordion triggers, dropdown triggers, sidebar toggles)
+- Check `aria-label` on `role="toolbar"` containers (batch action bars, filter toolbars)
+- Check `aria-current="page"` on active navigation items
+- Verify dynamic count changes are announced (e.g., "Showing X of Y" in `aria-live="polite"` regions)
+
+### 8. Color-Independent Information Encoding
+
+- Flag status indicators that rely on color alone — must have an accompanying icon or text label
+- Check that `Badge` components with semantic color variants also include icons or explicit text
+- Verify confidence/progress indicators have a text representation (not color-only)
+- Flag any pattern where removing color would make information indistinguishable (WCAG 2.1 SC 1.4.1)
+
+### 9. Focus Management Patterns
+
+- Check dialogs/sheets for focus trap (Radix handles automatically, but verify custom implementations)
+- Check for focus restoration patterns on dialog/sheet/panel close — focus should return to the trigger element
+- Flag missing `autoFocus` on the primary action in dialogs and sheets
+- Check destructive confirmation dialogs focus the cancel/safe button by default (not the destructive action)
+- Check Escape key handling on all overlay components (dialogs, sheets, popovers, dropdowns)
+- Verify no focus trap escapes (focus should not move behind an open overlay)
+
+### 10. Design System Consistency
 
 - Verify consistent spacing (4px/8px grid system or Tailwind default scale)
 - Check typography consistency (font sizes, weights, line heights from scale)
@@ -83,12 +117,19 @@ Systematically check the following areas:
 - [ ] `cn()` utility used for class merging
 - [ ] Consistent spacing scale (no arbitrary values without justification)
 - [ ] Dark mode variants for all custom colors
-- [ ] Touch targets minimum 44x44px on mobile
+- [ ] Touch targets minimum 44x44px on mobile (48px for client portal)
 - [ ] No hardcoded colors outside the design system
 - [ ] shadcn/ui primitives used where available
 - [ ] Form inputs have associated labels
 - [ ] Error states are accessible (aria-invalid, aria-describedby)
 - [ ] Heading hierarchy is correct
+- [ ] Animation durations use semantic tokens (duration-150/200/300)
+- [ ] Animated elements have motion-safe:/motion-reduce: variants
+- [ ] Dynamic content regions have aria-live attributes
+- [ ] ARIA landmarks present (banner, navigation, main)
+- [ ] Status indicators use icon + text, not color alone
+- [ ] Dialogs restore focus to trigger on close
+- [ ] Destructive dialogs default-focus the cancel button
 
 ## Output Format
 
