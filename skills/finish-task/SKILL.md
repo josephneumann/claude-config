@@ -159,10 +159,25 @@ This is informational only — do not block on evidence capture.
 
 ## 11. Create Pull Request
 
+Determine the PR base branch before creating the PR:
+
+```bash
+# Check for milestone branches on remote
+MILESTONE_BRANCH=$(git branch -r --list 'origin/milestone/*' | sort -V | tail -1 | sed 's|origin/||' | xargs)
+
+if [ -n "$MILESTONE_BRANCH" ]; then
+  echo "Using base branch: $MILESTONE_BRANCH"
+  BASE_FLAG="--base $MILESTONE_BRANCH"
+else
+  echo "No milestone branch found, using default (main)"
+  BASE_FLAG=""
+fi
+```
+
 Create a PR for the completed work:
 
 ```bash
-gh pr create --title "feat(<scope>): <description>" --body "$(cat <<'EOF'
+gh pr create $BASE_FLAG --title "feat(<scope>): <description>" --body "$(cat <<'EOF'
 ## Summary
 
 <2-3 sentences describing what this PR accomplishes>
@@ -254,6 +269,16 @@ After code review passes (or user approves despite issues):
 If user approves, proceed to step 12. If user declines, leave the PR open for manual review and skip to step 13.
 
 ## 12. Merge PR and Cleanup
+
+Check the PR's base branch before merging:
+
+```bash
+BASE=$(gh pr view --json baseRefName -q '.baseRefName')
+```
+
+**If base is "main"**: do NOT merge. Report the PR URL and skip to step 13. Milestone-to-main PRs are human-only.
+
+**If base is a milestone branch** (e.g., `milestone/m1`): proceed with merge.
 
 ```bash
 BRANCH_NAME=$(git branch --show-current)
