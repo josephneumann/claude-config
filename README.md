@@ -134,6 +134,7 @@ All workflow capabilities are implemented as slash commands in `skills/`.
 |-------|---------|
 | `/multi-review` | Parallel code review with specialized agents |
 | `/compound` | Capture learnings in `docs/solutions/` |
+| `/humanizer` | Remove AI writing patterns, add natural voice |
 
 <details>
 <summary><strong>Skill details</strong> (click to expand)</summary>
@@ -165,6 +166,8 @@ All workflow capabilities are implemented as slash commands in `skills/`.
 **`/compound`** &mdash; Captures solutions in project-specific (`docs/solutions/`) or global (`~/.claude/docs/solutions/`) storage with YAML frontmatter for searchability.
 
 **`/multi-review`** &mdash; Selects 3-5 review agents based on change types, runs them in parallel, aggregates findings by severity, auto-fixes high-confidence issues. Maximum 3 review cycles.
+
+**`/humanizer`** &mdash; Writing editor that identifies and removes AI writing patterns (significance inflation, sycophantic tone, filler phrases, em dash overuse, etc.) to make text sound natural and human. Based on [Wikipedia's Signs of AI writing](https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing). Outputs a draft rewrite, self-audit for remaining tells, and final revision.
 
 </details>
 
