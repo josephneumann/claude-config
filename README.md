@@ -257,13 +257,13 @@ project-root/
 │   ├── review.json                  # Optional: review config (tiers, reviewer overrides)
 │   └── worktrees/                   # Isolated worktrees for each task
 ├── docs/
-│   ├── session_summaries/           # Worker outputs (created by /finish-task)
+│   ├── session_summaries/           # Worker outputs (local, gitignored)
 │   │   └── reconciled/              # Processed by /reconcile-summary
-│   ├── solutions/                   # Learnings from /compound
+│   ├── solutions/                   # Learnings from /compound (local, gitignored)
 │   ├── plans/                       # Output from /plan
 │   ├── brainstorms/                 # Output from /brainstorm
-│   ├── auto-run-checkpoint.json     # Auto-run state (survives restarts)
-│   └── auto-run-logs/               # Wrapper iteration logs
+│   ├── auto-run-checkpoint.json     # Auto-run state (local, gitignored)
+│   └── auto-run-logs/               # Wrapper iteration logs (local, gitignored)
 
 ~/.claude/                           # Global config (symlinked from this repo)
 ├── CLAUDE.md                        # Global workflow guidance
