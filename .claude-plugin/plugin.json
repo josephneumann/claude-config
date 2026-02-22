@@ -1,7 +1,7 @@
 {
   "name": "claude-corps",
   "description": "Parallel agentic development framework — orchestrate multiple Claude agents working simultaneously in isolated git worktrees",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "author": { "name": "Joseph Neumann" },
   "homepage": "https://github.com/josephneumann/claude-corps",
   "repository": "https://github.com/josephneumann/claude-corps",

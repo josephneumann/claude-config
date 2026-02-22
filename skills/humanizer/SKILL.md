@@ -1,6 +1,7 @@
 ---
 name: humanizer
 description: "Identify and remove AI writing patterns to make text sound natural and human. Use when the user wants to 'humanize' text, remove AI-isms, or make writing sound less like ChatGPT."
+allowed-tools: Read, Edit, AskUserQuestion
 ---
 
 # Humanizer: Remove AI Writing Patterns

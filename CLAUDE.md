@@ -12,6 +12,8 @@ You are not just writing code. You are shaping the future of this project. The p
 
 Fight entropy. Leave the codebase better than you found it.
 
+> **Violating the letter of the rules is violating the spirit of the rules.** There are no valid exceptions, clever workarounds, or "spirit of the intent" arguments that justify skipping a required step.
+
 ---
 
 1. **Parallel by default** — Multiple sessions work simultaneously in isolated git worktrees. Use `claude --worktree` for single sessions or `isolation: "worktree"` for dispatched teammates.
@@ -36,11 +38,7 @@ Fight entropy. Leave the codebase better than you found it.
 
 > **Compound Engineering**: Principles 9 and 10 work together — capture *knowledge* (learnings) and *process* (skills) so each session builds on the last.
 
----
-
-## Critical Rule: Never Use Built-in Plan Mode for Planning
-
-When the user asks to "plan", "brainstorm", or "deepen a plan", use the custom skills (`/plan`, `/brainstorm`, `/deepen-plan`) — **never** the built-in `EnterPlanMode` tool. The built-in plan mode is for implementation planning only. Our planning skills are richer: they run research agents, produce plan documents, and decompose into beads tasks.
+11. **Evaluate, don't agree** — When receiving feedback, review findings, or processing reports: verify claims against evidence before acting. No performative agreement ("Great point!", "You're absolutely right!"). Fix silently or explain technical disagreement. YAGNI applies to review suggestions too.
 
 ---
 
@@ -72,9 +70,8 @@ All workflow capabilities are implemented as skills in `skills/`.
 
 | Skill | Purpose | When to Use |
 |-------|---------|-------------|
-| `/brainstorm` | Explore what to build via Q&A | New idea, vague concept |
-| `/plan` | Research, design, decompose into tasks | After brainstorm or with a spec |
-| `/deepen-plan` | Enhance plan with parallel research | Plan needs more detail |
+| `/spec` | Research, plan, decompose into tasks | New idea, feature description, or goal |
+| `/spec --deepen` | Enhance plan with parallel research agents | Existing plan needs more depth |
 
 ### Execution
 
@@ -84,24 +81,33 @@ All workflow capabilities are implemented as skills in `skills/`.
 | `/start-task <id>` | Claim task, gather context, define criteria | Beginning a task |
 | `/finish-task <id>` | Tests, commit, PR, cleanup, close | Task complete |
 | `/dispatch` | Spawn Agent Teams teammates | Multiple ready tasks |
-| | Flags: `--plan-first`, `--no-plan`, `--yes`, `--count N`, `--model opus\|sonnet`, task IDs with context | |
 | `/auto-run` | Autonomous dispatch-reconcile loop | Batch processing, overnight runs |
-| | Flags: `--through <id>`, `--epic <id>`, `--only <ids>`, `--max-batches N`, `--max-hours H`, `--max-concurrent N`, `--dry-run` | |
 | `/summarize-session <id>` | Progress summary (read-only) | Mid-session checkpoint |
 | `/reconcile-summary` | Sync beads with implementation reality | After worker completes |
-| | Flags: `--no-cleanup`, `--yes` (auto-confirm all prompts) | |
 
 ### Compound Engineering
 
 | Skill | Purpose | Triggers |
 |-------|---------|----------|
 | `/compound` | Capture learnings after solving problems | "fixed it", "that worked", explicit |
+| `/compound-docs` | Validate solution doc formatting | Auto-invoked when editing `docs/solutions/` |
 | `/multi-review` | Parallel code review with specialized agents | "thorough review", PR review, explicit |
 
-**Two compound modes:**
+Auto-compound runs inside `/finish-task` (lightweight, fire-and-forget). Rich `/compound` is interactive with 5 parallel subagents for deep problem documentation.
 
-- **Auto-compound** — Lightweight, automatic, runs inside `/finish-task` (Step 14.5). Extracts gotchas and divergences from session summaries and writes them to `docs/solutions/`. Tagged `source: auto-compound`. Fire-and-forget, no user interaction. Closes the learning loop inside `/auto-run`.
-- **Rich compound** (`/compound`) — Interactive, human-driven, runs 5 parallel subagents. For deep problem documentation after debugging sessions. Use when you want thorough analysis beyond what auto-compound captures.
+### Utility
+
+| Skill | Purpose | When to Use |
+|-------|---------|-------------|
+| `/humanizer` | Remove AI writing patterns | Text sounds like AI slop |
+
+### Discipline
+
+| Skill | Purpose | When to Use |
+|-------|---------|-------------|
+| `/verify` | Evidence before claims, anti-sycophancy | Cross-referenced by other skills; invoke when making completion claims |
+| `/debug` | Systematic debugging methodology | Bug, test failure, unexpected behavior |
+| `/writing-skills` | Skill authoring guidance | Creating or revising a skill definition |
 
 ---
 
@@ -119,75 +125,22 @@ Available in `/orient` (Phase 1.5) and `/start-task` (Step 5.5) for complex task
 
 ---
 
-## Review Agents
+## Agents
 
-Used by `/multi-review` for specialized parallel review:
+**Review** (`/multi-review`): `code-simplicity-reviewer`, `security-sentinel`, `api-security-reviewer`, `performance-oracle`, `pattern-recognition-specialist`, `architecture-strategist`, `agent-native-reviewer`, `data-integrity-guardian`, `data-migration-expert`. Framework-specific (`nextjs-reviewer`, `tailwind-reviewer`, `python-backend-reviewer`) auto-detect from changed files.
 
-| Agent | Focus |
-|-------|-------|
-| `code-simplicity-reviewer` | YAGNI, complexity |
-| `security-sentinel` | CWE-enriched OWASP review, business logic, absence detection |
-| `api-security-reviewer` | Rate limiting, pagination, CORS, response filtering |
-| `performance-oracle` | N+1 queries, caching, memory |
-| `pattern-recognition-specialist` | Anti-patterns, conventions |
-| `architecture-strategist` | SOLID, design patterns |
-| `agent-native-reviewer` | Action/context parity for agents |
-| `data-integrity-guardian` | Migration safety, ACID, GDPR/CCPA |
-| `data-migration-expert` | Validates mappings against production |
-
-### Framework-Specific Review Agents
-
-Auto-detected from changed files. Can be suppressed via `reviewers.exclude` in `review.json`:
-
-| Agent | Focus |
-|-------|-------|
-| `nextjs-reviewer` | App Router, RSC, metadata, routing, middleware |
-| `tailwind-reviewer` | Tailwind/shadcn, accessibility, responsive, WCAG |
-| `python-backend-reviewer` | FastAPI, SQLAlchemy, async, Alembic, pytest |
-
----
-
-## Workflow Agents
-
-| Agent | Purpose |
-|-------|---------|
-| `spec-flow-analyzer` | Analyze specs for dependencies, gaps, feasibility |
+**Workflow**: `spec-flow-analyzer` — analyze specs for dependencies, gaps, feasibility.
 
 ---
 
 ## Project Configuration
 
-### Review Configuration (`review.json`)
-
-Projects can optionally define a `.claude/review.json` file to configure risk-based review and dispatch behavior. For backward compatibility, `.claude/risk-tiers.json` is also supported. This file drives:
-- **`/multi-review`**: Tier-based reviewer selection (more reviewers for higher-risk files)
-- **`/dispatch`**: Automatic plan-mode for critical/high-risk tasks, model selection (opus for critical/high, sonnet for medium/low)
-- **Reviewer overrides**: Exclude auto-detected reviewers or force-include additional ones
-
-See `docs/examples/review-fullstack.json` and `docs/examples/review-backend-heavy.json` for examples.
-
-```json
-{
-  "version": "2",
-  "tiers": {
-    "critical": ["backend/app/auth.py", "backend/alembic/**"],
-    "high": ["backend/app/models/**", "docker-compose*.yml"],
-    "medium": ["backend/app/routes/**", "frontend/app/api/**"],
-    "low": ["frontend/components/**", "docs/**", "tests/**"]
-  },
-  "reviewers": {
-    "exclude": [],
-    "include": []
-  }
-}
-```
+Optional `.claude/review.json` configures risk tiers and reviewer overrides for `/multi-review` and `/dispatch`. See `docs/examples/review-fullstack.json` for examples.
 
 ---
 
 ## Commit Guidance
 
-- **Commit early**: Tests pass, before risky changes, at natural stopping points
-- **Wait to commit**: Tests failing, mid-refactor, exploring solutions
 - **Atomic commits**: One logical change, independently passes tests, revertible
 - **Message format**: `<type>: <summary>` — types: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`
 
@@ -197,7 +150,7 @@ See `docs/examples/review-fullstack.json` and `docs/examples/review-backend-heav
 
 ```bash
 # Plan a new project
-/brainstorm → /plan → /deepen-plan → /orient → /dispatch
+/spec → /spec --deepen (optional) → /orient → /dispatch
 
 # Single session
 /orient → /start-task <id> → implement → /finish-task <id>
@@ -207,88 +160,15 @@ See `docs/examples/review-fullstack.json` and `docs/examples/review-backend-heav
 # Teammates auto-spawn, run /start-task, implement, run /finish-task
 
 # Worker completes → orchestrator reconciles
-worker: /finish-task <id> → summary written to docs/session_summaries/
-orchestrator: /reconcile-summary → auto-discovers summaries → update beads
+/reconcile-summary → update beads → dispatch next batch
+
+# Fully autonomous
+/auto-run --through <target-task>
+# Or unattended: ~/.claude/scripts/auto-run.sh --max-hours 8
 
 # IMPORTANT: Before ending an orchestrator session, always run:
 /reconcile-summary
-
-# Fully autonomous (hours-long, scoped)
-/auto-run --through <target-task>
-# Or unattended with wrapper: ~/.claude/scripts/auto-run.sh --max-hours 8
 ```
-
----
-
-## Autonomous Orchestration (`/auto-run`)
-
-For fully autonomous multi-hour runs. Chains `/dispatch` → wait → `/reconcile-summary` → repeat.
-
-### Quick Start
-
-```bash
-# From an interactive session
-/auto-run                                    # All ready tasks
-/auto-run --through Proj-xyz                 # Everything needed for task xyz
-/auto-run --epic Proj-abc                    # All tasks in an epic
-/auto-run --only Proj-abc Proj-def           # Specific tasks + blockers
-
-# Unattended (wrapper restarts on context exhaustion)
-~/.claude/scripts/auto-run.sh --max-hours 8
-~/.claude/scripts/auto-run.sh --through Proj-xyz --max-hours 4
-```
-
-### How It Works
-
-1. Orchestrator orients (or reads checkpoint on `--resume`), dispatches first batch
-2. Workers complete → Agent Teams delivers completion messages → orchestrator reconciles inline
-3. Orchestrator checks `bd ready` for newly unblocked tasks, dispatches next batch
-4. Context exhaustion → checkpoint written → exit (wrapper restarts if running)
-5. All tasks done → final report, team cleanup
-
-### State Files
-
-- **Checkpoint**: `docs/auto-run-checkpoint.json` — survives session restarts, tracks scope/batch/progress
-- **Logs**: `docs/auto-run-logs/` — one log per wrapper iteration
-- **Workers**: standard session summaries in `docs/session_summaries/`
-
-### Scope Targeting
-
-- `--through <id>` — resolve dependency graph backward, complete everything needed for this task
-- `--epic <id>` — complete all children/subtasks of an epic
-- `--only <id> ...` — specific tasks plus their transitive blockers
-- No flag — all ready tasks (entire board)
-
-### Wrapper Script
-
-`~/.claude/scripts/auto-run.sh` provides process-level resilience using `expect` to allocate a pty (Agent Teams requires interactive mode). Each iteration sends `/auto-run --resume` into a fresh Claude session. Prerequisite: `expect` (`brew install expect`).
-
-### Limitations
-
-- All tasks dispatch with `--no-plan` — no human plan approval in auto-run
-- PRs created but NOT merged — human merges (consistent with principle 6)
-- `AskUserQuestion` prompts auto-answered via `--yes` flags on `/dispatch` and `/reconcile-summary`
-
----
-
-## Spec Divergence & Reconciliation
-
-Implementation often diverges from spec — that's normal. The workflow handles this:
-
-**Workers** document divergences in their session summary:
-- What was specified vs what was built
-- Why the change was necessary
-- What downstream tasks are affected
-
-**Orchestrators** reconcile after each worker completes:
-1. Run `/reconcile-summary` (auto-discovers unreconciled summaries in `docs/session_summaries/`)
-2. Or run `/reconcile-summary <task-id>` for a specific task
-3. Or paste a summary directly if preferred
-4. Update affected beads tasks, close obsoleted, create discovered work
-
-Reconciled summaries are moved to `docs/session_summaries/reconciled/` to prevent re-processing.
-
-This keeps the task board accurate as reality unfolds.
 
 ---
 
@@ -308,28 +188,7 @@ bd sync --flush-only        # Export to JSONL
 
 ---
 
-## Quality Gate Hooks
-
-Three hooks enforce workflow discipline during Agent Teams sessions:
-
-- **TeammateIdle**: Blocks teammates from going idle without running `/finish-task`. Only enforces for beads-task teammates (names containing a hyphen like `Project-abc`). Non-beads teammates pass through.
-- **TaskCompleted**: Blocks task completion without a session summary file in `docs/session_summaries/`. Same beads-name enforcement as TeammateIdle.
-- **Stop**: Reminds the orchestrator to run `/reconcile-summary` before ending a session. Only blocks if unreconciled `.txt` files exist in `docs/session_summaries/`. Bypassed when auto-run checkpoint exists with status "running" (wrapper handles restart). Solo sessions without summaries are unaffected.
-
-These hooks are registered in `~/.claude/settings.json` and implemented in `hooks/`.
-
----
-
-## Worktree Isolation
-
-All task work runs in isolated git worktrees by default:
-
-- **Dispatched teammates**: `isolation: "worktree"` in `/dispatch` — automatic
-- **Single-session work**: `claude --worktree <task-id>`
-- **Environment setup**: `WorktreeCreate` hook handles `.env` symlinks; `SessionStart` hook sets `BEADS_NO_DAEMON=1`
-
-Native worktrees live under `.claude/worktrees/` and auto-clean on exit.
-Add `.claude/worktrees/` to your project's `.gitignore`.
+Quality gate hooks enforce workflow discipline. See `hooks/` for implementation.
 
 ---
 
