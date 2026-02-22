@@ -230,24 +230,71 @@ Deployed by `/multi-review` for parallel specialized review.
 | Agent | Focus |
 |-------|-------|
 | `code-simplicity-reviewer` | YAGNI, minimize complexity |
-| `security-sentinel` | OWASP Top 10, vulnerabilities |
+| `security-sentinel` | CWE-enriched OWASP review, business logic, absence detection |
 | `performance-oracle` | N+1 queries, memory, caching |
 | `pattern-recognition-specialist` | Anti-patterns, conventions |
 | `architecture-strategist` | SOLID, design alignment |
 | `agent-native-reviewer` | Action/context parity for agents |
+| `api-security-reviewer` | Rate limiting, pagination, CORS, response filtering |
 | `data-integrity-guardian` | Migration safety, ACID, GDPR/CCPA |
 | `data-migration-expert` | Validates mappings against production |
 | `nextjs-reviewer` | App Router, RSC, metadata, routing |
 | `tailwind-reviewer` | Tailwind/shadcn, accessibility, responsive |
 | `python-backend-reviewer` | FastAPI, SQLAlchemy, async, Alembic, pytest |
 
-> **Note:** The 3 framework-specific reviewers (`nextjs`, `tailwind`, `python-backend`) auto-detect from changed files. Use `reviewers.exclude` in `.claude/review.json` to suppress. See [Setting Up a New Project](#setting-up-a-new-project).
+> **Note:** Framework-specific reviewers (`nextjs`, `tailwind`, `python-backend`, `api-security`) auto-detect from changed files. Use `reviewers.exclude` in `.claude/review.json` to suppress. See [Setting Up a New Project](#setting-up-a-new-project).
 
 ### Workflow Agents
 
 | Agent | Purpose |
 |-------|---------|
 | `spec-flow-analyzer` | Analyze specs for dependencies, gaps, feasibility |
+
+---
+
+## Security
+
+claude-corps uses a **layered security model** combining AI-driven review with deterministic CI/CD tooling for comprehensive coverage.
+
+### AI Agent Layer (security-sentinel)
+
+The `security-sentinel` agent focuses on what AI uniquely excels at:
+
+- **Business logic vulnerabilities** &mdash; IDOR (CWE-639), authorization bypass (CWE-863), workflow manipulation, mass assignment (CWE-915)
+- **Absence detection** &mdash; Missing rate limiting, CSRF protection, auth middleware, input validation, security headers, audit logging
+- **Self-verification** &mdash; Every finding is tested against mitigating controls before reporting, reducing false positives
+- **CWE-enriched output** &mdash; All findings include CWE numbers, confidence scores, exploit scenarios, and specific remediation
+- **SAST triage** &mdash; When CI/CD produces SAST results, security-sentinel verifies each finding in context (confirm, dismiss, or escalate)
+
+The `api-security-reviewer` agent covers API-specific gaps: rate limiting, pagination bounds, response data filtering, CORS, request size limits, and security logging.
+
+### CI/CD Layer (deterministic tools)
+
+A template workflow at [`docs/examples/security-checks.yml`](docs/examples/security-checks.yml) adds SAST and container scanning alongside your existing CI:
+
+| Tool | Purpose |
+|------|---------|
+| Semgrep | Known vulnerability patterns (SQLi, XSS, path traversal) via SAST |
+| Trivy | CVEs in container base images and OS packages |
+| SARIF | Results uploaded to GitHub Security tab |
+
+This complements (not replaces) existing CI checks like dependency audit (`pnpm audit`, `pip-audit`) and secret scanning (TruffleHog).
+
+### Pre-Commit Layer
+
+A secret scanning hook (`hooks/secret-scan-precommit.sh`) blocks commits containing credentials before they enter git history. Uses `gitleaks` if installed, falls back to regex pattern matching for AWS keys, GitHub tokens, private keys, and generic secrets.
+
+### Recommended Configuration
+
+For security-conscious projects, add `security-sentinel` as an always-on reviewer in `.claude/review.json`:
+
+```json
+{
+  "reviewers": {
+    "include": ["security-sentinel"]
+  }
+}
+```
 
 ---
 
@@ -352,6 +399,8 @@ Your project `CLAUDE.md` should include: project summary, dev commands (`uv run 
 
 Optionally, create a `.claude/review.json` to configure risk tiers and reviewer overrides. Framework-specific reviewers auto-detect from changed files — no config needed. See [`docs/examples/review-fullstack.json`](docs/examples/review-fullstack.json) for an example.
 
+For security-conscious projects: add `"include": ["security-sentinel"]` to your review config for always-on security review, and copy [`docs/examples/security-checks.yml`](docs/examples/security-checks.yml) to `.github/workflows/` for CI/CD SAST and container scanning.
+
 ---
 
 ## FAQ
@@ -379,6 +428,10 @@ The review config (`.claude/review.json`) lets you configure per-project file se
 ### How does smart model selection work?
 
 `/dispatch` automatically selects Opus for critical/high-risk tasks and Sonnet for medium/low tasks. Use `--model opus` or `--model sonnet` to override. During `/multi-review`, critical-tier files get Opus for `security-sentinel` and `architecture-strategist` reviews.
+
+### How does security review work?
+
+claude-corps uses a layered model: the `security-sentinel` AI agent handles business logic vulnerabilities (IDOR, auth bypass, absence detection) that require understanding intent, while CI/CD tools handle deterministic checks (SAST via Semgrep, container scanning via Trivy, dependency audit, secret scanning). A pre-commit hook catches secrets before they enter git history. When SAST results are available, the AI agent triages them in context — confirming real vulnerabilities and dismissing false positives. See the [Security](#security) section for setup.
 
 ### Can I use this without Agent Teams?
 
