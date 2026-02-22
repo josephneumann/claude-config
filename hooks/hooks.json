@@ -10,6 +10,16 @@
             "statusMessage": "Checking branch safety..."
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/secret-scan-precommit.sh",
+            "statusMessage": "Scanning for secrets..."
+          }
+        ]
       }
     ],
     "WorktreeCreate": [

@@ -8,6 +8,6 @@
   },
   "reviewers": {
     "exclude": [],
-    "include": []
+    "include": ["security-sentinel"]
   }
 }

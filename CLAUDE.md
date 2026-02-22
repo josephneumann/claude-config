@@ -126,7 +126,8 @@ Used by `/multi-review` for specialized parallel review:
 | Agent | Focus |
 |-------|-------|
 | `code-simplicity-reviewer` | YAGNI, complexity |
-| `security-sentinel` | OWASP Top 10, auth, secrets |
+| `security-sentinel` | CWE-enriched OWASP review, business logic, absence detection |
+| `api-security-reviewer` | Rate limiting, pagination, CORS, response filtering |
 | `performance-oracle` | N+1 queries, caching, memory |
 | `pattern-recognition-specialist` | Anti-patterns, conventions |
 | `architecture-strategist` | SOLID, design patterns |

@@ -1,0 +1,198 @@
+# Security Checks — Complementary CI Pipeline Template
+#
+# This workflow adds SAST and container scanning alongside your existing CI.
+# It does NOT replace existing checks — keep those in your main CI workflow:
+#   - Dependency vulnerability audit (e.g., pnpm audit --audit-level=moderate)
+#   - Secret scanning (e.g., TruffleHog --only-verified)
+#   - Linting and type checking (e.g., ESLint, TypeScript)
+#   - Docker build hardening
+#
+# What this adds:
+#   - Semgrep SAST: Known vulnerability patterns (SQLi, XSS, path traversal, etc.)
+#   - Trivy: CVEs in container base images and OS packages
+#   - SARIF: Results uploaded to GitHub Security tab for unified visibility
+#
+# Adoption: Copy this file to .github/workflows/security-checks.yml
+# Prerequisites:
+#   - SEMGREP_APP_TOKEN secret (optional — enhances Semgrep with managed rules)
+#   - Repository must have GitHub Advanced Security enabled for SARIF upload
+#     (free for public repos; requires GHAS license for private repos)
+
+name: Security Checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancel in-flight runs for the same branch/PR to avoid duplicate work.
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # SAST — Static Application Security Testing via Semgrep
+  #
+  # Scans source code for known vulnerability patterns without executing it.
+  # Uses `--config auto` to auto-detect language rules (Python, JS/TS, Go, etc.)
+  # Results are uploaded to the GitHub Security tab as SARIF and saved as an
+  # artifact for downstream consumption (e.g., /multi-review hybrid workflows).
+  # ---------------------------------------------------------------------------
+  sast:
+    name: SAST (Semgrep)
+    runs-on: ubuntu-latest
+
+    permissions:
+      # Required to upload SARIF results to the GitHub Security tab.
+      security-events: write
+      # Required to read repository contents.
+      contents: read
+      # Required for pull_request event on repos with restricted default token.
+      actions: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Semgrep SAST scan
+        uses: semgrep/semgrep-action@v1
+        with:
+          # auto: detects languages and applies the full Semgrep rule registry.
+          # Override with a specific ruleset if your org manages its own rules,
+          # e.g.: config: "p/owasp-top-ten p/secrets"
+          config: auto
+          # Generate SARIF output for GitHub Security tab upload.
+          generateSarif: "1"
+        env:
+          # Optional: set SEMGREP_APP_TOKEN to use Semgrep Cloud Platform rules
+          # and see results in the Semgrep dashboard. Remove if not using SCP.
+          SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
+
+      - name: Upload SARIF to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: semgrep.sarif
+          category: semgrep
+
+      - name: Save SARIF as workflow artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: semgrep-sarif
+          path: semgrep.sarif
+          retention-days: 30
+
+  # ---------------------------------------------------------------------------
+  # Container Scanning — CVE detection via Trivy
+  #
+  # Only runs when Dockerfile or docker-compose files change, since it requires
+  # building the image first. Scans for CRITICAL and HIGH severity CVEs in:
+  #   - OS packages (apt, apk, yum)
+  #   - Language runtime packages (npm, pip, go modules, etc.)
+  #
+  # Results are uploaded to the GitHub Security tab as SARIF.
+  # ---------------------------------------------------------------------------
+  container-scan:
+    name: Container Scan (Trivy)
+    runs-on: ubuntu-latest
+
+    # Only run this job when container-related files change.
+    # Remove this `if` condition to always run container scanning.
+    if: >
+      github.event_name == 'push' ||
+      contains(github.event.pull_request.changed_files, 'Dockerfile') ||
+      contains(github.event.pull_request.changed_files, 'docker-compose')
+
+    permissions:
+      security-events: write
+      contents: read
+      actions: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Build the image so Trivy can scan it.
+      # Adjust the build-args and file path to match your project.
+      - name: Build Docker image
+        run: |
+          docker build \
+            --file Dockerfile \
+            --tag scan-target:${{ github.sha }} \
+            .
+
+      - name: Run Trivy vulnerability scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: scan-target:${{ github.sha }}
+          format: sarif
+          output: trivy.sarif
+          # Fail the job if CRITICAL or HIGH CVEs are found.
+          # Change to "CRITICAL" to only block on critical vulnerabilities,
+          # or remove exit-code to report without failing.
+          exit-code: "1"
+          severity: CRITICAL,HIGH
+          # Ignore unfixed vulnerabilities to reduce noise.
+          # Remove this flag if you want to see all findings regardless of fix status.
+          ignore-unfixed: true
+
+      - name: Upload SARIF to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        # Run even if the scan step fails so results are always uploaded.
+        if: always()
+        with:
+          sarif_file: trivy.sarif
+          category: trivy
+
+      - name: Save SARIF as workflow artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: trivy-sarif
+          path: trivy.sarif
+          retention-days: 30
+
+  # ---------------------------------------------------------------------------
+  # License Compliance — Detect disallowed open-source licenses
+  #
+  # Checks that no dependency introduces a license that conflicts with your
+  # project's licensing or distribution requirements.
+  #
+  # This is a lightweight implementation using license-checker (Node.js).
+  # For polyglot repos, consider a dedicated tool like FOSSA or ORT.
+  #
+  # To enable: uncomment this job and adjust DISALLOWED_LICENSES below.
+  # ---------------------------------------------------------------------------
+  # license-check:
+  #   name: License Compliance
+  #   runs-on: ubuntu-latest
+  #
+  #   permissions:
+  #     contents: read
+  #
+  #   steps:
+  #     - name: Checkout repository
+  #       uses: actions/checkout@v4
+  #
+  #     - name: Set up Node.js
+  #       uses: actions/setup-node@v4
+  #       with:
+  #         node-version: "20"
+  #
+  #     - name: Install license-checker
+  #       run: npm install -g license-checker
+  #
+  #     - name: Install project dependencies
+  #       run: npm ci   # or: pnpm install --frozen-lockfile
+  #
+  #     - name: Check for disallowed licenses
+  #       run: |
+  #         # Adjust this list to match your project's license policy.
+  #         DISALLOWED_LICENSES="GPL-2.0,GPL-3.0,AGPL-1.0,AGPL-3.0,LGPL-2.0,LGPL-2.1,LGPL-3.0"
+  #         license-checker \
+  #           --excludePrivatePackages \
+  #           --failOn "$DISALLOWED_LICENSES" \
+  #           --summary

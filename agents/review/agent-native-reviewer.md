@@ -158,6 +158,36 @@ tool("format_report", { format: z.enum(["markdown", "html", "pdf"]) })
 tool("write_file", { path: z.string(), content: z.string() })
 ```
 
+### LLM & Prompt Injection Review
+
+For codebases that include LLM-powered agents (like claude-corps), check for these additional risks:
+
+1. **Prompt Injection Vectors** — Verify that untrusted input (user messages, web content, tool results, database records) cannot reach LLM system prompts without sanitization. Untrusted data should be passed as user-turn content or clearly delimited, never interpolated directly into system prompt strings.
+
+   ```python
+   # BAD: user content injected into system prompt
+   system_prompt = f"You are a helpful assistant. The user's name is {user_input}."
+
+   # GOOD: untrusted data in user turn only
+   system_prompt = "You are a helpful assistant."
+   user_message = f"My name is {user_input}."
+   ```
+
+2. **Agent Capability Escalation** — Verify that tool definitions don't grant agents more permissions than their role requires. A read-only agent should not have tools that write, delete, or execute. Check that tool lists are scoped to the agent's intended purpose and not inherited wholesale from a more privileged agent.
+
+3. **Instruction Injection via Data** — Check if data fetched from external sources (files, APIs, databases, search results) is passed to the LLM in a context where it could override agent instructions. Structured data should be presented with clear delimiters; free-text content from untrusted sources should be treated as potentially adversarial.
+
+4. **Tool Input Validation** — Verify that tools validate their inputs before acting. Tools that accept file paths, shell commands, or SQL fragments from agent output should sanitize or constrain inputs — the LLM is not a trusted input source for operations with side effects.
+
+   ```python
+   # BAD: raw LLM output passed to shell
+   subprocess.run(tool_input["command"], shell=True)
+
+   # GOOD: allowlist of permitted commands
+   if tool_input["command"] not in ALLOWED_COMMANDS:
+       raise ValueError("Command not permitted")
+   ```
+
 ## Review Output Format
 
 Structure your review as:
