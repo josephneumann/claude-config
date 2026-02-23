@@ -203,12 +203,27 @@ mkdir -p docs/plans
 
 **Cross-reference:** Link related issues/PRs, reference specific file paths, add external resource links.
 
-### Phase 3: Decompose into Beads (Optional)
+### Phase 3: Decompose into Beads
 
-For simple plans (1-3 tasks, clear scope), offer to skip decomposition:
-"This plan is straightforward. Should I decompose into beads tasks, or proceed directly to implementation?"
+Check if beads is available:
+```bash
+bd list 2>/dev/null
+```
 
-If decomposing:
+**If `bd` is not available (command fails):**
+Skip decomposition silently. Set `decomposed = false`. Proceed to Phase 4.
+
+**If `bd` is available:**
+Use **AskUserQuestion**:
+
+**Question:** "Decompose this plan into beads tasks for tracking and dispatch?"
+**Options:**
+- "Yes, decompose into tasks"
+- "No, plan only"
+
+**If user selects "Yes":**
+Set `decomposed = true`. Create tasks:
+
 ```bash
 # Create epics
 bd create "<epic>" --type epic --priority <P1/P2/P3> --description "<description>"
@@ -226,11 +241,14 @@ bd list
 bd ready
 ```
 
-If `bd` is not initialized, skip decomposition and note it in the menu.
+**If user selects "No":**
+Set `decomposed = false`. Proceed to Phase 4.
 
 ### Phase 4: Post-Plan Menu
 
 Use **AskUserQuestion** to present options:
+
+**If `decomposed = true`:**
 
 **Question:** "Plan created and decomposed into tasks. What next?"
 
@@ -241,6 +259,17 @@ Use **AskUserQuestion** to present options:
 4. **Work solo** — Pick a task with `/start-task`
 5. **Create GitHub issue** — `gh issue create --title "<type>: <title>" --body-file <plan_path>`
 6. **Simplify** — Reduce detail level
+
+**If `decomposed = false`:**
+
+**Question:** "Plan created. What next?"
+
+**Options:**
+1. **Deepen the plan** — Run `--deepen` mode for parallel research enhancement
+2. **Review the plan** — Run `/multi-review` for specialized feedback
+3. **Create GitHub issue** — `gh issue create --title "<type>: <title>" --body-file <plan_path>`
+4. **Simplify** — Reduce detail level
+5. **Decompose now** — Create beads tasks from this plan
 
 ---
 
@@ -317,7 +346,14 @@ bd sync
 
 ### Step 10: Post-Enhancement Menu
 
+Check if beads tasks exist:
+```bash
+bd list 2>/dev/null
+```
+
 Use **AskUserQuestion**:
+
+**If beads tasks exist:**
 
 **Question:** "Plan deepened. What next?"
 
@@ -327,3 +363,13 @@ Use **AskUserQuestion**:
 3. **Run `/dispatch`** — Spawn parallel workers
 4. **Run `/start-task <id>`** — Begin a specific task
 5. **Deepen further** — Another round on specific sections
+
+**If no beads tasks exist:**
+
+**Question:** "Plan deepened. What next?"
+
+**Options:**
+1. **View diff** — `git diff [plan_path]`
+2. **Run `/multi-review`** — Feedback from reviewers
+3. **Decompose into tasks** — Create beads tasks from this plan
+4. **Deepen further** — Another round on specific sections
