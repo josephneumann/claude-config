@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.1] - 2026-02-22
+
+### Fixed
+
+- **Plan-mode dispatch deadlock** — Teammates spawned with `mode: "plan"` would call `ExitPlanMode`, go idle, and wait indefinitely because the orchestrator lacked clear instructions on how to respond. Fix: (a) teammate now sends an explicit DM to the lead immediately after `ExitPlanMode` with the `request_id`, (b) post-dispatch summary includes `request_id` requirement and CRITICAL urgency marker, (c) orchestrator is reminded to handle all plan approvals before considering dispatch complete.
+- **`/spec` skipping decomposition prompt** — Phase 3 was labeled "Optional" and used plain dialogue that could be silently skipped. Fix: always uses `AskUserQuestion` when `bd` is available, silently skips only when `bd` is genuinely unavailable. Phase 4 menu now conditionally hides dispatch/solo options when no tasks exist and offers "Decompose now" as an alternative.
+- **Deepen mode showing dispatch without tasks** — Step 10 menu offered `/dispatch` and `/start-task` even when no beads tasks existed. Fix: checks `bd list` and conditionally shows "Decompose into tasks" instead.
+
 ## [2.0.0] - 2026-02-22
 
 ### Added
@@ -46,6 +54,7 @@ All notable changes to this project will be documented in this file.
 - **Plugin marketplace support**: Discoverable via Claude Code's native plugin system
 - **MIT license**
 
+[2.0.1]: https://github.com/josephneumann/claude-corps/releases/tag/v2.0.1
 [2.0.0]: https://github.com/josephneumann/claude-corps/releases/tag/v2.0.0
 [1.1.0]: https://github.com/josephneumann/claude-corps/releases/tag/v1.1.0
 [1.0.0]: https://github.com/josephneumann/claude-corps/releases/tag/v1.0.0
