@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.2] - 2026-02-23
+
+### Fixed
+
+- **Worktree isolation verification** — Workers spawned with `isolation: "worktree"` could silently fail to create git worktrees, falling back to the main repo and causing branch conflicts, file collisions, and crashes. The orchestrator had no mechanism to detect this. Fix: `/dispatch` now includes Step 4.5 which verifies isolation after spawning by checking team config `cwd` values and corroborating with `git worktree list`. Non-isolated workers are shut down immediately, tasks unassigned for retry.
+- **Auto-run worktree failure tracking** — `/auto-run` checkpoint now tracks `worktree_failures` with a circuit breaker: same task failing isolation twice is moved to `failed` and flagged for human attention. Final report surfaces `Worktree Failures` count.
+
 ## [2.0.1] - 2026-02-22
 
 ### Fixed
@@ -70,6 +77,7 @@ If you reference `/brainstorm`, `/plan`, or `/deepen-plan` in any scripts or doc
 - **Plugin marketplace support**: Discoverable via Claude Code's native plugin system
 - **MIT license**
 
+[2.0.2]: https://github.com/josephneumann/claude-corps/releases/tag/v2.0.2
 [2.0.1]: https://github.com/josephneumann/claude-corps/releases/tag/v2.0.1
 [2.0.0]: https://github.com/josephneumann/claude-corps/releases/tag/v2.0.0
 [1.1.0]: https://github.com/josephneumann/claude-corps/releases/tag/v1.1.0
