@@ -80,7 +80,7 @@ All workflow capabilities are implemented as skills in `skills/`.
 | `/orient` | Build context, identify parallel work | Session start |
 | `/start-task <id>` | Claim task, gather context, define criteria | Beginning a task |
 | `/finish-task <id>` | Tests, commit, PR, cleanup, close | Task complete |
-| `/dispatch` | Spawn Agent Teams teammates | Multiple ready tasks |
+| `/dispatch` | Spawn Agent Teams teammates (with isolation verification) | Multiple ready tasks |
 | `/auto-run` | Autonomous dispatch-reconcile loop | Batch processing, overnight runs |
 | `/summarize-session <id>` | Progress summary (read-only) | Mid-session checkpoint |
 | `/reconcile-summary` | Sync beads with implementation reality | After worker completes |
