@@ -5,14 +5,14 @@
   },
   "metadata": {
     "description": "Parallel agentic development framework for Claude Code",
-    "version": "1.2.0"
+    "version": "1.3.0"
   },
   "plugins": [
     {
       "name": "claude-corps",
       "source": "./",
-      "description": "Orchestrate multiple Claude agents in parallel worktrees with task management, code review, and compound learnings",
-      "version": "1.2.0",
+      "description": "Orchestrate multiple Claude agents in parallel worktrees with task management and code review",
+      "version": "1.3.0",
       "author": { "name": "Joseph Neumann" },
       "homepage": "https://github.com/josephneumann/claude-corps",
       "repository": "https://github.com/josephneumann/claude-corps",

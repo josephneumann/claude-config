@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.3] - 2026-02-28
+
+### Removed
+
+- **Compound engineering system** — Removed `/compound`, `/compound-docs` skills, `learnings-researcher` agent, and all `docs/solutions/` references. The built-in auto-memory system in Claude Code handles persistent learnings better without requiring custom document schemas, file conventions, or search agents. Principle 9 updated from "Compound your learnings" to "Save what you learn" via auto-memory.
+
+### Changed
+
+- **`code-simplicity-reviewer` enhanced with anti-over-simplification guardrails** — Added "Maintain Balance" (item 7) and "Respect Project Standards" (item 8) review criteria, inspired by Anthropic's official code-simplifier agent. Softened opening tone from "ruthlessly simplify" to "simplify code while maintaining clarity." The reviewer now warns against nested ternaries, dense one-liners, removing helpful abstractions, and combining too many concerns. It also reads CLAUDE.md for project conventions before reviewing.
+- **`/finish-task` auto-compound replaced with auto-memory** — Step 14.5 now saves non-obvious insights to auto-memory instead of writing structured documents to `docs/solutions/`.
+- **`/debug` post-debug hook updated** — Points to auto-memory instead of `/compound`.
+- **`/spec` and `/start-task` research agents** — Removed `learnings-researcher` from parallel research agent lists.
+- **README and CLAUDE.md** — Removed compound engineering references, updated skill tables, simplified project structure docs.
+
+### By the numbers
+
+- 13 skills (was 15 — removed `/compound` and `/compound-docs`)
+- 20 specialized agents (was 21 — removed `learnings-researcher`)
+- 14 files changed, +40 / -890 lines
+
 ## [2.0.2] - 2026-02-23
 
 ### Fixed
@@ -77,6 +97,7 @@ If you reference `/brainstorm`, `/plan`, or `/deepen-plan` in any scripts or doc
 - **Plugin marketplace support**: Discoverable via Claude Code's native plugin system
 - **MIT license**
 
+[2.0.3]: https://github.com/josephneumann/claude-corps/releases/tag/v2.0.3
 [2.0.2]: https://github.com/josephneumann/claude-corps/releases/tag/v2.0.2
 [2.0.1]: https://github.com/josephneumann/claude-corps/releases/tag/v2.0.1
 [2.0.0]: https://github.com/josephneumann/claude-corps/releases/tag/v2.0.0

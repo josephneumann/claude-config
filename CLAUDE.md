@@ -32,11 +32,9 @@ Fight entropy. Leave the codebase better than you found it.
 
 8. **Session summaries** — Every completed task outputs a detailed summary. Each session leaves breadcrumbs for the next.
 
-9. **Compound your learnings** — After solving problems, document solutions with `/compound` in `docs/solutions/`. Knowledge compounds across sessions and projects.
+9. **Save what you learn** — Save debugging insights, non-obvious solutions, and prevention strategies to auto-memory when completing tasks.
 
 10. **Codify the routine** — Repeated patterns become skills and commands. If you do something twice, automate it.
-
-> **Compound Engineering**: Principles 9 and 10 work together — capture *knowledge* (learnings) and *process* (skills) so each session builds on the last.
 
 11. **Evaluate, don't agree** — When receiving feedback, review findings, or processing reports: verify claims against evidence before acting. No performative agreement ("Great point!", "You're absolutely right!"). Fix silently or explain technical disagreement. YAGNI applies to review suggestions too.
 
@@ -85,15 +83,11 @@ All workflow capabilities are implemented as skills in `skills/`.
 | `/summarize-session <id>` | Progress summary (read-only) | Mid-session checkpoint |
 | `/reconcile-summary` | Sync beads with implementation reality | After worker completes |
 
-### Compound Engineering
+### Quality
 
 | Skill | Purpose | Triggers |
 |-------|---------|----------|
-| `/compound` | Capture learnings after solving problems | "fixed it", "that worked", explicit |
-| `/compound-docs` | Validate solution doc formatting | Auto-invoked when editing `docs/solutions/` |
 | `/multi-review` | Parallel code review with specialized agents | "thorough review", PR review, explicit |
-
-Auto-compound runs inside `/finish-task` (lightweight, fire-and-forget). Rich `/compound` is interactive with 5 parallel subagents for deep problem documentation.
 
 ### Utility
 
@@ -120,7 +114,6 @@ Available in `/orient` (Phase 1.5) and `/start-task` (Step 5.5) for complex task
 | `repo-research-analyst` | Map architecture, conventions |
 | `git-history-analyzer` | Historical context, contributors |
 | `framework-docs-researcher` | Library docs, deprecation checks |
-| `learnings-researcher` | Search `docs/solutions/` for prior work |
 | `best-practices-researcher` | Industry patterns, recommendations |
 
 ---
