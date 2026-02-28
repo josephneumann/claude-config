@@ -7,7 +7,7 @@
   <br>
   Turn Claude Code into an autonomous development team &mdash; multiple agents working
   simultaneously in isolated git worktrees, coordinated by an orchestrator, with
-  knowledge that compounds across sessions.
+  structured workflow that improves across sessions.
 </p>
 
 <p align="center">
@@ -35,7 +35,6 @@ Claude Code is powerful on its own. claude-corps makes it a **team**.
 - **Parallel execution** &mdash; Dispatch 3-5 Claude agents working simultaneously on different tasks, each in an isolated git worktree
 - **Full lifecycle coverage** &mdash; From spec to dispatch to PR to code review, every step has a skill
 - **Autonomous multi-hour runs** &mdash; `/auto-run` chains dispatch, reconcile, and repeat until your entire backlog is done
-- **Compound engineering** &mdash; Every solved problem is captured for future sessions. Knowledge and process accumulate over time
 - **Human in the loop** &mdash; Agents execute, you decide. PRs are created, never auto-merged
 
 ---
@@ -85,9 +84,6 @@ graph LR
     E --> F["Workers: /start-task"]
     F --> G["Workers: /finish-task"]
     G --> H["/reconcile-summary"]
-    G -.->|"auto-compound"| K["docs/solutions/"]
-    K -.->|"learnings"| F
-    H --> I["/compound"]
     E -.->|"/auto-run loop"| H
 ```
 
@@ -95,7 +91,7 @@ graph LR
 |-------|-------------|
 | **Spec** | `/spec` refines ideas via Q&A, researches the codebase with parallel agents, writes a plan to `docs/plans/`, and decomposes into tasks with dependencies. `/spec --deepen` adds depth with targeted parallel research. |
 | **Execute** | `/orient` surveys the project. `/dispatch` spawns Agent Teams teammates &mdash; each gets a task, creates a worktree, implements, runs tests, creates a PR, and writes a session summary. `/auto-run` does this in a loop until all tasks are done. |
-| **Learn** | `/compound` captures solutions in `docs/solutions/` for future sessions. `/multi-review` runs parallel specialized code review. `/reconcile-summary` syncs worker output with the task board. |
+| **Review** | `/multi-review` runs parallel specialized code review. `/reconcile-summary` syncs worker output with the task board. |
 
 ---
 
@@ -127,13 +123,11 @@ All workflow capabilities are implemented as slash commands in `skills/`.
 | `/reconcile-summary` | Sync worker output with task board |
 | `/summarize-session <id>` | Mid-session progress checkpoint (read-only) |
 
-### Quality &amp; Learning
+### Quality
 
 | Skill | Purpose |
 |-------|---------|
 | `/multi-review` | Parallel code review with specialized agents |
-| `/compound` | Capture learnings in `docs/solutions/` |
-| `/compound-docs` | Validate solution doc formatting (auto-invoked) |
 | `/humanizer` | Remove AI writing patterns, add natural voice |
 | `/verify` | Verification discipline — evidence before claims |
 | `/debug` | Systematic debugging methodology |
@@ -144,9 +138,9 @@ All workflow capabilities are implemented as slash commands in `skills/`.
 
 ### Planning Skills
 
-**`/spec`** &mdash; Interactive refinement (Phase 0) moves from a vague idea to clear requirements. Runs parallel research agents (repo-research-analyst, learnings-researcher, spec-flow-analyzer, and conditionally best-practices-researcher and framework-docs-researcher). Writes plan to `docs/plans/`, then decomposes into tasks with dependencies via `bd create` and `bd dep add`.
+**`/spec`** &mdash; Interactive refinement (Phase 0) moves from a vague idea to clear requirements. Runs parallel research agents (repo-research-analyst, spec-flow-analyzer, and conditionally best-practices-researcher and framework-docs-researcher). Writes plan to `docs/plans/`, then decomposes into tasks with dependencies via `bd create` and `bd dep add`.
 
-**`/spec --deepen`** &mdash; Finds the most recent plan in `docs/plans/`, discovers and applies all available skills and learnings, runs parallel research agents per-section, launches all review agents, and merges findings back into the plan. Updates tasks accordingly.
+**`/spec --deepen`** &mdash; Finds the most recent plan in `docs/plans/`, discovers and applies all available skills, runs parallel research agents per-section, launches all review agents, and merges findings back into the plan. Updates tasks accordingly.
 
 ### Execution Skills
 
@@ -162,15 +156,11 @@ All workflow capabilities are implemented as slash commands in `skills/`.
 
 **`/summarize-session <id>`** &mdash; Read-only progress snapshot. Does not commit, push, or close anything.
 
-### Learning Skills
-
-**`/compound`** &mdash; Captures solutions in project-specific (`docs/solutions/`) or global (`~/.claude/docs/solutions/`) storage with YAML frontmatter for searchability.
+### Quality Skills
 
 **`/multi-review`** &mdash; Selects 3-5 review agents based on change types, runs them in parallel, aggregates findings by severity, auto-fixes high-confidence issues. Maximum 3 review cycles.
 
 **`/humanizer`** &mdash; Writing editor that identifies and removes AI writing patterns (significance inflation, sycophantic tone, filler phrases, em dash overuse, etc.) to make text sound natural and human. Based on [Wikipedia's Signs of AI writing](https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing). Outputs a draft rewrite, self-audit for remaining tells, and final revision.
-
-**`/compound-docs`** &mdash; Auto-invoked when working with files in `docs/solutions/`. Validates solution documents follow the correct schema (YAML frontmatter, required sections) and are properly categorized.
 
 ### Discipline Skills
 
@@ -231,7 +221,6 @@ Deployed by `/orient` and `/start-task` to gather context before implementation.
 | `repo-research-analyst` | Map architecture and conventions |
 | `git-history-analyzer` | Historical context and contributors |
 | `framework-docs-researcher` | Library docs and deprecation checks |
-| `learnings-researcher` | Search `docs/solutions/` for prior work |
 | `best-practices-researcher` | Industry patterns and recommendations |
 
 ### Code Review Agents
@@ -320,7 +309,6 @@ project-root/
 ├── docs/
 │   ├── session_summaries/           # Worker outputs (created by /finish-task)
 │   │   └── reconciled/              # Processed by /reconcile-summary
-│   ├── solutions/                   # Learnings from /compound
 │   ├── plans/                       # Output from /spec
 │   ├── auto-run-checkpoint.json     # Auto-run state (survives restarts)
 │   └── auto-run-logs/               # Wrapper iteration logs
@@ -331,7 +319,7 @@ project-root/
 ├── agents/                          # Specialized agent definitions
 ├── hooks/                           # Event hooks
 ├── scripts/                         # Wrapper scripts (auto-run.sh)
-└── docs/solutions/                  # Global learnings
+└── docs/                            # Global documentation
 ```
 
 ---
@@ -346,7 +334,7 @@ project-root/
 6. **Human in the loop** &mdash; Humans approve PRs, prioritize tasks, and make architectural decisions.
 7. **Handoffs over context bloat** &mdash; Fresh context beats exhausted context.
 8. **Session summaries** &mdash; Every completed task leaves breadcrumbs for the next session.
-9. **Compound your learnings** &mdash; Document solutions so knowledge accumulates across sessions and projects.
+9. **Save what you learn** &mdash; Save debugging insights and non-obvious solutions to auto-memory when completing tasks.
 10. **Codify the routine** &mdash; Repeated patterns become skills. If you do something twice, automate it.
 11. **Evaluate, don't agree** &mdash; Verify claims against evidence before acting. No performative agreement.
 
@@ -423,10 +411,6 @@ Claude Code runs as a single agent. claude-corps adds orchestration &mdash; mult
 
 Yes. `/auto-run` with the wrapper script (`~/.claude/scripts/auto-run.sh`) runs for hours, restarting Claude when context is exhausted. State is checkpointed and restored across restarts. PRs are created but never auto-merged &mdash; you review when ready.
 
-### What is compound engineering?
-
-The idea that AI-assisted development should improve over time. Every solved problem gets documented (via `/compound`) and every repeated process gets automated (as a skill). Future sessions search prior solutions before starting new work.
-
 ### Do I need beads?
 
 Yes. [beads](https://github.com/josephneumann/beads) (`bd`) is the task management backend. Skills use it for task tracking, dependencies, dispatch, and coordination. Run `bd init` in your project to set up.
@@ -445,7 +429,7 @@ claude-corps uses a layered model: the `security-sentinel` AI agent handles busi
 
 ### Can I use this without Agent Teams?
 
-Partially. `/orient`, `/start-task`, `/finish-task`, `/compound`, and `/multi-review` all work without Agent Teams. `/dispatch` and `/auto-run` require it &mdash; they spawn parallel teammates.
+Partially. `/orient`, `/start-task`, `/finish-task`, and `/multi-review` all work without Agent Teams. `/dispatch` and `/auto-run` require it &mdash; they spawn parallel teammates.
 
 ---
 
@@ -549,8 +533,6 @@ claude-corps' verification discipline, debugging methodology, and skill authorin
 - **Subagent distrust model** for processing agent reports (reconcile-summary skill)
 
 Where superpowers optimizes a single agent session, claude-corps orchestrates many agents in parallel. The two frameworks are complementary — we borrowed their single-agent discipline to strengthen our multi-agent system.
-
-claude-corps' compound engineering philosophy — the idea that AI-assisted development should improve over time through captured learnings and codified process — was influenced by [EveryInc/compound-engineering-plugin](https://github.com/EveryInc/compound-engineering-plugin), which implements a similar pattern of accumulating project knowledge across sessions.
 
 ---
 
