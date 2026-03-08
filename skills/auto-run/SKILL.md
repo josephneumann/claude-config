@@ -18,6 +18,8 @@ Parse the following flags:
 - `--max-concurrent N` — Max parallel workers per batch (default: 3)
 - `--dry-run` — Show what would be dispatched without acting
 - `--resume` — Resume from checkpoint (skip orient)
+- `--skip-milestone-review` — Skip the milestone review phase after tasks complete
+- `--milestone-review-iterations N` — Max milestone review iterations (default: 5)
 - `--through <task-id>` — Complete everything needed to finish this task, then stop
 - `--epic <epic-id>` — Complete all tasks within this epic, then stop
 - `--only <id1> <id2> ...` — Only dispatch these specific tasks (and their blockers)
@@ -177,6 +179,27 @@ After every 3 reconciliation cycles, assess context health. If you notice degrad
 When no ready tasks AND no in-progress tasks (all work done):
 
 1. **Final reconciliation:** Call `/reconcile-summary --yes` via Skill tool (WITHOUT `--no-cleanup` — this triggers team cleanup)
+
+### Step 1.5: Milestone Review Phase
+
+After reconciliation, run an iterative review-fix pass on accumulated branch changes:
+
+1. If `--skip-milestone-review` was passed: skip, log "Milestone review skipped by flag"
+2. Detect milestone branch:
+   ```bash
+   git branch -r --list 'origin/milestone/*' | sort -V | tail -1
+   ```
+3. If no milestone branch found: skip, log "No milestone branch found — skipping milestone review"
+4. Update checkpoint: `milestone_review.status: "in_progress"`
+5. Dispatch a review worker:
+   - `isolation: "worktree"`
+   - `mode: "bypassPermissions"`
+   - Prompt: Check out the milestone branch, run `/milestone-review --max-iterations <N> --base-branch main` (use `--milestone-review-iterations` value or default 5)
+   - The worker pushes fixes directly to the milestone branch (no separate PR — the milestone-to-main PR is the human review checkpoint)
+6. Wait for worker completion (event-driven, same as main loop)
+7. Read the worker's report/session summary
+8. Update checkpoint: `milestone_review.status: "completed"` with stats from the worker's report
+
 2. **Write checkpoint** with `status: "completed"` and final stats
 3. **Final report:**
 
@@ -189,6 +212,12 @@ Batches: <count>
 Completed: <count> tasks
 Failed: <count> tasks
 Worktree Failures: <count> (isolation failures across all batches)
+
+MILESTONE REVIEW:
+- Status: <completed|skipped|N/A>
+- Iterations: <count>
+- Findings fixed: <count>
+- Findings deferred: <count> (needs human decision)
 
 COMPLETED:
 - <task-id>: <title>
@@ -241,6 +270,12 @@ File: `docs/auto-run-checkpoint.json`
     "total_failed": 0,
     "total_batches": 2,
     "total_worktree_failures": 0
+  },
+  "milestone_review": {
+    "status": "pending|in_progress|completed|skipped",
+    "iterations": 0,
+    "findings_fixed": 0,
+    "findings_deferred": 0
   }
 }
 ```
