@@ -18,6 +18,7 @@ All workflow capabilities are implemented as skills in `skills/`.
 | `/finish-task <id>` | Tests, commit, PR, cleanup, close | Task complete |
 | `/dispatch` | Spawn Agent Teams teammates (with isolation verification) | Multiple ready tasks |
 | `/auto-run` | Autonomous dispatch-reconcile loop | Batch processing, overnight runs |
+| `/milestone-review` | Iterative review-fix loop for branch changes | After milestone tasks complete, or manually |
 | `/summarize-session <id>` | Progress summary (read-only) | Mid-session checkpoint |
 | `/reconcile-summary` | Sync beads with implementation reality | After worker completes |
 

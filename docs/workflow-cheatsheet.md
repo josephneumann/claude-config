@@ -17,6 +17,12 @@
 # Fully autonomous
 /auto-run --through <target-task>
 # Or unattended: ~/.claude/scripts/auto-run.sh --max-hours 8
+# Auto-run includes milestone review after tasks complete (skip with --skip-milestone-review)
+
+# Milestone review (standalone — on any branch with accumulated changes)
+/milestone-review --base-branch main
+/milestone-review --dry-run              # report findings without fixing
+/milestone-review --max-iterations 3     # limit review-fix cycles
 
 # IMPORTANT: Before ending an orchestrator session, always run:
 /reconcile-summary

@@ -128,6 +128,7 @@ All workflow capabilities are implemented as slash commands in `skills/`.
 | Skill | Purpose |
 |-------|---------|
 | `/multi-review` | Parallel code review with specialized agents |
+| `/milestone-review` | Iterative review-fix loop for accumulated branch changes |
 | `/humanizer` | Remove AI writing patterns, add natural voice |
 | `/verify` | Verification discipline — evidence before claims |
 | `/debug` | Systematic debugging methodology |
@@ -160,6 +161,8 @@ All workflow capabilities are implemented as slash commands in `skills/`.
 
 **`/multi-review`** &mdash; Selects 3-5 review agents based on change types, runs them in parallel, aggregates findings by severity, auto-fixes high-confidence issues. Maximum 3 review cycles.
 
+**`/milestone-review`** &mdash; Autonomous iterative review-fix loop for accumulated branch changes. Unlike `/multi-review` (interactive), milestone-review fixes all verified findings itself &mdash; refactoring, multi-file changes, pattern fixes &mdash; repeating until the branch is clean or max iterations are reached. Used automatically by `/auto-run` after tasks complete, or run standalone on any branch.
+
 **`/humanizer`** &mdash; Writing editor that identifies and removes AI writing patterns (significance inflation, sycophantic tone, filler phrases, em dash overuse, etc.) to make text sound natural and human. Based on [Wikipedia's Signs of AI writing](https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing). Outputs a draft rewrite, self-audit for remaining tells, and final revision.
 
 ### Discipline Skills
@@ -176,7 +179,7 @@ All workflow capabilities are implemented as slash commands in `skills/`.
 
 ## Autonomous Multi-Hour Orchestration
 
-`/auto-run` enables fully autonomous operation. It dispatches workers, waits for completions (Agent Teams delivers messages as conversation turns), reconciles results, dispatches newly unblocked tasks, and repeats.
+`/auto-run` enables fully autonomous operation. It dispatches workers, waits for completions (Agent Teams delivers messages as conversation turns), reconciles results, dispatches newly unblocked tasks, and repeats. After all tasks complete, it runs a milestone review phase &mdash; an iterative review-fix loop on the accumulated branch changes that catches cross-cutting issues individual task reviews miss (skip with `--skip-milestone-review`).
 
 ```bash
 # All ready tasks
@@ -225,7 +228,7 @@ Deployed by `/orient` and `/start-task` to gather context before implementation.
 
 ### Code Review Agents
 
-Deployed by `/multi-review` for parallel specialized review.
+Deployed by `/multi-review` and `/milestone-review` for parallel specialized review.
 
 | Agent | Focus |
 |-------|-------|
