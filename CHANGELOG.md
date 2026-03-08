@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.1.0] - 2026-03-08
+
+### Breaking Changes
+
+- **Worktree isolation replaced with branch isolation for Agent Teams** — `isolation: "worktree"` on the Agent tool is silently ignored when `team_name` is set (upstream issues #23669, #24294, #27749, #30703). Workers spawned via `/dispatch` now create task-specific branches instead of worktrees. Step 4.5 in `/dispatch` verifies branch isolation instead of worktree cwd. Worktree infrastructure is retained for manual `claude --worktree` sessions.
+
+### Changed
+
+- **`/dispatch`** — Removed `isolation: "worktree"` from teammate spawn calls. Spawn prompts instruct workers to create a task-specific branch immediately. Step 4.5 replaced: checks that each worker is on a task branch (not main/milestone), with warning + retry before shutdown.
+- **`/auto-run`** — Checkpoint schema renamed `worktree_failures` → `branch_isolation_failures` and `total_worktree_failures` → `total_branch_isolation_failures`. Removed `isolation: "worktree"` from milestone review worker spawn. Final report shows "Branch Isolation Failures" instead of "Worktree Failures".
+- **`/start-task`** — Step 7 replaced: verifies worker is on a task branch (creates one if on main) instead of checking worktree isolation.
+- **`/finish-task`** — Updated terminology from "worktree" to "task branch" in verification and cleanup steps. Kept `git worktree list` for path resolution (valid git usage).
+- **`/orient`** — Updated terminology in investigation indicators and orientation report.
+- **`CLAUDE.md`** — Principle 1 updated: "isolated branches" instead of "isolated git worktrees".
+- **`README.md`, `llms.txt`** — All dispatch/isolation references updated from worktree to branch terminology.
+- **`plugin.json`, `marketplace.json`** — Updated descriptions and keywords.
+- **`hooks/guard-main-branch.sh`** — Updated error messages to reference task branches.
+
+### Not Changed (intentional)
+
+- `hooks/worktree-setup.sh` — Still useful for manual `claude --worktree` sessions
+- `hooks/hooks.json` — WorktreeCreate hook stays (fires for manual worktrees)
+- `git worktree list` commands in skills — Used for path resolution, not isolation
+- `.gitignore` `.claude/worktrees/` entry — Directory still exists for manual use
+
 ## [2.0.3] - 2026-02-28
 
 ### Removed
@@ -97,6 +122,7 @@ If you reference `/brainstorm`, `/plan`, or `/deepen-plan` in any scripts or doc
 - **Plugin marketplace support**: Discoverable via Claude Code's native plugin system
 - **MIT license**
 
+[2.1.0]: https://github.com/josephneumann/claude-corps/releases/tag/v2.1.0
 [2.0.3]: https://github.com/josephneumann/claude-corps/releases/tag/v2.0.3
 [2.0.2]: https://github.com/josephneumann/claude-corps/releases/tag/v2.0.2
 [2.0.1]: https://github.com/josephneumann/claude-corps/releases/tag/v2.0.1

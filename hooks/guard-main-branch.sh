@@ -18,8 +18,8 @@ echo "$COMMAND" | grep -qE '\bgit\s+commit\b' || exit 0
 BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
 
 if [ "$BRANCH" = "main" ] || [ "$BRANCH" = "master" ]; then
-  echo "BLOCKED: Refusing to commit on '$BRANCH'. Workers must use a worktree branch." >&2
-  echo "Run /start-task to create a proper worktree, or manually create a feature branch." >&2
+  echo "BLOCKED: Refusing to commit on '$BRANCH'. Workers must use a task-specific branch." >&2
+  echo "Run /start-task to create a proper task branch, or manually create a feature branch." >&2
   exit 2
 fi
 

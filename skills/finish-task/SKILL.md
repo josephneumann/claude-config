@@ -19,7 +19,7 @@ pwd
 
 Confirm:
 - Task is `in_progress`
-- You're in the correct worktree
+- You're on the correct task branch
 - All changes are visible
 
 ## 2. Verify Acceptance Criteria
@@ -266,7 +266,7 @@ Proceed directly to merge decision.
 
 After code review passes (or user approves despite issues):
 
-"PR created: <URL>. Code review [passed / fixed N issues / has N unresolved issues]. Would you like me to merge it and clean up the worktree?"
+"PR created: <URL>. Code review [passed / fixed N issues / has N unresolved issues]. Would you like me to merge it?"
 
 If user approves, proceed to step 12. If user declines, leave the PR open for manual review and skip to step 13.
 
@@ -300,8 +300,6 @@ If `gh pr merge` fails with "already merged", just delete the branch manually:
 git branch -d "$BRANCH_NAME" 2>/dev/null || true
 git push origin --delete "$BRANCH_NAME" 2>/dev/null || true
 ```
-
-Worktree cleanup is handled automatically by Claude Code when the session exits (native worktrees auto-remove when clean).
 
 ## 13. Re-Read Original Task Spec
 

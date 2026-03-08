@@ -1,10 +1,10 @@
 {
   "name": "claude-corps",
-  "description": "Parallel agentic development framework — orchestrate multiple Claude agents working simultaneously in isolated git worktrees",
+  "description": "Parallel agentic development framework — orchestrate multiple Claude agents working simultaneously on isolated branches",
   "version": "1.2.0",
   "author": { "name": "Joseph Neumann" },
   "homepage": "https://github.com/josephneumann/claude-corps",
   "repository": "https://github.com/josephneumann/claude-corps",
   "license": "MIT",
-  "keywords": ["orchestration", "parallel", "agents", "worktree", "autonomous"]
+  "keywords": ["orchestration", "parallel", "agents", "branches", "autonomous"]
 }
