@@ -2,15 +2,15 @@
 
 > Parallel agentic development framework for Claude Code
 
-claude-corps provides skills, agents, hooks, and scripts that extend Claude Code (Anthropic's agentic coding CLI) into an autonomous multi-session development team. Multiple Claude agents work simultaneously in isolated git worktrees, coordinated by an orchestrator that dispatches tasks, reconciles results, and compounds learnings across sessions.
+claude-corps provides skills, agents, hooks, and scripts that extend Claude Code (Anthropic's agentic coding CLI) into an autonomous multi-session development team. Multiple Claude agents work simultaneously on isolated branches, coordinated by an orchestrator that dispatches tasks, reconciles results, and compounds learnings across sessions.
 
 ## Key Capabilities
 
-- /dispatch: Spawn parallel agent teammates via Agent Teams, each in an isolated git worktree
+- /dispatch: Spawn parallel agent teammates via Agent Teams, each on an isolated branch
 - /auto-run: Autonomous multi-hour orchestration loop (dispatch, reconcile, repeat)
 - /spec: Research-driven planning with parallel agents — interactive refinement, plan writing, task decomposition. Use --deepen to enhance an existing plan with parallel research
 - /orient: Survey a project and identify parallel work streams
-- /start-task: Claim a task, create a worktree, gather context, define acceptance criteria
+- /start-task: Claim a task, create a task branch, gather context, define acceptance criteria
 - /finish-task: Tests, commit, PR, code review, session summary, close
 - /compound: Capture learnings for future sessions (compound engineering)
 - /multi-review: Parallel specialized code review with 11 agent types (including framework-specific reviewers for Next.js, Tailwind/shadcn, and Python backend)
@@ -19,7 +19,7 @@ claude-corps provides skills, agents, hooks, and scripts that extend Claude Code
 ## Architecture
 
 Orchestrator + Workers pattern. One Claude session orients and dispatches work via Agent Teams.
-Worker sessions execute tasks in isolated git worktrees and report back with session summaries.
+Worker sessions execute tasks on isolated branches and report back with session summaries.
 The orchestrator reconciles results, updates the task board, and dispatches newly unblocked work.
 
 ## Dependencies

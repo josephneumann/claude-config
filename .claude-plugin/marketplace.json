@@ -11,13 +11,13 @@
     {
       "name": "claude-corps",
       "source": "./",
-      "description": "Orchestrate multiple Claude agents in parallel worktrees with task management and code review",
+      "description": "Orchestrate multiple Claude agents on parallel branches with task management and code review",
       "version": "1.3.0",
       "author": { "name": "Joseph Neumann" },
       "homepage": "https://github.com/josephneumann/claude-corps",
       "repository": "https://github.com/josephneumann/claude-corps",
       "license": "MIT",
-      "keywords": ["orchestration", "parallel", "agents", "worktree", "autonomous", "multi-agent"],
+      "keywords": ["orchestration", "parallel", "agents", "branches", "autonomous", "multi-agent"],
       "category": "development-workflow",
       "tags": ["agent-teams", "task-management", "code-review", "beads"]
     }

@@ -2,7 +2,7 @@
 
 > **Violating the letter of the rules is violating the spirit of the rules.** There are no valid exceptions, clever workarounds, or "spirit of the intent" arguments that justify skipping a required step.
 
-1. **Parallel by default** — Multiple sessions work simultaneously in isolated git worktrees. Use `claude --worktree` for single sessions or `isolation: "worktree"` for dispatched teammates.
+1. **Parallel by default** — Multiple sessions work simultaneously on isolated branches. Workers create task-specific branches before modifying files.
 2. **Orchestrator + Workers** — One session orients (`/orient`) and coordinates via Agent Teams; teammates execute discrete tasks (`/start-task`) and report back with session summaries.
 3. **Task-sized work** — Break work into chunks that fit comfortably in context. Big enough to be a meaningful atomic change, small enough to complete without exhausting the context window.
 4. **Bounded autonomy** — Clarify requirements and define acceptance criteria before coding. Then execute autonomously within those bounds.

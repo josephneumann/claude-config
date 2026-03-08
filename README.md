@@ -6,7 +6,7 @@
   <strong>Parallel agentic development framework for Claude Code</strong>
   <br>
   Turn Claude Code into an autonomous development team &mdash; multiple agents working
-  simultaneously in isolated git worktrees, coordinated by an orchestrator, with
+  simultaneously on isolated branches, coordinated by an orchestrator, with
   structured workflow that improves across sessions.
 </p>
 
@@ -32,7 +32,7 @@
 
 Claude Code is powerful on its own. claude-corps makes it a **team**.
 
-- **Parallel execution** &mdash; Dispatch 3-5 Claude agents working simultaneously on different tasks, each in an isolated git worktree
+- **Parallel execution** &mdash; Dispatch 3-5 Claude agents working simultaneously on different tasks, each on an isolated branch
 - **Full lifecycle coverage** &mdash; From spec to dispatch to PR to code review, every step has a skill
 - **Autonomous multi-hour runs** &mdash; `/auto-run` chains dispatch, reconcile, and repeat until your entire backlog is done
 - **Human in the loop** &mdash; Agents execute, you decide. PRs are created, never auto-merged
@@ -66,7 +66,7 @@ Then in any project:
 ```bash
 claude
 > /orient              # Survey your project and identify parallel work
-> /dispatch --count 3  # Spawn 3 agent teammates in parallel worktrees
+> /dispatch --count 3  # Spawn 3 agent teammates on parallel branches
 > /auto-run            # Or go fully autonomous
 ```
 
@@ -90,7 +90,7 @@ graph LR
 | Phase | What happens |
 |-------|-------------|
 | **Spec** | `/spec` refines ideas via Q&A, researches the codebase with parallel agents, writes a plan to `docs/plans/`, and decomposes into tasks with dependencies. `/spec --deepen` adds depth with targeted parallel research. |
-| **Execute** | `/orient` surveys the project. `/dispatch` spawns Agent Teams teammates &mdash; each gets a task, creates a worktree, implements, runs tests, creates a PR, and writes a session summary. `/auto-run` does this in a loop until all tasks are done. |
+| **Execute** | `/orient` surveys the project. `/dispatch` spawns Agent Teams teammates &mdash; each gets a task, creates a branch, implements, runs tests, creates a PR, and writes a session summary. `/auto-run` does this in a loop until all tasks are done. |
 | **Review** | `/multi-review` runs parallel specialized code review. `/reconcile-summary` syncs worker output with the task board. |
 
 ---
@@ -111,14 +111,14 @@ All workflow capabilities are implemented as slash commands in `skills/`.
 | Skill | Purpose |
 |-------|---------|
 | `/orient` | Survey project, identify parallel work streams |
-| `/start-task <id>` | Claim task, create worktree, gather context |
+| `/start-task <id>` | Claim task, create branch, gather context |
 | `/finish-task <id>` | Tests, commit, PR, code review, session summary, close |
 
 ### Orchestration
 
 | Skill | Purpose |
 |-------|---------|
-| `/dispatch` | Spawn parallel Agent Teams teammates in worktrees |
+| `/dispatch` | Spawn parallel Agent Teams teammates on branches |
 | `/auto-run` | Autonomous dispatch-reconcile loop for multi-hour runs |
 | `/reconcile-summary` | Sync worker output with task board |
 | `/summarize-session <id>` | Mid-session progress checkpoint (read-only) |
@@ -147,9 +147,9 @@ All workflow capabilities are implemented as slash commands in `skills/`.
 
 **`/orient`** &mdash; Discovers project structure, reads CLAUDE.md/README/PROJECT_SPEC, analyzes task state, checks git health, outputs a structured orientation report with recommended parallel work streams. Always offers `/dispatch` as next action.
 
-**`/dispatch`** &mdash; Identifies ready tasks, generates context, creates an Agent Teams team, and spawns teammates. Each teammate works in an isolated git worktree with full autonomy. Supports `--count N`, `--plan-first`, `--no-plan`, `--yes`, and custom per-task context.
+**`/dispatch`** &mdash; Identifies ready tasks, generates context, creates an Agent Teams team, and spawns teammates. Each teammate works on an isolated branch with full autonomy. Supports `--count N`, `--plan-first`, `--no-plan`, `--yes`, and custom per-task context.
 
-**`/start-task <id>`** &mdash; Validates the task, claims it, creates a git worktree for isolation, gathers project context, optionally runs research agents, defines acceptance criteria, and begins implementation.
+**`/start-task <id>`** &mdash; Validates the task, claims it, creates a task branch for isolation, gathers project context, optionally runs research agents, defines acceptance criteria, and begins implementation.
 
 **`/finish-task <id>`** &mdash; Runs quality gates (tests must pass), commits changes, pushes to remote, creates a PR, runs `/multi-review` with auto-fix, closes the task, outputs a session summary. Tests must pass or the command stops.
 
@@ -308,7 +308,7 @@ project-root/
 ├── CLAUDE.md                        # Project-specific config (you write this)
 ├── .claude/
 │   ├── review.json                  # Optional: review config (tiers, reviewer overrides)
-│   └── worktrees/                   # Isolated worktrees for each task
+│   └── worktrees/                   # Worktrees for manual `claude --worktree` sessions
 ├── docs/
 │   ├── session_summaries/           # Worker outputs (created by /finish-task)
 │   │   └── reconciled/              # Processed by /reconcile-summary
@@ -329,7 +329,7 @@ project-root/
 
 ## Principles
 
-1. **Parallel by default** &mdash; Multiple Claude sessions work simultaneously in isolated git worktrees.
+1. **Parallel by default** &mdash; Multiple Claude sessions work simultaneously on isolated branches.
 2. **Orchestrator + Workers** &mdash; One session coordinates, teammates execute discrete tasks and report back.
 3. **Task-sized work** &mdash; Big enough to be a meaningful atomic change, small enough to complete without exhausting context.
 4. **Bounded autonomy** &mdash; Clarify requirements first, then execute autonomously within those bounds.
@@ -359,7 +359,7 @@ project-root/
 ```bash
 /orient
 /dispatch --count 3
-# 3 teammates spawn, each in a worktree, working in parallel
+# 3 teammates spawn, each on a branch, working in parallel
 # Use Shift+Up/Down to switch between teammates
 /reconcile-summary
 ```
@@ -408,7 +408,7 @@ For security-conscious projects: add `"include": ["security-sentinel"]` to your 
 
 ### How is this different from using Claude Code directly?
 
-Claude Code runs as a single agent. claude-corps adds orchestration &mdash; multiple Claude sessions working in parallel on different tasks, each in isolated git worktrees, coordinated by a team lead session that dispatches work and reconciles results.
+Claude Code runs as a single agent. claude-corps adds orchestration &mdash; multiple Claude sessions working in parallel on different tasks, each on isolated branches, coordinated by a team lead session that dispatches work and reconciles results.
 
 ### Can I run this unattended for hours?
 

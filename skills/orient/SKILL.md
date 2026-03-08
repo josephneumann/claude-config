@@ -114,7 +114,7 @@ When the project state suggests ambiguity — multiple possible root causes, unc
 - Tests failing with unclear cause
 - Recent reverts or fix-on-fix commits in git log
 - Task descriptions reference "investigate", "debug", "figure out"
-- Stale worktrees from abandoned parallel work
+- Stale branches from abandoned parallel work
 
 **If investigation is warranted**, create investigation tasks in beads:
 
@@ -201,7 +201,7 @@ git stash list
 
 Check for:
 - Uncommitted changes
-- Active worktrees (parallel work in progress)
+- Active worktrees/branches (parallel work in progress)
 - Stashed work that needs attention
 
 ## Phase 4: Synthesis & Recommendations
@@ -228,7 +228,7 @@ CURRENT STATE
 -------------
 Git branch: <current branch>
 Working tree: <clean/dirty>
-Active worktrees: <count and purpose>
+Active branches: <count and purpose>
 Test health: <passing/failing count>
 
 TASK OVERVIEW
@@ -301,7 +301,7 @@ Present the following call-to-action:
 
 This will spawn parallel Claude Code workers for the ready tasks. Each worker will:
 1. Auto-receive their task assignment via the handoff queue
-2. Create a git worktree for isolation
+2. Create a task-specific branch for isolation
 3. Run `/start-task <task-id>` automatically
 4. Work autonomously until completion
 
