@@ -251,7 +251,12 @@ Options:
 3. Skip auto-fix, I'll handle manually
 ```
 
-**Maximum 3 review cycles** — if auto-fix is applied, re-run only the affected reviewers (not all). Stop after 3 rounds regardless.
+**Maximum 3 review cycles** with escalating thresholds to avoid chasing the long tail:
+- **Cycle 1**: Full review — all selected reviewers, Critical + Important >= 80% confidence
+- **Cycle 2** (if auto-fix applied): Re-run only affected reviewers on only the files that were modified by fixes. Only surface net-new findings (not previously flagged). Raise confidence threshold to >= 85%.
+- **Cycle 3** (if still fixing): Only Critical findings >= 90% confidence on fix-modified files. If zero Critical found, stop — remaining items are diminishing returns.
+
+Stop after 3 rounds regardless. On each cycle, show the user what threshold is being applied so they can make an informed decision about continuing.
 
 ### Step 9: Frontend Browser Testing (Optional)
 

@@ -111,11 +111,20 @@ Use the Task tool to spawn parallel review agents. Each reviewer gets:
 
 ### Step 3.5: Aggregate and Filter Findings
 
-Process reviewer results:
-- Include Critical and Important findings with confidence >= 80%
-- Security findings (`security-sentinel`, `api-security-reviewer`) included regardless of confidence
-- Include Suggestions only if `--severity suggestions` was passed
+Process reviewer results using **escalating thresholds** — be aggressive early, tighten each iteration:
+
+| Iteration | Severities | Min Confidence | Scope |
+|-----------|-----------|----------------|-------|
+| 1 | Critical + Important | >= 80% | All findings |
+| 2 | Critical + Important | >= 85% | Net-new findings only (not flagged in iteration 1) |
+| 3+ | Critical only | >= 90% | Net-new findings only |
+
+**Constant rules (all iterations):**
+- Security findings (`security-sentinel`, `api-security-reviewer`) always included regardless of confidence or iteration
+- Include Suggestions only if `--severity suggestions` was passed (and only in iteration 1)
 - Deduplicate findings that multiple reviewers flagged (keep the highest-confidence version)
+
+**Net-new detection:** A finding is "net-new" if no finding from the previous iteration references the same file:line range (within 5 lines) for the same category of issue. If a reviewer flags the same area for the same reason, it's a re-flag — skip it.
 
 ### Step 3.6: Autonomous Fix Evaluation
 
@@ -166,11 +175,16 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 
 ### Step 3.9: Check Exit Conditions
 
-- **Clean**: Zero Critical/Important findings found this iteration → EXIT
-- **Clean enough**: All findings were dropped as false positives → EXIT
-- **Plateau**: No new findings compared to previous iteration (same issues re-flagged) → EXIT (likely false positives or unfixable without human input)
-- **Limit**: Max iterations reached → EXIT (report deferred items)
-- **Otherwise**: Next iteration (fixes may shift context; reviewers may flag different things)
+Evaluate in this order (first match wins):
+
+1. **Clean**: Zero findings passed the threshold filter this iteration → EXIT
+2. **Clean enough**: All findings were dropped as false positives → EXIT
+3. **Diminishing returns**: Fewer than 3 net-new findings this iteration AND zero Critical → EXIT (you've hit the long tail — remaining nits aren't worth another full review cycle)
+4. **Plateau**: Net-new findings count >= previous iteration's count (not converging) → EXIT (fixes are creating as many issues as they resolve — stop the churn)
+5. **Limit**: Max iterations reached → EXIT (report deferred items)
+6. **Otherwise**: Next iteration
+
+**On exit, log the reason** so the report explains why the loop stopped (e.g., "Exited after iteration 2: diminishing returns (1 net-new Important, 0 Critical)").
 
 ### Step 3.10: Large Diff Handling
 
@@ -194,10 +208,16 @@ MILESTONE REVIEW COMPLETE
 Branch: <branch>
 Base: <base-branch>
 Iterations: N
+Exit reason: <clean|clean enough|diminishing returns|plateau|limit>
 Findings evaluated: X
 Fixed: Y
 Dropped (false positive): Z
 Deferred (needs human): W
+
+PER-ITERATION BREAKDOWN:
+  Iteration 1: <N> findings (threshold: Important+ >= 80%) → <M> fixed
+  Iteration 2: <N> findings (threshold: Important+ >= 85%, net-new only) → <M> fixed
+  ...
 
 FIXED:
 - [file:line] issue (iteration N)
