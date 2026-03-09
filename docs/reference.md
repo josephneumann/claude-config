@@ -33,6 +33,7 @@ All workflow capabilities are implemented as skills in `skills/`.
 | Skill | Purpose | When to Use |
 |-------|---------|-------------|
 | `/humanizer` | Remove AI writing patterns | Text sounds like AI slop |
+| Playwright MCP | Browser automation for frontend verification | `/finish-task`, `/multi-review`, `/milestone-review` |
 
 ## Discipline
 

@@ -1,7 +1,7 @@
 ---
 name: finish-task
 description: "Use when implementation and tests are complete and you're ready to close out a beads task"
-allowed-tools: Read, Bash, Glob, Grep, Edit, Write, Skill
+allowed-tools: Read, Bash, Glob, Grep, Edit, Write, Skill, AskUserQuestion
 ---
 
 # Finish Beads Task: $ARGUMENTS
@@ -140,24 +140,36 @@ Confirm:
 - Task status is `closed`
 - `bd sync` shows "no changes" or "already up to date"
 
-## 10.5. Frontend Evidence Prompt
+## 10.5. Frontend Browser Verification
 
 Check if the PR includes frontend changes:
 
 ```bash
-git diff main...HEAD --name-only | grep -E '\.(tsx|jsx|css|scss)$'
+git diff main...HEAD --name-only | grep -E '\.(tsx|jsx|vue|svelte|html|css|scss)$'
 ```
 
-If frontend files are present, inform the user:
+If frontend files are present, use `AskUserQuestion` to ask for the dev server URL:
 
 ```
-This PR includes frontend changes. Consider capturing screenshots for the PR:
-  - Run the dev server and take desktop + mobile screenshots
-  - Add them to the PR description or as GitHub comments
-  - If spec/design images exist, compare visually
+This PR includes frontend changes. Would you like me to verify the UI with Playwright?
+
+If yes, provide the dev server URL (e.g., localhost:3000, localhost:5173).
+
+1. **Yes — verify UI** (provide URL)
+2. **No — skip browser verification**
 ```
 
-This is informational only — do not block on evidence capture.
+**If the user provides a URL:**
+
+1. `mcp__playwright__browser_navigate` to the URL
+2. `mcp__playwright__browser_resize` to desktop (1280x800) → `mcp__playwright__browser_take_screenshot`
+3. `mcp__playwright__browser_resize` to mobile (375x812) → `mcp__playwright__browser_take_screenshot`
+4. `mcp__playwright__browser_console_messages` to check for errors
+5. `mcp__playwright__browser_close`
+
+Report any console errors as potential issues. Include screenshots in the PR description if relevant.
+
+This is informational only — do not block on browser verification results.
 
 ## 11. Create Pull Request
 
