@@ -112,7 +112,7 @@ All workflow capabilities are implemented as slash commands in `skills/`.
 |-------|---------|
 | `/orient` | Survey project, identify parallel work streams |
 | `/start-task <id>` | Claim task, create branch, gather context |
-| `/finish-task <id>` | Tests, commit, PR, code review, session summary, close |
+| `/finish-task <id>` | Tests, commit, PR, code review, browser verification for frontend changes, session summary, close |
 
 ### Orchestration
 
@@ -159,7 +159,7 @@ All workflow capabilities are implemented as slash commands in `skills/`.
 
 ### Quality Skills
 
-**`/multi-review`** &mdash; Selects 3-5 review agents based on change types, runs them in parallel, aggregates findings by severity, auto-fixes high-confidence issues. Maximum 3 review cycles.
+**`/multi-review`** &mdash; Selects 3-5 review agents based on change types, runs them in parallel, aggregates findings by severity, auto-fixes high-confidence issues. Includes optional Playwright-based browser testing for frontend PRs. Maximum 3 review cycles.
 
 **`/milestone-review`** &mdash; Autonomous iterative review-fix loop for accumulated branch changes. Unlike `/multi-review` (interactive), milestone-review fixes all verified findings itself &mdash; refactoring, multi-file changes, pattern fixes &mdash; repeating until the branch is clean or max iterations are reached. Used automatically by `/auto-run` after tasks complete, or run standalone on any branch.
 
@@ -467,6 +467,15 @@ Partially. `/orient`, `/start-task`, `/finish-task`, and `/multi-review` all wor
     "teammateMode": "in-process"
   }
   ```
+
+### For Frontend Browser Testing (Optional)
+
+- **[Playwright MCP](https://github.com/microsoft/playwright-mcp)** &mdash; Browser automation for UI verification. Install:
+  ```bash
+  claude mcp add playwright -- npx @playwright/mcp@latest --headless
+  npx playwright install chromium
+  ```
+  Used by `/finish-task`, `/multi-review`, and `/milestone-review` for screenshot capture and console error detection on frontend changes.
 
 ### For Unattended Auto-Run
 

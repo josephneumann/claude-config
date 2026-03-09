@@ -260,7 +260,7 @@ Stop after 3 rounds regardless. On each cycle, show the user what threshold is b
 
 ### Step 9: Frontend Browser Testing (Optional)
 
-**When the PR includes frontend/UI changes**, offer browser-based testing using the Claude in Chrome MCP tools.
+**When the PR includes frontend/UI changes**, offer browser-based testing using Playwright MCP tools.
 
 Detect frontend changes by checking for files matching:
 - `*.tsx`, `*.jsx`, `*.vue`, `*.svelte`, `*.html`
@@ -272,19 +272,19 @@ If frontend changes are detected, use `AskUserQuestion`:
 ```
 This PR includes frontend changes. Would you like me to test the UI in the browser?
 
-1. **Yes — test affected pages** (I'll navigate to the changed routes and verify the UI)
+1. **Yes — test affected pages** (provide dev server URL, e.g., localhost:3000)
 2. **No — skip browser testing**
 ```
 
 **If the user accepts:**
 
-1. Use `mcp__claude-in-chrome__tabs_context_mcp` to get browser context
-2. Create a new tab with `mcp__claude-in-chrome__tabs_create_mcp`
-3. Navigate to the dev server URL for each affected route
-4. Use `mcp__claude-in-chrome__read_page` to inspect the DOM and verify elements
-5. Use `mcp__claude-in-chrome__computer` with `action: screenshot` to capture visual state
-6. Check for console errors with `mcp__claude-in-chrome__read_console_messages`
-7. Test interactive elements (forms, buttons, navigation) if applicable
+1. `mcp__playwright__browser_navigate` to the dev server URL for each affected route
+2. `mcp__playwright__browser_resize` to desktop (1280x800) → `mcp__playwright__browser_take_screenshot`
+3. `mcp__playwright__browser_resize` to mobile (375x812) → `mcp__playwright__browser_take_screenshot`
+4. `mcp__playwright__browser_console_messages` to check for errors
+5. `mcp__playwright__browser_click` / `mcp__playwright__browser_type` to test interactive elements if applicable
+6. Use `mcp__playwright__browser_snapshot` only when DOM structure matters (token-heavy — prefer screenshots)
+7. `mcp__playwright__browser_close` when done
 8. Report findings:
    - Visual issues (layout breaks, missing elements, styling problems)
    - Console errors or warnings

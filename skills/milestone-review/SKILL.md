@@ -109,6 +109,29 @@ Use the Task tool to spawn parallel review agents. Each reviewer gets:
 
 **Model selection:** Follow multi-review's tier-based logic. Default to Sonnet. Use Opus for `security-sentinel` and `architecture-strategist` when risk tier is critical.
 
+### Step 3.5b: Frontend Browser Verification (Parallel with Code Reviews)
+
+When changed files include frontend patterns (`.tsx`, `.jsx`, `.vue`, `.svelte`, `.html`, `.css`, `.scss`):
+
+1. If `--dry-run`, skip browser verification
+2. On the first iteration only, use `AskUserQuestion` to get the dev server URL:
+   ```
+   Frontend changes detected. Provide the dev server URL for Playwright browser verification, or skip.
+
+   1. **Provide URL** (e.g., localhost:3000, localhost:5173)
+   2. **Skip browser verification**
+   ```
+3. If URL provided, run Playwright verification:
+   - `mcp__playwright__browser_navigate` to affected routes
+   - `mcp__playwright__browser_resize` to desktop (1280x800) → `mcp__playwright__browser_take_screenshot`
+   - `mcp__playwright__browser_resize` to mobile (375x812) → `mcp__playwright__browser_take_screenshot`
+   - `mcp__playwright__browser_console_messages` for errors
+   - `mcp__playwright__browser_close`
+4. Include visual/console findings in the aggregated results alongside code review findings
+5. Visual issues get treated as Important findings (fixable CSS/layout) or Deferred (needs design decision)
+
+Cache the user's URL response — don't re-ask on subsequent iterations.
+
 ### Step 3.5: Aggregate and Filter Findings
 
 Process reviewer results using **escalating thresholds** — be aggressive early, tighten each iteration:
