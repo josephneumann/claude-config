@@ -33,6 +33,7 @@ All workflow capabilities are implemented as skills in `skills/`.
 | Skill | Purpose | When to Use |
 |-------|---------|-------------|
 | `/humanizer` | Remove AI writing patterns | Text sounds like AI slop |
+| `/claudemd-audit` | Audit CLAUDE.md for bloat, staleness, architecture | Reviewing CLAUDE.md quality, new project setup |
 | Playwright MCP | Browser automation for frontend verification | `/finish-task`, `/multi-review`, `/milestone-review` |
 
 ## Discipline
