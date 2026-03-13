@@ -6,7 +6,7 @@ allowed-tools: Read, Grep, Glob, Bash, AskUserQuestion
 
 # /product-review
 
-A product-taste review skill. Challenges whether you're building the right thing, scoped the right way, before you commit engineering effort. Runs BEFORE `/spec` or standalone. Can also be invoked as a `/multi-review` perspective (product-taste agent).
+A product-taste review skill. Challenges whether you're building the right thing, scoped the right way, before you commit engineering effort. Run standalone or before `/spec` for greenfield features.
 
 **Priority hierarchy**: Step 0 > Error Map > Failure Modes > Architecture > Everything else.
 
