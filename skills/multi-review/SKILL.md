@@ -190,6 +190,30 @@ Each agent should return findings in this format:
 - [Issue with file:line] - Confidence: X%
 ```
 
+### Step 5.5: Checklist Augmentation
+
+When constructing prompts for review agents in Step 5, append the following checklist categories as additional review guidance. These supplement each agent's core focus area.
+
+**For all agents — check these universal categories:**
+
+*LLM-specific (high priority if PR touches prompts, tools, or AI integrations):*
+- 0-indexed lists in prompts (LLMs reliably return 1-indexed)
+- Prompt text listing available tools/capabilities that don't match what's actually wired up
+- LLM trust boundary: hallucinated values (emails, URLs, names) persisted without format validation
+- Structured tool output accepted without type/shape checks before DB writes
+- Word/token limits stated in multiple places that could drift
+
+*Race conditions (include for security-sentinel and performance-oracle):*
+- TOCTOU: check-then-set without atomic operation
+- find-or-create without unique constraint (concurrent duplicates)
+- Non-atomic status transitions (concurrent updates skip/double-apply)
+
+*Niche categories (include for pattern-recognition-specialist):*
+- Conditional side effects: branch that forgets a side effect on one path
+- Type coercion at language boundaries (cross-language type changes, hash input normalization)
+- Time window safety: mismatched windows between related features
+- Crypto entropy: truncation vs hashing, rand() for security values, non-constant-time comparisons
+
 ### Step 6: Aggregate Findings
 
 Combine results from all reviewers, sorted by severity:
@@ -198,30 +222,40 @@ Combine results from all reviewers, sorted by severity:
 ## Multi-Review Summary
 
 ### Reviewers
-- [x] code-simplicity-reviewer
-- [x] pattern-recognition-specialist
-- [x] security-sentinel
-- [ ] performance-oracle (not applicable)
-- [ ] architecture-strategist (not applicable)
+- [x] reviewer-name
+...
 
-### Critical Issues (Confidence >= 80%)
-| File:Line | Issue | Reviewer | Confidence |
-|-----------|-------|----------|------------|
-| ... | ... | ... | ...% |
+### CRITICAL Findings (blocking — require action)
+Security, data safety, race conditions, correctness bugs.
+| File:Line | Issue | Reviewer | Confidence | Gate |
+|-----------|-------|----------|------------|------|
+| ... | ... | ... | ...% | CRITICAL |
 
-### Important Issues (Confidence >= 80%)
-| File:Line | Issue | Reviewer | Confidence |
-|-----------|-------|----------|------------|
-| ... | ... | ... | ...% |
-
-### Suggestions (Confidence >= 80%)
-| File:Line | Issue | Reviewer | Confidence |
-|-----------|-------|----------|------------|
-| ... | ... | ... | ...% |
-
-### Low-Confidence Findings (< 80%)
-[Collapsed/summarized - these may be false positives]
+### INFORMATIONAL Findings (surface, don't block)
+Style, suggestions, minor improvements, nice-to-haves.
+| File:Line | Issue | Reviewer | Confidence | Gate |
+|-----------|-------|----------|------------|------|
+| ... | ... | ... | ...% | INFO |
 ```
+
+**Gate classification rules:**
+- **CRITICAL**: Security vulnerabilities, data loss risks, race conditions, correctness bugs, missing error handling on critical paths, broken functionality
+- **INFORMATIONAL**: Code style, naming, minor refactoring opportunities, test coverage suggestions, documentation gaps, performance micro-optimizations
+
+When presenting to the user, CRITICAL findings require explicit acknowledgment. INFORMATIONAL findings are presented for awareness but don't block.
+
+### Step 6.5: Suppressions
+
+When aggregating findings in Step 6, suppress (do not surface) these categories of findings:
+
+- **"X is redundant with Y"** when the redundancy is harmless and aids readability
+- **"Add a comment explaining why this threshold/constant was chosen"** — thresholds change during tuning, comments rot
+- **"This assertion could be tighter"** when the assertion already covers the behavior
+- **Consistency-only changes** (wrapping a value to match how another is guarded)
+- **"Regex doesn't handle edge case X"** when the input is constrained and X never occurs in practice
+- **Anything already addressed in the diff being reviewed** — agents must read the FULL diff before commenting
+
+These suppressions reduce noise from low-value suggestions that waste review cycles.
 
 ### Step 7: Filter Results
 

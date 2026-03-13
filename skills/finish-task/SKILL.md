@@ -57,6 +57,38 @@ make run-checks
 
 **If tests fail, STOP.** Fix the issues before proceeding. Do NOT close a task with failing tests.
 
+## 3.5. UI Verification
+
+Check if the task involves UI-visible changes:
+
+```bash
+git diff main...HEAD --name-only | grep -E '\.(tsx|jsx|vue|svelte|html|css|scss|js|ts)$' | head -20
+```
+
+If UI-relevant files changed, use `AskUserQuestion`:
+
+```
+This task includes UI-relevant changes. Verify with Playwright?
+
+If yes, provide the dev server URL and the page/flow to test (e.g., "localhost:3000/settings — test the new form").
+
+1. **Yes — verify UI** (provide URL and what to test)
+2. **No — skip**
+```
+
+**If the user provides a URL and instructions:**
+
+1. `mcp__playwright__browser_navigate` to the URL
+2. `mcp__playwright__browser_snapshot` — verify the page structure and interactive elements
+3. **Test the specific flow** the user described:
+   - Use `browser_click`, `browser_fill_form`, `browser_type` to interact
+   - Use `browser_snapshot` after interactions to verify state changes
+4. `mcp__playwright__browser_resize` to mobile (375x812) → `mcp__playwright__browser_take_screenshot`
+5. `mcp__playwright__browser_console_messages` — check for errors
+6. `mcp__playwright__browser_close`
+
+**If issues are found, fix them before proceeding.** Treat UI bugs like test failures — the task isn't done until the UI works.
+
 ## 4. Review and Update Documentation
 
 Before committing, review whether documentation needs updates:
@@ -139,37 +171,6 @@ Confirm:
 - Git shows "Your branch is up to date with origin"
 - Task status is `closed`
 - `bd sync` shows "no changes" or "already up to date"
-
-## 10.5. Frontend Browser Verification
-
-Check if the PR includes frontend changes:
-
-```bash
-git diff main...HEAD --name-only | grep -E '\.(tsx|jsx|vue|svelte|html|css|scss)$'
-```
-
-If frontend files are present, use `AskUserQuestion` to ask for the dev server URL:
-
-```
-This PR includes frontend changes. Would you like me to verify the UI with Playwright?
-
-If yes, provide the dev server URL (e.g., localhost:3000, localhost:5173).
-
-1. **Yes — verify UI** (provide URL)
-2. **No — skip browser verification**
-```
-
-**If the user provides a URL:**
-
-1. `mcp__playwright__browser_navigate` to the URL
-2. `mcp__playwright__browser_resize` to desktop (1280x800) → `mcp__playwright__browser_take_screenshot`
-3. `mcp__playwright__browser_resize` to mobile (375x812) → `mcp__playwright__browser_take_screenshot`
-4. `mcp__playwright__browser_console_messages` to check for errors
-5. `mcp__playwright__browser_close`
-
-Report any console errors as potential issues. Include screenshots in the PR description if relevant.
-
-This is informational only — do not block on browser verification results.
 
 ## 11. Create Pull Request
 

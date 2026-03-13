@@ -6,6 +6,7 @@ All workflow capabilities are implemented as skills in `skills/`.
 
 | Skill | Purpose | When to Use |
 |-------|---------|-------------|
+| `/product-review` | Product-taste review: EXPAND / HOLD / REDUCE modes | Before `/spec` for greenfield features, or standalone |
 | `/spec` | Research, plan, decompose into tasks | New idea, feature description, or goal |
 | `/spec --deepen` | Enhance plan with parallel research agents | Existing plan needs more depth |
 
@@ -32,6 +33,7 @@ All workflow capabilities are implemented as skills in `skills/`.
 
 | Skill | Purpose | When to Use |
 |-------|---------|-------------|
+| `/retro` | Git-based engineering retrospective with trend tracking | Weekly review, shipping metrics, work patterns |
 | `/humanizer` | Remove AI writing patterns | Text sounds like AI slop |
 | `/claudemd-audit` | Audit CLAUDE.md for bloat, staleness, architecture | Reviewing CLAUDE.md quality, new project setup |
 | Playwright MCP | Browser automation for frontend verification | `/finish-task`, `/multi-review`, `/milestone-review` |
