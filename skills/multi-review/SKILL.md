@@ -59,7 +59,7 @@ Categorize the changes to select appropriate reviewers:
 | Architecture | new files, interface, refactor, module | architecture-strategist |
 | Patterns | any code change | pattern-recognition-specialist |
 | Complexity | any code change | code-simplicity-reviewer |
-| Agent/Tool systems | agent definitions, skills, prompts, tool configs | agent-native-reviewer |
+| Agent/Tool systems | agent definitions, skills, prompts, tool configs, UI actions, API endpoints, forms, routes | agent-native-reviewer |
 | Database migrations | db/migrate/*, schema changes, data backfills | data-integrity-guardian, data-migration-expert |
 | UX/Interaction | components, forms, modals, flows, navigation | ux-reviewer |
 | Frontend Perf  | images, imports, dependencies, animations     | frontend-performance-reviewer |
@@ -94,7 +94,7 @@ Map changed files to framework reviewers. A framework reviewer is activated when
 - `security-sentinel` — if auth, input handling, secrets, or user data
 - `performance-oracle` — if database queries, loops, caching, or data operations
 - `architecture-strategist` — if structural changes, new modules, or interface changes
-- `agent-native-reviewer` — if agent definitions, skill files, system prompts, or tool configurations
+- `agent-native-reviewer` — if agent definitions, skill files, system prompts, tool configurations, new UI actions/views, API endpoints, forms, or routes (any user-facing capability that should have agent parity)
 - `data-integrity-guardian` — if database migrations, schema changes, or data model modifications
 - `data-migration-expert` — if data backfills, ID mappings, enum conversions, or column renames
 
@@ -235,6 +235,12 @@ Security, data safety, race conditions, correctness bugs.
 |-----------|-------|----------|------------|------|
 | ... | ... | ... | ...% | CRITICAL |
 
+### IMPORTANT Findings (should fix — non-blocking but significant)
+Performance issues, error handling gaps, non-trivial anti-patterns, meaningful code quality issues.
+| File:Line | Issue | Reviewer | Confidence | Gate |
+|-----------|-------|----------|------------|------|
+| ... | ... | ... | ...% | IMPORTANT |
+
 ### INFORMATIONAL Findings (surface, don't block)
 Style, suggestions, minor improvements, nice-to-haves.
 | File:Line | Issue | Reviewer | Confidence | Gate |
@@ -244,9 +250,12 @@ Style, suggestions, minor improvements, nice-to-haves.
 
 **Gate classification rules:**
 - **CRITICAL**: Security vulnerabilities, data loss risks, race conditions, correctness bugs, missing error handling on critical paths, broken functionality
+- **IMPORTANT**: Performance issues, error handling gaps on non-critical paths, non-trivial anti-patterns, meaningful code quality issues
 - **INFORMATIONAL**: Code style, naming, minor refactoring opportunities, test coverage suggestions, documentation gaps, performance micro-optimizations
 
-When presenting to the user, CRITICAL findings require explicit acknowledgment. INFORMATIONAL findings are presented for awareness but don't block.
+Note: Reviewer agents already output in `Critical Issues / Important Issues / Suggestions` format (Step 5 output template). Map these directly: Critical → CRITICAL, Important → IMPORTANT, Suggestions → INFORMATIONAL.
+
+**Resolution Ledger**: Every finding that enters aggregation (post-suppression) must end the review in one of: `fixed[]`, `dropped[]` (with reason), or `deferred[]` (with reason meeting strict criteria). No finding may remain unresolved when the review concludes.
 
 ### Step 6.5: Suppressions
 
@@ -263,38 +272,150 @@ These suppressions reduce noise from low-value suggestions that waste review cyc
 
 ### Step 7: Filter Results
 
-Only surface findings with **confidence >= 80%**. Lower confidence findings should be mentioned but not emphasized — they may be false positives.
+Only surface findings with **confidence >= 80%**. Findings below 80% confidence are entered into the resolution ledger as `dropped[reason: "below confidence threshold (N%)"]` — they do not silently vanish.
 
 **Security exception:** All `security-sentinel` and `api-security-reviewer` findings appear in the main severity tables regardless of confidence level — never collapse them into "Low-Confidence Findings." Tag each with a `[SEC]` prefix in the Issue column to distinguish them from other reviewer findings. Security issues at any confidence level warrant human review.
 
-### Step 8: Offer Auto-Fix
+### Step 8: Resolve Findings
 
 > **Verification discipline** (from `/verify`): Before proposing any fix, read the actual code at the file:line the reviewer flagged. Reviewers hallucinate. Confirm the issue exists, then fix. If it doesn't exist, drop it — don't implement phantom fixes.
 
-For Critical and Important issues with clear fixes:
+This step resolves ALL findings through a 5-phase process. No finding may remain unresolved.
+
+#### Phase 1: Verify and Classify (agent acts alone)
+
+For each CRITICAL and IMPORTANT finding, before presenting anything:
+
+1. Read actual code at file:line (verification discipline — keeps this)
+2. False positive or speculative → `dropped[]` with reason
+3. Clear fix exists → `auto-fixable` (agent will apply)
+4. Genuinely requires human decision → `deferred`
+
+**Strict defer criteria:**
+
+> The bar for `deferred` is HIGH. These are NOT valid reasons to defer:
+> - "This is complex" — complexity isn't a reason to punt
+> - "This might have side effects" — verify whether it does, then fix or drop
+> - "This could be done multiple ways" — pick the approach matching existing codebase patterns
+> - "I'm not sure about the intent" — read surrounding code and git blame
+> - "This is a style/taste issue" — match existing patterns, or drop
+>
+> These ARE valid reasons to defer:
+> - Fix requires choosing between two valid architectural approaches with real tradeoffs
+> - Fix involves a product/business decision (e.g., "should this error be user-visible or silent?")
+> - Fix requires production knowledge the agent cannot verify (e.g., "is this table too large for this migration?")
+
+#### Phase 2: Auto-fix with preview (agent acts, does NOT ask permission)
+
+Present the resolution plan, then apply fixes:
 
 ```
-Would you like me to auto-fix the high-confidence issues?
+## Resolution Plan
 
-Auto-fixable:
-1. [file:line] - [issue] - [proposed fix summary]
-2. [file:line] - [issue] - [proposed fix summary]
+### Auto-fixing (N findings):
+1. [file:line] - [issue] - [fix description]
+2. ...
 
-Manual review recommended:
-3. [file:line] - [issue] - [reason it needs human judgment]
+### Dropped (M findings):
+3. [file:line] - [issue] - DROPPED: [reason]
+4. ...
+
+### Deferred — requires your decision (P findings):
+5. [file:line] - [issue] - DEFERRED: [specific decision needed]
+6. ...
+
+Applying auto-fixes...
+```
+
+The agent applies all auto-fixable changes to the working tree without asking. It does NOT commit — that's the caller's job (finish-task commits, or the user commits manually). The user can review the diff afterward.
+
+#### Phase 3: Mandatory adjudication of deferred items
+
+After auto-fixes are applied, present ALL deferred findings in a SINGLE `AskUserQuestion` (not one question per finding):
+
+```
+## N Deferred Findings Require Your Decision
+
+1. **[file:line]** - [issue] — [reviewer]
+   Decision needed: [specific question, e.g., "extract to service vs inline guard?"]
+   Options: (a) approach A, (b) approach B, (c) dismiss, (d) create task
+
+2. **[file:line]** - [issue] — [reviewer]
+   Decision needed: [specific question]
+   Options: (a) approach A, (b) approach B, (c) dismiss, (d) create task
+
+Reply with your choices (e.g., "1a, 2c"):
+```
+
+Each response moves the finding to `fixed[]` (agent implements chosen approach), `dropped[]` (dismissed), or `deferred[task: <id>]` (beads task created). The review does NOT proceed to re-review until all deferred items are resolved.
+
+**Autonomous context** (when multi-review runs inside `/finish-task` as an Agent Teams worker with no human available): skip `AskUserQuestion`. Instead, auto-create beads tasks for all deferred items and log them as `deferred[task: <id>]`. Report the deferred count in the session summary for the orchestrator to see. Detection: if the session is a dispatched teammate, treat as autonomous.
+
+#### Phase 4: INFORMATIONAL batch resolution
+
+Present INFORMATIONAL findings as a batch:
+
+```
+## Informational Findings (N items)
+
+1. [file:line] - [issue]
+2. [file:line] - [issue]
+...
 
 Options:
-1. Fix all auto-fixable issues
-2. Fix specific issues (provide numbers)
-3. Skip auto-fix, I'll handle manually
+1. Fix all informational items
+2. Fix specific items (provide numbers)
+3. Acknowledge all (mark as reviewed, no action)
 ```
 
-**Maximum 3 review cycles** with escalating thresholds to avoid chasing the long tail:
-- **Cycle 1**: Full review — all selected reviewers, Critical + Important >= 80% confidence
-- **Cycle 2** (if auto-fix applied): Re-run only affected reviewers on only the files that were modified by fixes. Only surface net-new findings (not previously flagged). Raise confidence threshold to >= 85%.
-- **Cycle 3** (if still fixing): Only Critical findings >= 90% confidence on fix-modified files. If zero Critical found, stop — remaining items are diminishing returns.
+User must pick one. "Acknowledge all" is fine — the point is explicit accounting, not forced action. All items move to `fixed[]` or `dropped[acknowledged]`.
 
-Stop after 3 rounds regardless. On each cycle, show the user what threshold is being applied so they can make an informed decision about continuing.
+**Autonomous context**: auto-fix INFORMATIONAL items that have clear fixes, drop the rest as `dropped[informational — auto-acknowledged]`.
+
+#### Phase 5: Re-review cycles (refined)
+
+After fixes are applied, re-review modified files with escalating thresholds:
+
+- Previous-cycle ledger entries are DONE — never re-evaluated
+- Escalating thresholds apply only to NET-NEW findings from re-review of modified files:
+  - **Cycle 2**: Re-run only affected reviewers on fix-modified files. Net-new findings >= 85% confidence only.
+  - **Cycle 3**: Only Critical findings >= 90% confidence on fix-modified files.
+- New findings from Cycle 2/3 enter the ledger and go through the same Verify → Classify → Fix → Adjudicate flow
+- The ledger accumulates across cycles
+
+**Exit conditions** (stop the loop when ANY is met):
+- **Clean**: Zero findings this iteration → EXIT
+- **Diminishing returns**: <3 net-new findings AND zero Critical → EXIT
+- **Plateau**: Net-new count >= previous iteration (not converging) → EXIT
+- **Limit**: 3 iterations → EXIT
+
+Log exit reason so the final report explains why the loop stopped.
+
+#### Final Report
+
+After all phases complete, output the resolution ledger summary:
+
+```
+═══════════════════════════════════════════
+MULTI-REVIEW COMPLETE
+═══════════════════════════════════════════
+Reviewers: [list]
+Cycles: N (exit reason: [reason])
+Findings: X | Fixed: Y | Dropped: Z | Deferred: W
+
+FIXED:
+- [file:line] issue — fix applied
+
+DROPPED:
+- [file:line] issue — [reason]
+
+DEFERRED (tasks created):
+- [file:line] issue — task <id>
+
+INFORMATIONAL (acknowledged):
+- [file:line] issue
+═══════════════════════════════════════════
+```
 
 ### Step 9: Frontend Browser Testing (Optional)
 
@@ -362,7 +483,7 @@ This PR includes frontend changes. Would you like me to test the UI in the brows
 
 #### agent-native-reviewer
 **Focus**: Action/context parity, tool design, agent capability gaps
-**Include when**: Agent definitions, skill files, system prompts, MCP configs
+**Include when**: Agent definitions, skill files, system prompts, MCP configs, new UI actions/views, API endpoints, forms, routes — any change that adds user-facing capabilities
 **Path**: `agents/review/agent-native-reviewer.md`
 
 #### data-integrity-guardian

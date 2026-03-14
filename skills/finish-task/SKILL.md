@@ -217,35 +217,28 @@ EOF
 
 ## 11a. Code Review and Auto-Fix
 
-Run automated code review on the PR using parallel specialized reviewers:
+Run automated code review:
 
 ```
 /multi-review
 ```
 
-The multi-review will:
-- Launch 3-5 specialized review agents in parallel (simplicity, patterns, security, performance, architecture)
-- Select relevant reviewers based on change types
-- Aggregate findings by severity (Critical > Important > Suggestion)
-- Filter to high-confidence (≥80%) issues
-- Offer auto-fix for fixable issues
+Multi-review will:
+- Launch parallel specialized reviewers
+- Auto-fix findings (Critical + Important) without prompting
+- Require adjudication of deferred findings (or auto-escalate as tasks in autonomous context)
+- Track all findings in a resolution ledger
 
-### If Issues Found
+After multi-review completes:
 
-For each Critical or Important issue:
-
-1. **Review the finding** - Note the file, line, and reviewer that flagged it. Verify each claim against actual code before implementing — reviewers hallucinate too. Push back on findings that are incorrect for this codebase or violate YAGNI. No performative agreement. Fix silently or explain disagreement.
-2. **Implement fix** - Make the minimal change to address the issue
-3. **Verify** - Ensure the fix doesn't introduce new problems
-
-After fixing all issues:
-
+1. Run tests to verify fixes:
 ```bash
-# Run tests to verify fixes
 uv run pytest  # or pnpm test / make run-checks
+```
 
-# Commit the fixes
-git add -A
+2. If tests pass, commit any changes multi-review applied:
+```bash
+git add <specific files modified by review fixes>
 git commit -m "$(cat <<'EOF'
 fix: address code review findings
 
@@ -256,30 +249,20 @@ fix: address code review findings
 Co-Authored-By: Claude <noreply@anthropic.com>
 EOF
 )"
+```
 
-# Push updates
+3. Push updates:
+```bash
 git push
 ```
 
-Re-run review if significant changes were made:
-
-```
-/multi-review
-```
-
-**Iteration limit:** Maximum 3 review cycles. If issues persist after 3 attempts:
-- List remaining unresolved issues
-- Ask user: "Code review found issues I couldn't automatically resolve: <list>. Proceed with merge anyway, or address manually?"
-
-### If No Issues Found
-
-Proceed directly to merge decision.
+If multi-review deferred items as tasks, note them in the session summary.
 
 ### Merge Decision
 
-After code review passes (or user approves despite issues):
+After code review completes:
 
-"PR created: <URL>. Code review [passed / fixed N issues / has N unresolved issues]. Would you like me to merge it?"
+"PR created: <URL>. Code review [passed / fixed N issues / deferred W items as tasks]. Would you like me to merge it?"
 
 If user approves, proceed to step 12. If user declines, leave the PR open for manual review and skip to step 13.
 
