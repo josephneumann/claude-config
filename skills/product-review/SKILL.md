@@ -25,6 +25,8 @@ Ask and answer explicitly:
 - Is this the best framing of the problem?
 - What happens if we do nothing? (If "nothing bad" — that's a signal.)
 - Who asked for this and why? User pain vs. internal preference?
+- Can agents perform this action too, or is this UI-only? If UI-only, why?
+- What's the agent story? API/tool parity for every user-facing capability.
 
 ### 0B. Existing Code Leverage
 
@@ -108,6 +110,7 @@ Edge cases              | Map all         | Map critical    | Defer non-fatal | 
 Test ambition           | Comprehensive   | Thorough        | Critical paths  | User flow coverage
 Failure handling        | Every path      | Every path      | Fatal paths     | User-visible paths
 "Nice to have" items    | Evaluate        | Reject          | Cut             | Evaluate for delight
+Agent parity            | Design for it   | Verify exists   | Defer if costly | Design for it
 Follow-up work          | Identify        | Identify        | Mandate         | Prioritize by user pain
 ```
 
@@ -127,6 +130,7 @@ Analyze:
 - Scaling considerations: what breaks at 10x? 100x?
 - Security architecture: trust boundaries, auth flow
 - Rollback posture: can you undo this deploy without data loss?
+- Agent parity: for each user-facing action, is there an equivalent API/tool path? Draw the capability map.
 
 **EXPAND adds**: "What makes this beautiful?" — is there an elegant design waiting to be found? Platform potential — does this create leverage for future features?
 
@@ -291,6 +295,16 @@ INTERACTION          | PATTERN CHOSEN    | ALTERNATIVES      | WHY
 ```
 
 **Responsive Strategy:** Device priority, breakpoint behavior for key components.
+
+### Agent Parity Map
+
+```
+UI ACTION              | AGENT EQUIVALENT       | STATUS
+-----------------------|------------------------|--------
+                       |                        | ✅/⚠️/❌
+```
+
+Any row with STATUS=❌ and no justification is a CRITICAL GAP.
 
 ### Unresolved Decisions
 

@@ -163,7 +163,7 @@ All workflow capabilities are implemented as slash commands in `skills/`.
 
 ### Quality Skills
 
-**`/multi-review`** &mdash; Selects 3-5 review agents based on change types, runs them in parallel, aggregates findings by severity, auto-fixes high-confidence issues. Includes optional Playwright-based browser testing for frontend PRs. Maximum 3 review cycles.
+**`/multi-review`** &mdash; Selects 3-5 review agents based on change types, runs them in parallel, aggregates findings by severity (Critical/Important/Informational), and resolves every finding through a resolution ledger: auto-fixes without prompting, drops false positives with reasons, defers genuine human decisions for adjudication. Includes optional Playwright-based browser testing for frontend PRs. Maximum 3 review cycles with exit conditions.
 
 **`/milestone-review`** &mdash; Autonomous iterative review-fix loop for accumulated branch changes. Unlike `/multi-review` (interactive), milestone-review fixes all verified findings itself &mdash; refactoring, multi-file changes, pattern fixes &mdash; repeating until the branch is clean or max iterations are reached. Used automatically by `/auto-run` after tasks complete, or run standalone on any branch.
 
