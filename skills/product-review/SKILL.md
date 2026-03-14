@@ -1,6 +1,6 @@
 ---
 name: product-review
-description: "Product-taste review that challenges 'are we building the right thing?' Three modes: EXPAND (dream big), HOLD (maximum rigor), REDUCE (strip to essentials). Run before /spec or standalone."
+description: "Product-taste review that challenges 'are we building the right thing?' Four modes: EXPAND (dream big), HOLD (maximum rigor), REDUCE (strip to essentials), DESIGN (UX-first). Run before /spec or standalone. Use DESIGN mode for UI-heavy features."
 allowed-tools: Read, Grep, Glob, Bash, AskUserQuestion
 ---
 
@@ -57,7 +57,7 @@ Does this plan move toward the 12-month ideal, or sideways?
 
 ### 0D. Mode-Specific Analysis
 
-Before the user selects a mode, run the analysis for ALL three to inform selection:
+Before the user selects a mode, run the analysis for ALL four to inform selection:
 
 **EXPAND lens**:
 - 10x check: If this had to serve 10x users/load/scope, what breaks?
@@ -72,7 +72,14 @@ Before the user selects a mode, run the analysis for ALL three to inform selecti
 - Ruthless cut: What can be removed and shipped as follow-up?
 - Core kernel: What's the absolute smallest thing that delivers value?
 
-### 0E. Temporal Interrogation (EXPAND/HOLD only)
+**DESIGN lens**:
+- User journey mapping: What are the 3-5 primary user journeys?
+- Interaction pattern audit: Right UI patterns? (modal vs drawer vs inline, wizard vs single-page)
+- Information architecture: Fits user's mental model?
+- Responsive strategy: Mobile-first or desktop-first? Primary device?
+- Accessibility-first: What a11y requirements baked in from start?
+
+### 0E. Temporal Interrogation (EXPAND/HOLD/DESIGN)
 
 Which implementation decisions must be made NOW vs. can be deferred?
 - Decisions with high reversal cost → decide now
@@ -80,10 +87,11 @@ Which implementation decisions must be made NOW vs. can be deferred?
 
 ### 0F. Mode Selection
 
-Present the three modes. Context-dependent defaults:
+Present the four modes. Context-dependent defaults:
 - New product/feature with unclear scope → default EXPAND
 - Well-scoped change to existing system → default HOLD
 - Scope creep detected, overloaded plan → default REDUCE
+- Primarily UI/frontend feature → default DESIGN
 
 Ask the user to select. **Once selected, commit fully. No drifting between modes.**
 
@@ -92,15 +100,15 @@ Ask the user to select. **Once selected, commit fully. No drifting between modes
 ## Mode Quick Reference
 
 ```
-BEHAVIOR               | EXPAND          | HOLD            | REDUCE
-------------------------|-----------------|-----------------|----------------
-Scope changes           | Add if valuable | Freeze          | Cut aggressively
-Architecture questions  | Explore options | Validate chosen | Simplify
-Edge cases              | Map all         | Map critical    | Defer non-fatal
-Test ambition           | Comprehensive   | Thorough        | Critical paths
-Failure handling        | Every path      | Every path      | Fatal paths
-"Nice to have" items    | Evaluate        | Reject          | Cut
-Follow-up work          | Identify        | Identify        | Mandate
+BEHAVIOR               | EXPAND          | HOLD            | REDUCE          | DESIGN
+------------------------|-----------------|-----------------|-----------------|------------------
+Scope changes           | Add if valuable | Freeze          | Cut aggressively| Reframe as user needs
+Architecture questions  | Explore options | Validate chosen | Simplify        | Map to user journeys
+Edge cases              | Map all         | Map critical    | Defer non-fatal | Map user-facing ones
+Test ambition           | Comprehensive   | Thorough        | Critical paths  | User flow coverage
+Failure handling        | Every path      | Every path      | Fatal paths     | User-visible paths
+"Nice to have" items    | Evaluate        | Reject          | Cut             | Evaluate for delight
+Follow-up work          | Identify        | Identify        | Mandate         | Prioritize by user pain
 ```
 
 ---
@@ -122,6 +130,8 @@ Analyze:
 
 **EXPAND adds**: "What makes this beautiful?" — is there an elegant design waiting to be found? Platform potential — does this create leverage for future features?
 
+**DESIGN reframes**: Component hierarchy, state management approach, data flow to UI. What's the component tree? Where does state live?
+
 Output: Architecture diagram (ASCII).
 
 ### Section 2: Error & Failure Map
@@ -134,6 +144,8 @@ CODEPATH     | WHAT CAN GO WRONG    | ERROR TYPE  | HANDLED? | HANDLER ACTION   
              |                      |             |          |                     |
 ```
 
+**DESIGN reframes**: User-visible error states, recovery flows, empty states. What does the user see when things go wrong?
+
 Rules:
 - Catch-all error handling is a smell. Name every error you catch.
 - Every handled error must **retry**, **degrade**, or **re-raise**. Pick one.
@@ -142,6 +154,8 @@ Rules:
 - For external service calls: timeout, rate limit, auth failure, unexpected response shape.
 
 ### Section 3: Security & Threat Model
+
+**DESIGN reframes**: Client-side validation, PII display, auth UX. How does the user experience security?
 
 Analyze:
 - Attack surface: what's exposed? What's new exposure?
@@ -154,6 +168,8 @@ Analyze:
 - Audit logging: are security-relevant actions logged?
 
 ### Section 4: Data Flow & Edge Cases
+
+**DESIGN reframes**: Loading states, optimistic updates, stale data. What does the user see while data is in flight?
 
 ASCII diagram:
 
@@ -193,8 +209,11 @@ FLOW/PATH          | TEST TYPE    | HAPPY PATH | FAILURE PATH | EDGE CASE
 - EXPAND: "What tests would make you confident shipping this at 3am?"
 - HOLD: "What tests cover every behavior change?"
 - REDUCE: "What tests cover the critical paths only?"
+- DESIGN: "What user flow E2E tests, visual regression tests, and a11y audits cover the experience?"
 
 ### Section 6: Deployment & Rollback
+
+**DESIGN reframes**: Feature flags for UI, progressive rollout, A/B readiness. How do you ship UI changes safely?
 
 Analyze:
 - Migration safety: backward-compatible? Can old code run against new schema?
@@ -251,6 +270,27 @@ SECTION                  | FINDINGS | CRITICAL GAPS | QUESTIONS RESOLVED
 5. Test Coverage         |          |               |
 6. Deployment & Rollback |          |               |
 ```
+
+### DESIGN Mode Additional Outputs
+
+When running in DESIGN mode, also produce:
+
+**User Journey Map (ASCII):** Primary flows with decision points and error branches.
+
+```
+USER ENTERS → [Decision Point] → Path A → [Success]
+                                → Path B → [Error Recovery] → [Retry/Exit]
+```
+
+**Interaction Pattern Decisions:**
+
+```
+INTERACTION          | PATTERN CHOSEN    | ALTERNATIVES      | WHY
+---------------------|-------------------|-------------------|----
+                     |                   |                   |
+```
+
+**Responsive Strategy:** Device priority, breakpoint behavior for key components.
 
 ### Unresolved Decisions
 

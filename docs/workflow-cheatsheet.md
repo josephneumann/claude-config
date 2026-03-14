@@ -4,6 +4,9 @@
 # Plan a new project
 /spec → /spec --deepen (optional) → /orient → /dispatch
 
+# Plan a new project (with UX)
+/product-review DESIGN → /spec → /orient → /dispatch
+
 # Single session
 /orient → /start-task <id> → implement → /finish-task <id>
 

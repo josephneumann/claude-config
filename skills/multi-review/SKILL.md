@@ -61,6 +61,8 @@ Categorize the changes to select appropriate reviewers:
 | Complexity | any code change | code-simplicity-reviewer |
 | Agent/Tool systems | agent definitions, skills, prompts, tool configs | agent-native-reviewer |
 | Database migrations | db/migrate/*, schema changes, data backfills | data-integrity-guardian, data-migration-expert |
+| UX/Interaction | components, forms, modals, flows, navigation | ux-reviewer |
+| Frontend Perf  | images, imports, dependencies, animations     | frontend-performance-reviewer |
 | Frontend/UI | .tsx, .jsx, .vue, .svelte, .html, .css, templates | (browser testing — see Step 9) |
 
 ### Step 2.5: Framework Auto-Detection
@@ -73,6 +75,8 @@ Map changed files to framework reviewers. A framework reviewer is activated when
 | `*.css`, `tailwind.*`, `components/ui/**` | `tailwind` | `tailwind-reviewer` |
 | `*.py`, `alembic/**` | `python-backend` | `python-backend-reviewer` |
 | `routes/**`, `api/**`, `endpoints/**`, `controllers/**` | `api` | `api-security-reviewer` |
+| `*.tsx`, `*.jsx`, `*.vue`, `*.svelte`, `components/**`, `pages/**` | `ux` | `ux-reviewer` |
+| `*.tsx`, `*.jsx`, `*.css`, `next.config.*`, `package.json` | `frontend-perf` | `frontend-performance-reviewer` |
 
 **Reviewer overrides (v2 config):**
 - `reviewers.exclude`: Suppress auto-detected reviewers (e.g., `["tailwind-reviewer"]` to prevent false positives)
@@ -392,6 +396,16 @@ This PR includes frontend changes. Would you like me to test the UI in the brows
 **Focus**: Rate limiting, pagination bounds, response data filtering, CORS, request size limits, security logging
 **Auto-detected when**: Changed files match `routes/**`, `api/**`, `endpoints/**`, `controllers/**`
 **Path**: `agents/review/api-security-reviewer.md`
+
+#### ux-reviewer
+**Focus**: Interaction flows, state completeness, form UX patterns, component API consistency, screen reader narrative, cognitive load
+**Auto-detected when**: Changed files match `*.tsx`, `*.jsx`, `*.vue`, `*.svelte`, `components/**`, `pages/**`
+**Path**: `agents/review/ux-reviewer.md`
+
+#### frontend-performance-reviewer
+**Focus**: Core Web Vitals (LCP, CLS, INP), bundle size, request waterfalls, rendering efficiency, image optimization
+**Auto-detected when**: Changed files match `*.tsx`, `*.jsx`, `*.css`, `next.config.*`, `package.json`
+**Path**: `agents/review/frontend-performance-reviewer.md`
 
 ## Important Notes
 
