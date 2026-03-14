@@ -1,6 +1,6 @@
 ---
 name: auto-run
-description: "Use when you need unattended execution across many tasks without manual dispatch cycles"
+description: "Autonomous dispatch-reconcile loop for batch task processing. Use with /auto-run --through <id> to execute tasks unattended. Requires beads tasks to exist. Supports --resume for checkpoint recovery and --skip-milestone-review."
 allowed-tools: Bash, Read, Glob, Grep, Write, Edit, Skill, TeamCreate, TeamDelete, TaskCreate, TaskUpdate, TaskList, SendMessage, Task, AskUserQuestion
 ---
 

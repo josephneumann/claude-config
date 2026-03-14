@@ -1,6 +1,6 @@
 ---
 name: milestone-review
-description: "Iterative review-fix loop for accumulated milestone/branch changes. Runs parallel reviewers, fixes findings autonomously, repeats until clean."
+description: "Iterative review-fix loop for accumulated milestone/branch changes. Runs parallel reviewers, fixes findings autonomously, repeats until clean. Use after multiple tasks merge to a milestone branch, or before merging to main. Invoke with /milestone-review --base-branch main. Supports --dry-run and --max-iterations."
 allowed-tools: Read, Bash, Glob, Grep, Edit, Write, Task, AskUserQuestion
 ---
 
@@ -63,6 +63,8 @@ Replicate multi-review's reviewer selection logic (Steps 1.5–3 of `/multi-revi
    | `*.css`, `tailwind.*`, `components/ui/**` | `tailwind-reviewer` |
    | `*.py`, `alembic/**` | `python-backend-reviewer` |
    | `routes/**`, `api/**`, `endpoints/**`, `controllers/**` | `api-security-reviewer` |
+   | `*.tsx`, `*.jsx`, `*.vue`, `*.svelte`, `components/**`, `pages/**` | `ux-reviewer` |
+   | `*.tsx`, `*.jsx`, `*.css`, `next.config.*`, `package.json` | `frontend-performance-reviewer` |
 
 3. **Always include** (milestone review is about cross-cutting concerns):
    - `code-simplicity-reviewer`

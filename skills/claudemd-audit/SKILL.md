@@ -1,6 +1,6 @@
 ---
 name: claudemd-audit
-description: "Use when the user wants to audit CLAUDE.md files for bloat, staleness, misplacement, or information architecture issues. Invoked with /claudemd-audit."
+description: "Use when the user wants to audit CLAUDE.md files for bloat, staleness, misplacement, or information architecture issues. Invoked with /claudemd-audit. Supports --project, --global, --all scopes and --fix for auto-remediation. Use periodically or before shipping to ensure CLAUDE.md stays lean."
 allowed-tools: Read, Bash, Glob, Grep, Edit, Write, AskUserQuestion, Agent
 ---
 

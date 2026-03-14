@@ -28,7 +28,7 @@ Do not proceed until you have a feature description.
 
 Evaluate whether the feature description needs refinement.
 
-**Greenfield check**: If the feature is greenfield (new system, new major capability, or significant architectural change), suggest: "This looks like a greenfield feature. Consider running `/product-review` first to challenge scope and validate the approach before planning." Proceed if user declines.
+**Greenfield check**: If the feature is greenfield (new system, new major capability, or significant architectural change), suggest: "This looks like a greenfield feature. Consider running `/product-review` first to challenge scope and validate the approach before planning." If the feature is primarily UI/frontend, add: "This looks like a UI-heavy feature. Consider running `/product-review DESIGN` first to map user journeys and interaction patterns before planning." Proceed if user declines.
 
 **If already detailed** (specific acceptance criteria, exact behavior, constrained scope):
 Offer to skip: "Your requirements seem detailed enough. Should I proceed with research, or refine further?"

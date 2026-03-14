@@ -6,7 +6,7 @@ All workflow capabilities are implemented as skills in `skills/`.
 
 | Skill | Purpose | When to Use |
 |-------|---------|-------------|
-| `/product-review` | Product-taste review: EXPAND / HOLD / REDUCE modes | Before `/spec` for greenfield features, or standalone |
+| `/product-review` | Product-taste review: EXPAND / HOLD / REDUCE / DESIGN modes | Before `/spec` for greenfield features, or standalone. Use DESIGN for UI-heavy features. |
 | `/spec` | Research, plan, decompose into tasks | New idea, feature description, or goal |
 | `/spec --deepen` | Enhance plan with parallel research agents | Existing plan needs more depth |
 
@@ -59,7 +59,7 @@ Available in `/orient` (Phase 1.5) and `/start-task` (Step 5.5) for complex task
 
 ## Review Agents
 
-**Review** (`/multi-review`): `code-simplicity-reviewer`, `security-sentinel`, `api-security-reviewer`, `performance-oracle`, `pattern-recognition-specialist`, `architecture-strategist`, `agent-native-reviewer`, `data-integrity-guardian`, `data-migration-expert`. Framework-specific (`nextjs-reviewer`, `tailwind-reviewer`, `python-backend-reviewer`) auto-detect from changed files.
+**Review** (`/multi-review`): `code-simplicity-reviewer`, `security-sentinel`, `api-security-reviewer`, `performance-oracle`, `pattern-recognition-specialist`, `architecture-strategist`, `agent-native-reviewer`, `data-integrity-guardian`, `data-migration-expert`. Framework-specific (`nextjs-reviewer`, `tailwind-reviewer`, `python-backend-reviewer`, `ux-reviewer`, `frontend-performance-reviewer`) auto-detect from changed files.
 
 **Workflow**: `spec-flow-analyzer` — analyze specs for dependencies, gaps, feasibility.
 

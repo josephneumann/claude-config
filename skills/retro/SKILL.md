@@ -1,6 +1,6 @@
 ---
 name: retro
-description: "Engineering retrospective analyzing git commit history for shipping metrics, work patterns, and trends. Persistent history with trend tracking."
+description: "Engineering retrospective analyzing git commit history for shipping metrics, work patterns, and trends. Persistent history with trend tracking. Use weekly to review shipping velocity, or after milestones. Invoke with /retro [7d|14d|30d|24h] or /retro compare to see trends."
 allowed-tools: Bash, Read, Write, Glob
 ---
 
