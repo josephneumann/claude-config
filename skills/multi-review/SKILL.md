@@ -59,7 +59,7 @@ Categorize the changes to select appropriate reviewers:
 | Architecture | new files, interface, refactor, module | architecture-strategist |
 | Patterns | any code change | pattern-recognition-specialist |
 | Complexity | any code change | code-simplicity-reviewer |
-| Agent/Tool systems | agent definitions, skills, prompts, tool configs | agent-native-reviewer |
+| Agent/Tool systems | agent definitions, skills, prompts, tool configs, UI actions, API endpoints, forms, routes | agent-native-reviewer |
 | Database migrations | db/migrate/*, schema changes, data backfills | data-integrity-guardian, data-migration-expert |
 | UX/Interaction | components, forms, modals, flows, navigation | ux-reviewer |
 | Frontend Perf  | images, imports, dependencies, animations     | frontend-performance-reviewer |
@@ -94,7 +94,7 @@ Map changed files to framework reviewers. A framework reviewer is activated when
 - `security-sentinel` — if auth, input handling, secrets, or user data
 - `performance-oracle` — if database queries, loops, caching, or data operations
 - `architecture-strategist` — if structural changes, new modules, or interface changes
-- `agent-native-reviewer` — if agent definitions, skill files, system prompts, or tool configurations
+- `agent-native-reviewer` — if agent definitions, skill files, system prompts, tool configurations, new UI actions/views, API endpoints, forms, or routes (any user-facing capability that should have agent parity)
 - `data-integrity-guardian` — if database migrations, schema changes, or data model modifications
 - `data-migration-expert` — if data backfills, ID mappings, enum conversions, or column renames
 
@@ -362,7 +362,7 @@ This PR includes frontend changes. Would you like me to test the UI in the brows
 
 #### agent-native-reviewer
 **Focus**: Action/context parity, tool design, agent capability gaps
-**Include when**: Agent definitions, skill files, system prompts, MCP configs
+**Include when**: Agent definitions, skill files, system prompts, MCP configs, new UI actions/views, API endpoints, forms, routes — any change that adds user-facing capabilities
 **Path**: `agents/review/agent-native-reviewer.md`
 
 #### data-integrity-guardian
