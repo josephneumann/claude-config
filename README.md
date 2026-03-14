@@ -76,6 +76,7 @@ claude
 
 ```mermaid
 graph LR
+    PR["/product-review"] -.->|"optional"| A
     A["/spec"] --> B["/spec --deepen"]
     B -.->|"refine"| A
     B --> D["/orient"]
@@ -89,7 +90,7 @@ graph LR
 
 | Phase | What happens |
 |-------|-------------|
-| **Spec** | `/spec` refines ideas via Q&A, researches the codebase with parallel agents, writes a plan to `docs/plans/`, and decomposes into tasks with dependencies. `/spec --deepen` adds depth with targeted parallel research. |
+| **Plan** | `/product-review` challenges scope and approach (optional &mdash; use DESIGN mode for UI features). `/spec` refines ideas via Q&A, researches the codebase with parallel agents, writes a plan to `docs/plans/`, and decomposes into tasks with dependencies. `/spec --deepen` adds depth with targeted parallel research. |
 | **Execute** | `/orient` surveys the project. `/dispatch` spawns Agent Teams teammates &mdash; each gets a task, creates a branch, implements, runs tests, creates a PR, and writes a session summary. `/auto-run` does this in a loop until all tasks are done. |
 | **Review** | `/multi-review` runs parallel specialized code review. `/reconcile-summary` syncs worker output with the task board. |
 
@@ -103,6 +104,7 @@ All workflow capabilities are implemented as slash commands in `skills/`.
 
 | Skill | Purpose |
 |-------|---------|
+| `/product-review` | Product-taste review: EXPAND / HOLD / REDUCE / DESIGN modes |
 | `/spec` | Research, plan, decompose into tasks with dependencies |
 | `/spec --deepen` | Enhance an existing plan with parallel research |
 
@@ -138,6 +140,8 @@ All workflow capabilities are implemented as slash commands in `skills/`.
 <summary><strong>Skill details</strong> (click to expand)</summary>
 
 ### Planning Skills
+
+**`/product-review`** &mdash; Product-taste review that challenges scope and approach before committing engineering effort. Four modes: EXPAND (dream big), HOLD (maximum rigor), REDUCE (strip to essentials), DESIGN (UX-first &mdash; user journeys, interaction patterns, responsive strategy). Run before `/spec` or standalone.
 
 **`/spec`** &mdash; Interactive refinement (Phase 0) moves from a vague idea to clear requirements. Runs parallel research agents (repo-research-analyst, spec-flow-analyzer, and conditionally best-practices-researcher and framework-docs-researcher). Writes plan to `docs/plans/`, then decomposes into tasks with dependencies via `bd create` and `bd dep add`.
 
@@ -244,8 +248,10 @@ Deployed by `/multi-review` and `/milestone-review` for parallel specialized rev
 | `nextjs-reviewer` | App Router, RSC, metadata, routing |
 | `tailwind-reviewer` | Tailwind/shadcn, accessibility, responsive |
 | `python-backend-reviewer` | FastAPI, SQLAlchemy, async, Alembic, pytest |
+| `ux-reviewer` | Interaction flows, state completeness, form UX, cognitive load |
+| `frontend-performance-reviewer` | Core Web Vitals, bundle size, rendering, waterfalls |
 
-> **Note:** Framework-specific reviewers (`nextjs`, `tailwind`, `python-backend`, `api-security`) auto-detect from changed files. Use `reviewers.exclude` in `.claude/review.json` to suppress. See [Setting Up a New Project](#setting-up-a-new-project).
+> **Note:** Framework-specific reviewers (`nextjs`, `tailwind`, `python-backend`, `api-security`, `ux`, `frontend-perf`) auto-detect from changed files. Use `reviewers.exclude` in `.claude/review.json` to suppress. See [Setting Up a New Project](#setting-up-a-new-project).
 
 ### Workflow Agents
 
@@ -379,6 +385,12 @@ project-root/
 ```bash
 /spec "real-time price alerts for crypto"
 /spec --deepen   # optional: enhance with parallel research
+/orient
+/dispatch
+
+# For UI-heavy features
+/product-review DESIGN    # map user journeys and interaction patterns first
+/spec "dashboard redesign"
 /orient
 /dispatch
 ```
