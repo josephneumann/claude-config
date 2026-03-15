@@ -1,7 +1,7 @@
 ---
 name: finish-task
 description: "Use when implementation and tests are complete and you're ready to close out a beads task"
-allowed-tools: Read, Bash, Glob, Grep, Edit, Write, Skill, AskUserQuestion
+allowed-tools: Read, Bash, Glob, Grep, Edit, Write, Skill, AskUserQuestion, mcp__playwright__browser_navigate, mcp__playwright__browser_snapshot, mcp__playwright__browser_click, mcp__playwright__browser_fill_form, mcp__playwright__browser_type, mcp__playwright__browser_press_key, mcp__playwright__browser_take_screenshot, mcp__playwright__browser_resize, mcp__playwright__browser_console_messages, mcp__playwright__browser_close, mcp__playwright__browser_run_code, mcp__playwright__browser_navigate_back, mcp__playwright__browser_evaluate
 ---
 
 # Finish Beads Task: $ARGUMENTS
@@ -57,37 +57,26 @@ make run-checks
 
 **If tests fail, STOP.** Fix the issues before proceeding. Do NOT close a task with failing tests.
 
-## 3.5. UI Verification
+## 3.5. Browser Workflow Testing
 
 Check if the task involves UI-visible changes:
 
 ```bash
-git diff main...HEAD --name-only | grep -E '\.(tsx|jsx|vue|svelte|html|css|scss|js|ts)$' | head -20
+git diff main...HEAD --name-only | grep -E '\.(tsx|jsx|vue|svelte|html|css|scss)$' | head -20
 ```
 
-If UI-relevant files changed, use `AskUserQuestion`:
+If no UI-relevant files changed, skip this step.
 
-```
-This task includes UI-relevant changes. Verify with Playwright?
+**Read `docs/browser-testing-protocol.md` and follow Phases 1-6:**
 
-If yes, provide the dev server URL and the page/flow to test (e.g., "localhost:3000/settings — test the new form").
+1. Pre-flight checks — verify Playwright MCP available, dev server running (Phase 1)
+2. Infer workflows from diff — classify changed files, propose to user via `AskUserQuestion` for confirmation (Phase 2)
+3. Navigate → clear cache/storage → reload — ensures fresh state, not stale cache (Phase 3)
+4. Handle auth if page redirects to login (Phase 4)
+5. Execute workflow-type checklists — interact, verify outcomes, verify persistence via reload (Phase 5)
+6. Responsive check at desktop (1280x800) + mobile (375x812) and report findings (Phase 6)
 
-1. **Yes — verify UI** (provide URL and what to test)
-2. **No — skip**
-```
-
-**If the user provides a URL and instructions:**
-
-1. `mcp__playwright__browser_navigate` to the URL
-2. `mcp__playwright__browser_snapshot` — verify the page structure and interactive elements
-3. **Test the specific flow** the user described:
-   - Use `browser_click`, `browser_fill_form`, `browser_type` to interact
-   - Use `browser_snapshot` after interactions to verify state changes
-4. `mcp__playwright__browser_resize` to mobile (375x812) → `mcp__playwright__browser_take_screenshot`
-5. `mcp__playwright__browser_console_messages` — check for errors
-6. `mcp__playwright__browser_close`
-
-**If issues are found, fix them before proceeding.** Treat UI bugs like test failures — the task isn't done until the UI works.
+**Finish-task specific:** Treat browser findings as blockers. UI bugs are like test failures — fix them before proceeding. The task isn't done until the UI works.
 
 ## 4. Review and Update Documentation
 
