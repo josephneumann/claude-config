@@ -1,7 +1,7 @@
 ---
 name: milestone-review
 description: "Iterative review-fix loop for accumulated milestone/branch changes. Runs parallel reviewers, fixes findings autonomously, repeats until clean. Use after multiple tasks merge to a milestone branch, or before merging to main. Invoke with /milestone-review --base-branch main. Supports --dry-run and --max-iterations."
-allowed-tools: Read, Bash, Glob, Grep, Edit, Write, Task, AskUserQuestion
+allowed-tools: Read, Bash, Glob, Grep, Edit, Write, Task, AskUserQuestion, mcp__playwright__browser_navigate, mcp__playwright__browser_snapshot, mcp__playwright__browser_click, mcp__playwright__browser_fill_form, mcp__playwright__browser_type, mcp__playwright__browser_press_key, mcp__playwright__browser_take_screenshot, mcp__playwright__browser_resize, mcp__playwright__browser_console_messages, mcp__playwright__browser_close, mcp__playwright__browser_run_code, mcp__playwright__browser_navigate_back, mcp__playwright__browser_evaluate
 ---
 
 # Milestone Review: Iterative Review-Fix Loop
@@ -111,28 +111,23 @@ Use the Task tool to spawn parallel review agents. Each reviewer gets:
 
 **Model selection:** Follow multi-review's tier-based logic. Default to Sonnet. Use Opus for `security-sentinel` and `architecture-strategist` when risk tier is critical.
 
-### Step 3.5b: Frontend Browser Verification (Parallel with Code Reviews)
+### Step 3.5b: Browser Workflow Testing (Parallel with Code Reviews)
 
 When changed files include frontend patterns (`.tsx`, `.jsx`, `.vue`, `.svelte`, `.html`, `.css`, `.scss`):
 
-1. If `--dry-run`, skip browser verification
-2. On the first iteration only, use `AskUserQuestion` to get the dev server URL:
-   ```
-   Frontend changes detected. Provide the dev server URL for Playwright browser verification, or skip.
+1. If `--dry-run`, skip browser testing.
 
-   1. **Provide URL** (e.g., localhost:3000, localhost:5173)
-   2. **Skip browser verification**
-   ```
-3. If URL provided, run Playwright verification:
-   - `mcp__playwright__browser_navigate` to affected routes
-   - `mcp__playwright__browser_resize` to desktop (1280x800) → `mcp__playwright__browser_take_screenshot`
-   - `mcp__playwright__browser_resize` to mobile (375x812) → `mcp__playwright__browser_take_screenshot`
-   - `mcp__playwright__browser_console_messages` for errors
-   - `mcp__playwright__browser_close`
-4. Include visual/console findings in the aggregated results alongside code review findings
-5. Visual issues get treated as Important findings (fixable CSS/layout) or Deferred (needs design decision)
+2. **Read `docs/browser-testing-protocol.md` and follow Phases 1-6** (first iteration only):
+   1. Pre-flight checks — verify Playwright MCP available, dev server running (Phase 1)
+   2. Infer workflows from diff — classify changed files, propose to user via `AskUserQuestion` for confirmation (Phase 2)
+   3. Navigate → clear cache/storage → reload — ensures fresh state, not stale cache (Phase 3)
+   4. Handle auth if page redirects to login (Phase 4)
+   5. Execute workflow-type checklists — interact, verify outcomes, verify persistence via reload (Phase 5)
+   6. Responsive check at desktop (1280x800) + mobile (375x812) and report findings (Phase 6)
 
-Cache the user's URL response — don't re-ask on subsequent iterations.
+3. Include browser findings in the aggregated results alongside code review findings. Classify as Critical/Important/Minor per the protocol's Phase 6 severity table.
+
+**Milestone-review specific:** Cache the user's URL response and workflow list — don't re-ask on subsequent iterations. On iterations 2+, re-run only the workflows that touched files modified by fixes.
 
 ### Step 3.5: Aggregate and Filter Findings
 

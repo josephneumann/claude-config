@@ -1,7 +1,7 @@
 ---
 name: multi-review
 description: "This skill should be used when the user wants a comprehensive code review using multiple specialized reviewers in parallel. Invoked with /multi-review or when user asks for 'thorough review', 'full code review', or 'review from multiple perspectives'."
-allowed-tools: Read, Bash, Glob, Grep, Write, AskUserQuestion, Task
+allowed-tools: Read, Bash, Glob, Grep, Write, AskUserQuestion, Task, mcp__playwright__browser_navigate, mcp__playwright__browser_snapshot, mcp__playwright__browser_click, mcp__playwright__browser_fill_form, mcp__playwright__browser_type, mcp__playwright__browser_press_key, mcp__playwright__browser_take_screenshot, mcp__playwright__browser_resize, mcp__playwright__browser_console_messages, mcp__playwright__browser_close, mcp__playwright__browser_run_code, mcp__playwright__browser_navigate_back, mcp__playwright__browser_evaluate
 ---
 
 # Multi-Review: Parallel Specialized Code Review
@@ -417,40 +417,27 @@ INFORMATIONAL (acknowledged):
 ═══════════════════════════════════════════
 ```
 
-### Step 9: Frontend Browser Testing (Optional)
+### Step 9: Browser Workflow Testing
 
-**When the PR includes frontend/UI changes**, offer browser-based testing using Playwright MCP tools.
+**When the PR includes frontend/UI changes**, run workflow-based browser testing.
 
 Detect frontend changes by checking for files matching:
 - `*.tsx`, `*.jsx`, `*.vue`, `*.svelte`, `*.html`
-- `*.css`, `*.scss`, `*.less`, `*.tailwind`
+- `*.css`, `*.scss`, `*.less`
 - `templates/**`, `views/**`, `components/**`, `pages/**`
 
-If frontend changes are detected, use `AskUserQuestion`:
+If no frontend changes detected, skip this step.
 
-```
-This PR includes frontend changes. Would you like me to test the UI in the browser?
+**Read `docs/browser-testing-protocol.md` and follow Phases 1-6:**
 
-1. **Yes — test affected pages** (provide dev server URL, e.g., localhost:3000)
-2. **No — skip browser testing**
-```
+1. Pre-flight checks — verify Playwright MCP available, dev server running (Phase 1)
+2. Infer workflows from diff — classify changed files, propose to user via `AskUserQuestion` for confirmation (Phase 2)
+3. Navigate → clear cache/storage → reload — ensures fresh state, not stale cache (Phase 3)
+4. Handle auth if page redirects to login (Phase 4)
+5. Execute workflow-type checklists — interact, verify outcomes, verify persistence via reload (Phase 5)
+6. Responsive check at desktop (1280x800) + mobile (375x812) and report findings (Phase 6)
 
-**If the user accepts:**
-
-1. `mcp__playwright__browser_navigate` to the dev server URL for each affected route
-2. `mcp__playwright__browser_resize` to desktop (1280x800) → `mcp__playwright__browser_take_screenshot`
-3. `mcp__playwright__browser_resize` to mobile (375x812) → `mcp__playwright__browser_take_screenshot`
-4. `mcp__playwright__browser_console_messages` to check for errors
-5. `mcp__playwright__browser_click` / `mcp__playwright__browser_type` to test interactive elements if applicable
-6. Use `mcp__playwright__browser_snapshot` only when DOM structure matters (token-heavy — prefer screenshots)
-7. `mcp__playwright__browser_close` when done
-8. Report findings:
-   - Visual issues (layout breaks, missing elements, styling problems)
-   - Console errors or warnings
-   - Broken interactions
-   - Accessibility concerns from the DOM structure
-
-**Note:** Ask the user for the dev server URL if not obvious from the project config. Common defaults: `localhost:3000`, `localhost:5173`, `localhost:8000`.
+**Multi-review specific:** Browser findings enter the same aggregation pipeline as code review findings (Step 6). Classify as Critical/Important/Minor per the protocol's Phase 6 severity table.
 
 ## Agent Reference
 
@@ -535,5 +522,5 @@ This PR includes frontend changes. Would you like me to test the UI in the brows
 - Security findings should always be surfaced even at lower confidence
 - Maximum 3 review cycles for auto-fix iterations
 - Migration reviewers should always run together (integrity + migration expert)
-- Browser testing is optional and requires user consent
+- Browser testing uses workflow-based verification (not just screenshots) and requires user consent
 - Framework reviewers auto-detect from changed files. Use `reviewers.exclude` in `review.json` to suppress false positives.

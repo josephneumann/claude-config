@@ -163,7 +163,7 @@ All workflow capabilities are implemented as slash commands in `skills/`.
 
 ### Quality Skills
 
-**`/multi-review`** &mdash; Selects 3-5 review agents based on change types, runs them in parallel, aggregates findings by severity (Critical/Important/Informational), and resolves every finding through a resolution ledger: auto-fixes without prompting, drops false positives with reasons, defers genuine human decisions for adjudication. Includes optional Playwright-based browser testing for frontend PRs. Maximum 3 review cycles with exit conditions.
+**`/multi-review`** &mdash; Selects 3-5 review agents based on change types, runs them in parallel, aggregates findings by severity (Critical/Important/Informational), and resolves every finding through a resolution ledger: auto-fixes without prompting, drops false positives with reasons, defers genuine human decisions for adjudication. Includes workflow-based browser testing for frontend PRs (cache clearing, diff-driven workflow inference, interactive verification). Maximum 3 review cycles with exit conditions.
 
 **`/milestone-review`** &mdash; Autonomous iterative review-fix loop for accumulated branch changes. Unlike `/multi-review` (interactive), milestone-review fixes all verified findings itself &mdash; refactoring, multi-file changes, pattern fixes &mdash; repeating until the branch is clean or max iterations are reached. Used automatically by `/auto-run` after tasks complete, or run standalone on any branch.
 
@@ -482,12 +482,14 @@ Partially. `/orient`, `/start-task`, `/finish-task`, and `/multi-review` all wor
 
 ### For Frontend Browser Testing (Optional)
 
-- **[Playwright MCP](https://github.com/microsoft/playwright-mcp)** &mdash; Browser automation for UI verification. Install:
+- **[Playwright MCP](https://github.com/microsoft/playwright-mcp)** &mdash; Browser automation for workflow verification. Install with `--isolated` for clean browser state on each session:
   ```bash
-  claude mcp add playwright -- npx @playwright/mcp@latest --headless
+  claude mcp add playwright -- npx @playwright/mcp@latest --headless --isolated
   npx playwright install chromium
   ```
-  Used by `/finish-task`, `/multi-review`, and `/milestone-review` for screenshot capture and console error detection on frontend changes.
+  The `--isolated` flag starts each session with an ephemeral in-memory profile, preventing stale cache/cookies from prior sessions. Without it, Playwright persists state to disk at `~/Library/Caches/ms-playwright/`.
+
+  Used by `/finish-task`, `/multi-review`, and `/milestone-review` for workflow-based browser testing: cache clearing, diff-driven workflow inference, interactive testing (click, fill, type), persistence verification, and responsive checks. See `docs/browser-testing-protocol.md` for the full protocol.
 
 ### For Unattended Auto-Run
 
