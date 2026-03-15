@@ -22,18 +22,6 @@
         ]
       }
     ],
-    "WorktreeCreate": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/worktree-setup.sh",
-            "statusMessage": "Setting up worktree environment..."
-          }
-        ]
-      }
-    ],
     "TeammateIdle": [
       {
         "matcher": "",
