@@ -39,7 +39,7 @@ Tasks are managed with `bd` (beads CLI):
 bd ready                    # Show tasks ready to work
 bd list                     # All open tasks
 bd show <id>                # Task details
-bd create --title="..." --type=task --priority=2
+bd create --title="..." --type=task --priority=2 --parent <epic-id>
 bd update <id> --status=in_progress
 bd close <id>
 bd sync --flush-only        # Export to JSONL
