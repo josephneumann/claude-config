@@ -143,7 +143,7 @@ All workflow capabilities are implemented as slash commands in `skills/`.
 
 **`/product-review`** &mdash; Product-taste review that challenges scope and approach before committing engineering effort. Four modes: EXPAND (dream big), HOLD (maximum rigor), REDUCE (strip to essentials), DESIGN (UX-first &mdash; user journeys, interaction patterns, responsive strategy). Run before `/spec` or standalone.
 
-**`/spec`** &mdash; Interactive refinement (Phase 0) moves from a vague idea to clear requirements. Runs parallel research agents (repo-research-analyst, spec-flow-analyzer, and conditionally best-practices-researcher and framework-docs-researcher). Writes plan to `docs/plans/`, then decomposes into tasks with dependencies via `bd create` and `bd dep add`.
+**`/spec`** &mdash; Interactive refinement (Phase 0) moves from a vague idea to clear requirements. Runs parallel research agents (repo-research-analyst, spec-flow-analyzer, and conditionally best-practices-researcher and framework-docs-researcher). Writes plan to `docs/plans/`, then decomposes into tasks via `bd create --parent` (containment) and `bd dep add` (execution ordering).
 
 **`/spec --deepen`** &mdash; Finds the most recent plan in `docs/plans/`, discovers and applies all available skills, runs parallel research agents per-section, launches all review agents, and merges findings back into the plan. Updates tasks accordingly.
 
