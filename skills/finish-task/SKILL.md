@@ -102,7 +102,8 @@ Do this BEFORE closing the main task so nothing is lost.
 ## 6. Commit All Changes
 
 ```bash
-git add -A
+# Stage specific changed files — do NOT use git add -A or git add .
+git add <list each changed file explicitly>
 git status
 ```
 

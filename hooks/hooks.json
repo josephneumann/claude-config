@@ -22,30 +22,6 @@
         ]
       }
     ],
-    "TeammateIdle": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/teammate-idle-guard.sh",
-            "statusMessage": "Checking session summary..."
-          }
-        ]
-      }
-    ],
-    "TaskCompleted": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/task-completed-guard.sh",
-            "statusMessage": "Verifying task completion..."
-          }
-        ]
-      }
-    ],
     "Stop": [
       {
         "matcher": "",

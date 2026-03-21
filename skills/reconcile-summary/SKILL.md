@@ -1,7 +1,7 @@
 ---
 name: reconcile-summary
 description: "Review a worker session summary and reconcile beads tasks with implementation reality. Use after a worker completes /finish-task to sync the task board with what was actually implemented. Invoked by orchestrator sessions, or with /reconcile-summary <task-id>."
-allowed-tools: Read, Bash, Glob, Grep, Edit, Write, SendMessage, TeamDelete, TaskList, AskUserQuestion
+allowed-tools: Read, Bash, Glob, Grep, Edit, Write, AskUserQuestion
 ---
 
 # Reconcile Session Summary
@@ -14,10 +14,9 @@ If `$ARGUMENTS` contains `--yes`, auto-answer ALL `AskUserQuestion` prompts:
 - **Which summary to process** → "All of them" (process all unreconciled summaries sequentially)
 - **Update PROJECT_SPEC.md or CLAUDE.md** → "No, beads only"
 - **Copy to clipboard** → "No, skip"
-- **Shut down team** → "No, keep active" (caller manages team lifecycle)
 - **Next action** → Skip prompt, return control to caller
 
-Strip `--yes` from `$ARGUMENTS` before processing task IDs. The `--yes` flag is composable with `--no-cleanup` and task ID arguments.
+Strip `--yes` from `$ARGUMENTS` before processing task IDs.
 
 ## 1. Discover Session Summaries
 
@@ -313,33 +312,6 @@ After reconciliation, ask the user:
 - **Continue orchestrating** - Return to normal orchestration
 - **Dispatch more workers** - Spin up workers for newly unblocked tasks
 - **Reconcile another** - Process the next pending summary
-
-## 12. Team Cleanup (Same-Session Only)
-
-**Note:** If `$ARGUMENTS` contains `--no-cleanup`, skip this step entirely.
-
-After reconciling, check if unreconciled summaries remain:
-
-```bash
-REMAINING=$(find docs/session_summaries/ -maxdepth 1 -name "*.txt" -type f 2>/dev/null | wc -l)
-```
-
-**If remaining == 0:**
-
-Check for active team context by running TaskList. If TaskList returns results (team context exists in this session):
-
-Use AskUserQuestion: "All summaries reconciled. Shut down the team and clean up?"
-- Options: "Yes, shut down" / "No, keep active"
-
-If confirmed:
-1. Send shutdown_request to each teammate via SendMessage
-2. Wait briefly for confirmations (teammates auto-approve or reject)
-3. Run TeamDelete to remove team config and ephemeral task list
-4. Report: "Team shut down. All task state persists in beads."
-
-If no team context (TaskList returns empty — new session or no team): Skip cleanup, note: "No active team in this session. If team resources need cleanup, start a session in the original terminal or manually remove ~/.claude/teams/<team-name>/."
-
-**If summaries remain:** Skip cleanup, report count remaining.
 
 ---
 
