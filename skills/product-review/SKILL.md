@@ -14,19 +14,76 @@ A product-taste review skill. Challenges whether you're building the right thing
 
 ---
 
+## Cognitive Patterns — How Great Product Thinkers See
+
+These aren't a checklist. They're the instincts that separate "reviewed the idea" from "caught the wrong bet." Apply them throughout.
+
+1. **Problem over solution** — The first instinct is "what problem?" not "what feature?" Every solution description gets mentally converted back to the problem it solves.
+2. **User job, not user request** — Users ask for faster horses. Product thinkers hear "I need to get places faster." The job is always upstream of the ask.
+3. **Opportunity cost is real** — Every yes is a no to something else. The question isn't "is this good?" but "is this the best use of the next N weeks?"
+4. **Second-order effects** — What happens AFTER you ship this? How does it change user behavior, expectations, support load, adjacent features?
+5. **Evidence over opinion** — "I think users want this" vs. "12 users requested this, 3 churned citing its absence." Product decisions are bets — know what evidence you have and what you're assuming.
+6. **Minimum lovable, not minimum viable** — MVP answers "what's the least we can build?" The right question is "what's the smallest thing that makes someone love this?"
+7. **Reversibility as superpower** — One-way doors deserve deliberation. Two-way doors deserve speed. Most decisions are two-way doors treated as one-way.
+8. **Compounding value** — Great product decisions create leverage for future features. "Does this make the next 10 features easier or harder?"
+9. **The "Why now?" test** — If this was such a good idea, why hasn't it been built already? What changed? If nothing changed, the priority probably shouldn't either.
+10. **Success is measurable** — "This will be great" is a vibe, not a hypothesis. Name the metric that moves. If you can't, you can't know if it worked.
+
+**Apply them**: Premise challenge → #1, #2, #5. Scope evaluation → #3, #9. Architecture → #4, #7, #8. Outputs → #10. Mode selection → #6.
+
+---
+
 ## Step 0: Nuclear Scope Challenge
 
 This step runs FIRST, before any review sections. It determines whether the work should exist at all.
 
 ### 0A. Premise Challenge
 
-Ask and answer explicitly:
+**Solution Bias Check** — Read the proposal. Does it describe HOW (tech choices, APIs, UI patterns) before establishing WHAT (user need) and WHY (evidence)? If yes, flag it: "This is solution-first. Let's establish the problem before designing the fix." Rewrite the framing as a problem statement before continuing.
+
+**Jobs-to-Be-Done** — Articulate the three user jobs this initiative serves:
+
+```
+JOB TYPE    | THE JOB (without referencing the solution) | EVIDENCE
+------------|---------------------------------------------|----------
+Functional  | What task is the user trying to accomplish? | [How do we know?]
+Emotional   | How do they want to feel during/after?      | [Signal?]
+Social      | How do they want to be perceived?           | [Signal?]
+```
+
+If you can't name the functional job without referencing the solution ("users need a settings page" vs. "users need to configure notification preferences"), the problem isn't understood — surface via `AskUserQuestion` before continuing. Write N/A for Emotional or Social if genuinely inapplicable (e.g., internal tooling, infrastructure).
+
+Then ask and answer explicitly:
 - Is this the right problem to solve?
 - Is this the best framing of the problem?
 - What happens if we do nothing? (If "nothing bad" — that's a signal.)
-- Who asked for this and why? User pain vs. internal preference?
+- Who asked for this and why? User pain vs. internal preference vs. assumed need?
+- What's the evidence? Requests, churn data, support tickets, usage analytics — or gut feeling?
+- What metric moves when this ships? If you can't name one, this isn't a hypothesis — it's a wish.
+- What are we NOT building by building this? Is that tradeoff explicit?
 - Can agents perform this action too, or is this UI-only? If UI-only, why?
 - What's the agent story? API/tool parity for every user-facing capability.
+
+### 0A½. Desirability-Viability-Feasibility Gate
+
+**This is a hard gate.** Score each axis and justify with evidence, not opinion:
+
+```
+AXIS           | RATING    | EVIDENCE
+---------------|-----------|------------------------------------------
+Desirability   | 🟢/🟡/🔴 | Who wants this? How do we know? What's the demand signal?
+Viability      | 🟢/🟡/🔴 | Business case? Revenue/retention/engagement impact? Sustainable to maintain?
+Feasibility    | 🟢/🟡/🔴 | Can we build it? Technical constraints? Dependencies? Timeline realistic?
+```
+
+🟢 = strong evidence, clear path. 🟡 = plausible but unvalidated, assumptions present. 🔴 = missing evidence or fundamental blocker.
+
+**Any 🔴 = STOP.** Present the red axis via `AskUserQuestion`:
+- A) Re-scope to address the red axis
+- B) Provide missing evidence that moves it to 🟡
+- C) Kill the initiative — it's not ready
+
+Do NOT proceed past this step until all axes are 🟡 or 🟢.
 
 ### 0B. Existing Code Leverage
 
@@ -65,6 +122,16 @@ Before the user selects a mode, run the analysis for ALL four to inform selectio
 - 10x check: If this had to serve 10x users/load/scope, what breaks?
 - Platonic ideal: What would the perfect version look like, unconstrained?
 - Delight opportunities: Where could this surprise users positively?
+- Kano classification: For each proposed capability, classify:
+
+```
+CAPABILITY         | KANO TIER   | RATIONALE
+-------------------|-------------|----------------------------------
+[each capability]  | Must-Have / Performance / Delighter | [why this tier]
+```
+
+  Tiers: **Must-Have** = rage when absent. **Performance** = more is better. **Delighter** = surprise when present.
+  Pursue Delighters that are low-effort/high-surprise. Flag any Must-Have being treated as optional — that's a critical gap.
 
 **HOLD lens**:
 - Complexity check: What's the minimum set of changes to ship this?
@@ -73,6 +140,7 @@ Before the user selects a mode, run the analysis for ALL four to inform selectio
 **REDUCE lens**:
 - Ruthless cut: What can be removed and shipped as follow-up?
 - Core kernel: What's the absolute smallest thing that delivers value?
+- Kano-guided cuts: Cut in this order — Delighters first, then Performance features. Protect Must-Haves. If a Must-Have is too expensive, re-scope the entire initiative rather than shipping without it.
 
 **DESIGN lens**:
 - User journey mapping: What are the 3-5 primary user journeys?
@@ -80,6 +148,12 @@ Before the user selects a mode, run the analysis for ALL four to inform selectio
 - Information architecture: Fits user's mental model?
 - Responsive strategy: Mobile-first or desktop-first? Primary device?
 - Accessibility-first: What a11y requirements baked in from start?
+- Cognitive Walkthrough: For each key user flow, answer these four questions:
+  1. **Goal clarity**: Will users try to achieve the right result?
+  2. **Discoverability**: Will users notice the correct action is available?
+  3. **Affordance**: Will users associate the correct action with their goal?
+  4. **Feedback**: Will users see progress toward their goal after acting?
+  Any "no" = design gap. Surface via `AskUserQuestion` before proceeding.
 
 ### 0E. Temporal Interrogation (EXPAND/HOLD/DESIGN)
 
@@ -111,6 +185,7 @@ Test ambition           | Comprehensive   | Thorough        | Critical paths  | 
 Failure handling        | Every path      | Every path      | Fatal paths     | User-visible paths
 "Nice to have" items    | Evaluate        | Reject          | Cut             | Evaluate for delight
 Agent parity            | Design for it   | Verify exists   | Defer if costly | Design for it
+Feature tiering         | Kano: all 3     | Kano: Must+Perf | Kano: Must only | Kano: Must+Delight
 Follow-up work          | Identify        | Identify        | Mandate         | Prioritize by user pain
 ```
 
@@ -266,13 +341,41 @@ Produce all of:
 ```
 SECTION                  | FINDINGS | CRITICAL GAPS | QUESTIONS RESOLVED
 -------------------------|----------|---------------|-------------------
-0. Nuclear Scope         |          |               |
+0A. Problem & Jobs       |          |               |
+0A½. DVF Gate            | D:🟢/🟡 V:🟢/🟡 F:🟢/🟡 |       |
+0B. Existing Leverage    |          |               |
+0C. Dream State          |          |               |
+0D. Mode Analysis        |          |               |
+0E. Temporal             |          |               |
+0F. Mode: [SELECTED]     |          |               |
 1. Architecture          |          |               |
 2. Error & Failure Map   |          |               |
 3. Security & Threat     |          |               |
 4. Data Flow & Edge      |          |               |
 5. Test Coverage         |          |               |
 6. Deployment & Rollback |          |               |
+```
+
+### Product Thinking Summary
+
+Carry forward to `/spec`:
+
+**User Jobs:**
+```
+JOB TYPE    | THE JOB                              | VALIDATED?
+------------|--------------------------------------|----------
+Functional  | [from 0A]                            | ✅/⚠️
+Emotional   | [from 0A]                            | ✅/⚠️
+Social      | [from 0A]                            | ✅/⚠️
+```
+
+**DVF Status:** D:🟢/🟡 V:🟢/🟡 F:🟢/🟡
+
+**Kano Tiers** (if EXPAND or REDUCE):
+```
+CAPABILITY      | TIER          | INCLUDED?
+----------------|---------------|----------
+                | Must/Perf/Del |
 ```
 
 ### DESIGN Mode Additional Outputs
