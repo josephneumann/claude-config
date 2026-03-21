@@ -85,6 +85,17 @@ Announce the decision briefly, then proceed.
 - Task spec-flow-analyzer(feature_description, research_findings)
 - Incorporate gaps, edge cases, acceptance criteria updates
 
+**Engineering lenses** (apply while writing Technical Considerations):
+- Boring by default: are we using proven technology? Flag any novel choices as deliberate innovation-token spends.
+- Reversibility: can this be rolled back without data loss? Feature flags needed?
+- Systems over heroes: will this work when maintained by someone unfamiliar at 3am?
+- Essential vs accidental complexity: is every new abstraction solving a real problem or one we created?
+
+**Design lenses** (apply for plans with UI scope):
+- Interaction states: specify loading/empty/error/success for every user-facing feature
+- AI slop check: replace generic descriptions ("clean modern UI", "card grid") with specific design decisions
+- Responsive: describe per-viewport behavior, not just "mobile-friendly"
+
 **Choose detail level:**
 
 #### MINIMAL — Simple bugs, small improvements, clear features
@@ -135,6 +146,18 @@ date: YYYY-MM-DD
 [Work considered and explicitly deferred, with one-line rationale each]
 ## What Already Exists
 [Map each sub-problem to existing code/flows. Note whether plan reuses or rebuilds.]
+## Architecture Diagram
+[ASCII diagram: component boundaries, dependencies, data flow]
+[Show happy path AND shadow paths (nil, empty, error)]
+## Test Diagram
+[Map every new codepath/flow to its required test]
+| New Codepath/Flow | Test Type | Happy Path | Failure Path | Edge Case |
+|-------------------|-----------|------------|--------------|-----------|
+| ... | unit/integration/e2e | Y/N | Y/N | Y/N |
+## Interaction States (include for plans with UI scope)
+| Feature | Loading | Empty | Error | Success | Partial |
+|---------|---------|-------|-------|---------|---------|
+| ... | [what user sees] | ... | ... | ... | ... |
 ## Failure Modes
 [For each new codepath: one realistic failure, whether a test covers it, whether error handling exists, whether user sees it or it's silent]
 | Codepath | Failure Mode | Test? | Handled? | User Sees? |
@@ -207,6 +230,23 @@ date: YYYY-MM-DD
 [Work considered and explicitly deferred, with one-line rationale each]
 ## What Already Exists
 [Map each sub-problem to existing code/flows. Note whether plan reuses or rebuilds.]
+## Architecture Diagram
+[ASCII diagram: component boundaries, dependencies, data flow]
+[Show happy path AND shadow paths (nil, empty, error)]
+## Test Diagram
+[Map every new codepath/flow to its required test]
+| New Codepath/Flow | Test Type | Happy Path | Failure Path | Edge Case |
+|-------------------|-----------|------------|--------------|-----------|
+| ... | unit/integration/e2e | Y/N | Y/N | Y/N |
+## Interaction States (include for plans with UI scope)
+| Feature | Loading | Empty | Error | Success | Partial |
+|---------|---------|-------|-------|---------|---------|
+| ... | [what user sees] | ... | ... | ... | ... |
+## Reversibility Assessment
+- Rollback procedure: [exact steps]
+- Data migration reversibility: [Y/N, details]
+- Feature flag strategy: [what to flag, kill switch]
+- Deploy-time risk window: [what breaks between step 1 and step N]
 ## Failure Modes
 [For each new codepath: one realistic failure, whether a test covers it, whether error handling exists, whether user sees it or it's silent]
 | Codepath | Failure Mode | Test? | Handled? | User Sees? |
@@ -250,9 +290,56 @@ Never silently default. Surface these so implementers know where ambiguity lives
 - Scope challenge: [passed / flagged N concerns]
 - NOT in scope: [N items deferred]
 - What already exists: [N items mapped]
+- Architecture diagram: [included / N/A]
+- Test diagram: [N codepaths mapped, N gaps]
+- Interaction states: [included / N/A — no UI scope]
 - Failure modes: [N mapped, N CRITICAL GAPS]
+- Engineering review: [N issues found, N critical gaps]
+- Design review: [scores per dimension / N/A — no UI scope]
 - Unresolved decisions: [N open]
 ```
+
+### Phase 2.5: Plan Review
+
+Review the plan through engineering and design lenses before decomposition.
+**Skip for MINIMAL plans.** For STANDARD and COMPREHENSIVE, this is mandatory.
+
+**Depth scales with plan level:**
+
+**STANDARD plans — Focused review:**
+- Task general-purpose: "Read skills/plan-eng-review/SKILL.md for cognitive patterns and review methodology. Review the plan at [plan_path]. Return: top 5 engineering concerns ranked by severity, test coverage gaps, architecture diagram assessment, failure mode completeness, and any critical gaps (Silent + no test + no handling)."
+- If plan has UI scope, also Task general-purpose: "Read skills/plan-design-review/SKILL.md for the design passes and cognitive patterns. Review the plan at [plan_path]. Return 0-10 score for: Interaction State Coverage, AI Slop Risk, Responsive & Accessibility. Flag specific gaps."
+- Incorporate agent findings into the plan document.
+- If any CRITICAL GAP found, surface via AskUserQuestion before proceeding.
+- Amend Plan Review Summary with review results.
+
+**COMPREHENSIVE plans — Full interactive review:**
+
+Run the engineering review inline. Apply cognitive patterns from `skills/plan-eng-review/SKILL.md` throughout.
+
+1. **Architecture review** — dependency graph, data flow, scaling, security. Production failure scenario per new codepath. ASCII diagram validation.
+   STOP per issue. AskUserQuestion with options + recommendation + WHY.
+2. **Code quality review** — organization, DRY, error handling gaps, edge cases.
+   STOP per issue.
+3. **Test review** — verify test diagram covers all new codepaths/flows.
+   STOP per issue.
+4. **Performance review** — N+1, memory, caching, slow paths.
+   STOP per issue.
+
+If plan has UI scope, also run design review passes (apply cognitive patterns from `skills/plan-design-review/SKILL.md`):
+
+5. **Interaction State Coverage** — rate 0-10, fix gaps in the plan
+6. **AI Slop Risk** — rate 0-10, rewrite vague descriptions with specific decisions
+7. **Responsive & Accessibility** — rate 0-10, add per-viewport specs
+
+Key cognitive patterns to apply throughout:
+- **Boring by default** — flag novel technology. Is this spending an innovation token wisely?
+- **Reversibility preference** — can every decision be undone?
+- **Systems over heroes** — design for tired humans, not best engineer on best day
+- **Two-week smell test** — can a competent engineer ship a feature in 2 weeks?
+- **Subtraction default** — if a UI element doesn't earn its pixels, cut it
+
+Amend plan with all findings. Update Plan Review Summary.
 
 ### Phase 3: Decompose into Beads
 
@@ -319,26 +406,30 @@ Use **AskUserQuestion** to present options:
 
 **If `decomposed = true`:**
 
-**Question:** "Plan created and decomposed into tasks. What next?"
+**Question:** "Plan created, reviewed, and decomposed into tasks. What next?"
 
 **Options:**
 1. **Deepen the plan** — Run `--deepen` mode for parallel research enhancement
-2. **Review the plan** — Run `/multi-review` for specialized feedback
-3. **Dispatch workers** — Run `/dispatch` to start parallel execution
-4. **Work solo** — Pick a task with `/start-task`
-5. **Create GitHub issue** — `gh issue create --title "<type>: <title>" --body-file <plan_path>`
-6. **Simplify** — Reduce detail level
+2. **Full engineering review** — Run `/plan-eng-review` for interactive issue-by-issue walkthrough
+3. **Full design review** — Run `/plan-design-review` for 7-pass scored review (only suggest if plan has UI scope)
+4. **Review the plan** — Run `/multi-review` for specialized feedback
+5. **Dispatch workers** — Run `/dispatch` to start parallel execution
+6. **Work solo** — Pick a task with `/start-task`
+7. **Create GitHub issue** — `gh issue create --title "<type>: <title>" --body-file <plan_path>`
+8. **Simplify** — Reduce detail level
 
 **If `decomposed = false`:**
 
-**Question:** "Plan created. What next?"
+**Question:** "Plan created and reviewed. What next?"
 
 **Options:**
 1. **Deepen the plan** — Run `--deepen` mode for parallel research enhancement
-2. **Review the plan** — Run `/multi-review` for specialized feedback
-3. **Create GitHub issue** — `gh issue create --title "<type>: <title>" --body-file <plan_path>`
-4. **Simplify** — Reduce detail level
-5. **Decompose now** — Create beads tasks from this plan
+2. **Full engineering review** — Run `/plan-eng-review` for interactive issue-by-issue walkthrough
+3. **Full design review** — Run `/plan-design-review` for 7-pass scored review (only suggest if plan has UI scope)
+4. **Review the plan** — Run `/multi-review` for specialized feedback
+5. **Create GitHub issue** — `gh issue create --title "<type>: <title>" --body-file <plan_path>`
+6. **Simplify** — Reduce detail level
+7. **Decompose now** — Create beads tasks from this plan
 
 ---
 
@@ -424,10 +515,12 @@ Use **AskUserQuestion**:
 
 **Options:**
 1. **View diff** — `git diff [plan_path]`
-2. **Run `/multi-review`** — Feedback from reviewers
-3. **Run `/dispatch`** — Spawn parallel workers
-4. **Run `/start-task <id>`** — Begin a specific task
-5. **Deepen further** — Another round on specific sections
+2. **Full engineering review** — Run `/plan-eng-review` for interactive walkthrough
+3. **Full design review** — Run `/plan-design-review` for scored review (only suggest if UI scope)
+4. **Run `/multi-review`** — Feedback from reviewers
+5. **Run `/dispatch`** — Spawn parallel workers
+6. **Run `/start-task <id>`** — Begin a specific task
+7. **Deepen further** — Another round on specific sections
 
 **If no beads tasks exist:**
 
@@ -435,6 +528,8 @@ Use **AskUserQuestion**:
 
 **Options:**
 1. **View diff** — `git diff [plan_path]`
-2. **Run `/multi-review`** — Feedback from reviewers
-3. **Decompose into tasks** — Create beads tasks from this plan
-4. **Deepen further** — Another round on specific sections
+2. **Full engineering review** — Run `/plan-eng-review` for interactive walkthrough
+3. **Full design review** — Run `/plan-design-review` for scored review (only suggest if UI scope)
+4. **Run `/multi-review`** — Feedback from reviewers
+5. **Decompose into tasks** — Create beads tasks from this plan
+6. **Deepen further** — Another round on specific sections
