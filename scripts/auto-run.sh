@@ -1,10 +1,10 @@
 #!/bin/bash
 # Autonomous orchestrator wrapper — restarts claude across context exhaustions.
 #
-# Uses `expect` to allocate a pty so Agent Teams works in each iteration.
-# Agent Teams requires an interactive terminal session — `claude -p` does NOT
-# support it. The wrapper spawns Claude interactively via expect, sends the
-# /auto-run command, and waits for the process to exit.
+# Uses `expect` to allocate a pty for interactive Claude Code sessions.
+# The wrapper spawns Claude interactively via expect, sends the /auto-run
+# command, and waits for the process to exit. Workers run as subagents
+# with worktree isolation (no Agent Teams dependency).
 #
 # Usage:
 #   scripts/auto-run.sh [--through <id>] [--epic <id>] [--only <ids>]

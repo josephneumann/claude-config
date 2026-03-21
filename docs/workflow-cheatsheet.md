@@ -17,9 +17,9 @@
 # Single session
 /orient → /start-task <id> → implement → /finish-task <id>
 
-# Parallel sessions (orchestrator via Agent Teams)
+# Parallel sessions (worktree-isolated workers)
 /orient → /dispatch --count 3
-# Teammates auto-spawn, run /start-task, implement, run /finish-task
+# Workers auto-spawn in isolated worktrees, run /start-task, implement, run /finish-task
 
 # Worker completes → orchestrator reconciles
 /reconcile-summary → update beads → dispatch next batch

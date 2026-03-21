@@ -23,7 +23,7 @@
   <a href="https://github.com/josephneumann/claude-corps/stargazers"><img src="https://img.shields.io/github/stars/josephneumann/claude-corps" alt="Stars"></a>
   <a href="https://github.com/josephneumann/claude-corps/commits/main"><img src="https://img.shields.io/github/last-commit/josephneumann/claude-corps" alt="Last Commit"></a>
   <img src="https://img.shields.io/badge/Claude%20Code-compatible-blueviolet" alt="Claude Code Compatible">
-  <img src="https://img.shields.io/badge/Agent%20Teams-supported-green" alt="Agent Teams">
+  <img src="https://img.shields.io/badge/Worktree%20Isolation-supported-green" alt="Worktree Isolation">
 </p>
 
 ---
@@ -32,7 +32,7 @@
 
 Claude Code is powerful on its own. claude-corps makes it a **team**.
 
-- **Parallel execution** &mdash; Dispatch 3-5 Claude agents working simultaneously on different tasks, each on an isolated branch
+- **Parallel execution** &mdash; Dispatch 3-5 Claude agents working simultaneously on different tasks, each in an isolated git worktree
 - **Full lifecycle coverage** &mdash; From spec to dispatch to PR to code review, every step has a skill
 - **Autonomous multi-hour runs** &mdash; `/auto-run` chains dispatch, reconcile, and repeat until your entire backlog is done
 - **Human in the loop** &mdash; Agents execute, you decide. PRs are created, never auto-merged
@@ -66,7 +66,7 @@ Then in any project:
 ```bash
 claude
 > /orient              # Survey your project and identify parallel work
-> /dispatch --count 3  # Spawn 3 agent teammates on parallel branches
+> /dispatch --count 3  # Spawn 3 workers in isolated worktrees
 > /auto-run            # Or go fully autonomous
 ```
 
@@ -91,7 +91,7 @@ graph LR
 | Phase | What happens |
 |-------|-------------|
 | **Plan** | `/product-review` challenges scope and approach (optional &mdash; use DESIGN mode for UI features). `/spec` refines ideas via Q&A, researches the codebase with parallel agents, writes a plan to `docs/plans/`, and decomposes into tasks with dependencies. `/spec --deepen` adds depth with targeted parallel research. |
-| **Execute** | `/orient` surveys the project. `/dispatch` spawns Agent Teams teammates &mdash; each gets a task, creates a branch, implements, runs tests, creates a PR, and writes a session summary. `/auto-run` does this in a loop until all tasks are done. |
+| **Execute** | `/orient` surveys the project. `/dispatch` spawns worktree-isolated workers &mdash; each gets a task, implements in its own filesystem, runs tests, creates a PR, and writes a session summary. `/auto-run` does this in a loop until all tasks are done. |
 | **Review** | `/multi-review` runs parallel specialized code review. `/reconcile-summary` syncs worker output with the task board. |
 
 ---
@@ -120,7 +120,7 @@ All workflow capabilities are implemented as slash commands in `skills/`.
 
 | Skill | Purpose |
 |-------|---------|
-| `/dispatch` | Spawn parallel Agent Teams teammates on branches |
+| `/dispatch` | Spawn worktree-isolated workers for parallel execution |
 | `/auto-run` | Autonomous dispatch-reconcile loop for multi-hour runs |
 | `/reconcile-summary` | Sync worker output with task board |
 | `/summarize-session <id>` | Mid-session progress checkpoint (read-only) |
@@ -151,13 +151,13 @@ All workflow capabilities are implemented as slash commands in `skills/`.
 
 **`/orient`** &mdash; Discovers project structure, reads CLAUDE.md/README/PROJECT_SPEC, analyzes task state, checks git health, outputs a structured orientation report with recommended parallel work streams. Always offers `/dispatch` as next action.
 
-**`/dispatch`** &mdash; Identifies ready tasks, generates context, creates an Agent Teams team, and spawns teammates. Each teammate works on an isolated branch with full autonomy. Supports `--count N`, `--plan-first`, `--no-plan`, `--yes`, and custom per-task context.
+**`/dispatch`** &mdash; Identifies ready tasks, generates context, and spawns workers as subagents with git worktree isolation. Each worker gets its own filesystem copy of the repo &mdash; no conflicts possible. Supports `--count N`, `--plan-first`, `--no-plan`, `--yes`, and custom per-task context.
 
 **`/start-task <id>`** &mdash; Validates the task, claims it, creates a task branch for isolation, gathers project context, optionally runs research agents, defines acceptance criteria, and begins implementation.
 
 **`/finish-task <id>`** &mdash; Runs quality gates (tests must pass), commits changes, pushes to remote, creates a PR, runs `/multi-review` with auto-fix, closes the task, outputs a session summary. Tests must pass or the command stops.
 
-**`/reconcile-summary`** &mdash; Auto-discovers unreconciled summaries in `docs/session_summaries/`, cross-references summary claims against PR/CI evidence before trusting them, analyzes spec divergences, updates affected tasks, creates new tasks for discovered work, closes obsoleted tasks. Supports `--yes` for autonomous operation and `--no-cleanup` to skip team shutdown.
+**`/reconcile-summary`** &mdash; Auto-discovers unreconciled summaries in `docs/session_summaries/`, cross-references summary claims against PR/CI evidence before trusting them, analyzes spec divergences, updates affected tasks, creates new tasks for discovered work, closes obsoleted tasks. Supports `--yes` for autonomous operation.
 
 **`/summarize-session <id>`** &mdash; Read-only progress snapshot. Does not commit, push, or close anything.
 
@@ -183,7 +183,7 @@ All workflow capabilities are implemented as slash commands in `skills/`.
 
 ## Autonomous Multi-Hour Orchestration
 
-`/auto-run` enables fully autonomous operation. It dispatches workers, waits for completions (Agent Teams delivers messages as conversation turns), reconciles results, dispatches newly unblocked tasks, and repeats. After all tasks complete, it runs a milestone review phase &mdash; an iterative review-fix loop on the accumulated branch changes that catches cross-cutting issues individual task reviews miss (skip with `--skip-milestone-review`).
+`/auto-run` enables fully autonomous operation. It dispatches worktree-isolated workers, waits for completions (background agents notify on finish), reconciles results, dispatches newly unblocked tasks, and repeats. After all tasks complete, it runs a milestone review phase &mdash; an iterative review-fix loop on the accumulated branch changes that catches cross-cutting issues individual task reviews miss (skip with `--skip-milestone-review`).
 
 ```bash
 # All ready tasks
@@ -211,7 +211,7 @@ For runs that outlast a single context window, the wrapper script provides proce
 ~/.claude/scripts/auto-run.sh --through Proj-xyz --max-hours 4
 ```
 
-The wrapper uses `expect` to allocate a pty (Agent Teams requires interactive mode), sends `/auto-run --resume` into each fresh Claude session, and checks task state between iterations. State is checkpointed to `docs/auto-run-checkpoint.json` and survives restarts.
+The wrapper uses `expect` to allocate a pty for interactive Claude sessions, sends `/auto-run --resume` into each fresh Claude session, and checks task state between iterations. State is checkpointed to `docs/auto-run-checkpoint.json` and survives restarts.
 
 ---
 
@@ -335,8 +335,8 @@ project-root/
 
 ## Principles
 
-1. **Parallel by default** &mdash; Multiple Claude sessions work simultaneously on isolated branches.
-2. **Orchestrator + Workers** &mdash; One session coordinates, teammates execute discrete tasks and report back.
+1. **Parallel by default** &mdash; Multiple Claude sessions work simultaneously in isolated git worktrees.
+2. **Orchestrator + Workers** &mdash; One session coordinates, workers execute discrete tasks in their own worktrees and report back.
 3. **Task-sized work** &mdash; Big enough to be a meaningful atomic change, small enough to complete without exhausting context.
 4. **Bounded autonomy** &mdash; Clarify requirements first, then execute autonomously within those bounds.
 5. **Tests as the contract** &mdash; "Done" means tests pass. The code proves itself.
@@ -365,8 +365,8 @@ project-root/
 ```bash
 /orient
 /dispatch --count 3
-# 3 teammates spawn, each on a branch, working in parallel
-# Use Shift+Up/Down to switch between teammates
+# 3 workers spawn, each in an isolated worktree, working in parallel
+# Workers run in the background and notify on completion
 /reconcile-summary
 ```
 
@@ -442,9 +442,9 @@ The review config (`.claude/review.json`) lets you configure per-project file se
 
 claude-corps uses a layered model: the `security-sentinel` AI agent handles business logic vulnerabilities (IDOR, auth bypass, absence detection) that require understanding intent, while CI/CD tools handle deterministic checks (SAST via Semgrep, container scanning via Trivy, dependency audit, secret scanning). A pre-commit hook catches secrets before they enter git history. When SAST results are available, the AI agent triages them in context — confirming real vulnerabilities and dismissing false positives. See the [Security](#security) section for setup.
 
-### Can I use this without Agent Teams?
+### Does this require Agent Teams?
 
-Partially. `/orient`, `/start-task`, `/finish-task`, and `/multi-review` all work without Agent Teams. `/dispatch` and `/auto-run` require it &mdash; they spawn parallel teammates.
+No. claude-corps uses subagent worktrees (`isolation: "worktree"` on the Agent tool) for parallel execution. No Agent Teams configuration needed. All skills work with standard Claude Code.
 
 ---
 
@@ -467,18 +467,6 @@ Partially. `/orient`, `/start-task`, `/finish-task`, and `/multi-review` all wor
 - **[beads](https://github.com/josephneumann/beads)** (`bd`) &mdash; Task management with dependencies. Run `bd init` in your project.
 - **git** &mdash; With worktree support (standard in modern git)
 - **[gh](https://cli.github.com/)** &mdash; GitHub CLI for PR creation. Install: `brew install gh`
-
-### For Parallel Agent Dispatch
-
-- **[Agent Teams](https://docs.anthropic.com/en/docs/claude-code/agent-teams)** &mdash; Required for `/dispatch` and `/auto-run`. Enable in `~/.claude/settings.json`:
-  ```json
-  {
-    "env": {
-      "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
-    },
-    "teammateMode": "in-process"
-  }
-  ```
 
 ### For Frontend Browser Testing (Optional)
 

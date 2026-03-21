@@ -349,7 +349,7 @@ Reply with your choices (e.g., "1a, 2c"):
 
 Each response moves the finding to `fixed[]` (agent implements chosen approach), `dropped[]` (dismissed), or `deferred[task: <id>]` (beads task created). The review does NOT proceed to re-review until all deferred items are resolved.
 
-**Autonomous context** (when multi-review runs inside `/finish-task` as an Agent Teams worker with no human available): skip `AskUserQuestion`. Instead, auto-create beads tasks for all deferred items and log them as `deferred[task: <id>]`. Report the deferred count in the session summary for the orchestrator to see. Detection: if the session is a dispatched teammate, treat as autonomous.
+**Autonomous context** (when multi-review runs inside `/finish-task` as a dispatched worker with no human available): skip `AskUserQuestion`. Instead, auto-create beads tasks for all deferred items and log them as `deferred[task: <id>]`. Report the deferred count in the session summary for the orchestrator to see. Detection: if the session is a dispatched worker (running in a worktree), treat as autonomous.
 
 #### Phase 4: INFORMATIONAL batch resolution
 

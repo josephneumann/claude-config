@@ -1,7 +1,7 @@
 ---
 name: start-task
 description: "Start working on a beads task (claim, gather context, define acceptance criteria)"
-allowed-tools: Read, Bash, Glob, Grep, Edit, Write, AskUserQuestion, TaskList, SendMessage
+allowed-tools: Read, Bash, Glob, Grep, Edit, Write, AskUserQuestion
 ---
 
 # Start Beads Task: $ARGUMENTS
@@ -93,16 +93,15 @@ bd show <task_id>
 
 Look at the "Blocked by" section. If this task has unmet dependencies, warn the user and ask if they want to proceed anyway.
 
-### 6.1 Sibling Task Awareness (Team Context)
+### 6.1 Concurrent Work Awareness
 
-If you are on a team (check if TaskList returns results):
+Check what other tasks are currently in progress to understand the broader context:
 
-1. Run TaskList to see sibling tasks and their owners
-2. Identify tasks that produce output you consume or vice versa
-3. If found, message that teammate to coordinate on shared interfaces:
-   - Use SendMessage with type="message" and the peer's teammate name
-   - Briefly describe what you'll need from them or provide to them
-   - Don't block on a response — continue with your work
+```bash
+bd list --status=in_progress 2>/dev/null
+```
+
+If other tasks are in progress, note them for awareness — avoid modifying files that are likely being changed by other workers. If you discover a shared interface concern during implementation, document it in your session summary for the orchestrator.
 
 ## 6.5 Research Phase (Conditional)
 

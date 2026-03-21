@@ -1,12 +1,14 @@
 ---
 name: auto-run
 description: "Autonomous dispatch-reconcile loop for batch task processing. Use with /auto-run --through <id> to execute tasks unattended. Requires beads tasks to exist. Supports --resume for checkpoint recovery and --skip-milestone-review."
-allowed-tools: Bash, Read, Glob, Grep, Write, Edit, Skill, TeamCreate, TeamDelete, TaskCreate, TaskUpdate, TaskList, SendMessage, Task, AskUserQuestion
+allowed-tools: Bash, Read, Glob, Grep, Write, Edit, Skill, Agent, AskUserQuestion
 ---
 
 # Autonomous Orchestrator Loop: $ARGUMENTS
 
 You are an autonomous orchestrator. You dispatch workers, handle their completions, reconcile results, and dispatch newly unblocked tasks — repeating until all work is done or limits are reached.
+
+Workers run in isolated git worktrees via the Agent tool. Each worker gets its own filesystem — no conflicts possible.
 
 ## Section 1: Argument Parsing
 
@@ -38,7 +40,7 @@ Read checkpoint at `docs/auto-run-checkpoint.json` (resolve from main repo root 
    ls docs/session_summaries/<task-id>*.txt 2>/dev/null
    ```
 4. If summaries found → reconcile them first:
-   Call `/reconcile-summary --yes --no-cleanup` via Skill tool
+   Call `/reconcile-summary --yes` via Skill tool
 5. Skip orient, proceed to dispatch loop (Section 3)
 
 **If fresh start (no checkpoint or no `--resume`):**
@@ -47,14 +49,14 @@ Read checkpoint at `docs/auto-run-checkpoint.json` (resolve from main repo root 
 3. Write initial checkpoint
 
 Write checkpoint JSON to `docs/auto-run-checkpoint.json` with:
-- `version`: 1
+- `version`: 2
 - `status`: "running"
 - `start_time`: current ISO8601 timestamp
 - `config`: parsed flags (max_batches, max_hours, max_concurrent)
 - `scope`: resolved scope (see 2.1)
 - `batch_number`: 0
-- `tasks`: { completed: [], failed: [], in_progress: [], branch_isolation_failures: [] }
-- `stats`: { total_dispatched: 0, total_completed: 0, total_failed: 0, total_batches: 0, total_branch_isolation_failures: 0 }
+- `tasks`: { completed: [], failed: [], in_progress: [] }
+- `stats`: { total_dispatched: 0, total_completed: 0, total_failed: 0, total_batches: 0 }
 
 ### 2.1 Resolve Scope
 
@@ -96,20 +98,15 @@ Auto-run scope: N tasks [list IDs]. Target: <task-id or epic-id or "all">
 4. If ready tasks exist:
    - Calculate count = min(ready_count, max_concurrent)
    - Call `/dispatch <specific-task-ids> --count <count> --no-plan --yes` via Skill tool, passing only in-scope task IDs
-4a. After dispatch returns, check its output for branch isolation failures:
-   - If dispatch reported failures, record them in checkpoint `tasks.branch_isolation_failures` (see schema below)
-   - Only count successfully isolated workers as `in_progress`
-   - Failed tasks return to the ready pool automatically (they were unassigned by dispatch)
-   - **Circuit breaker**: If a task ID already appears in `branch_isolation_failures` from a prior batch with `attempts >= 2`, move it to `failed` with reason `"branch_isolation_repeated_failure"` and log: "Task <id> failed branch isolation twice — flagged for human attention."
 5. Update checkpoint: add dispatched tasks to `in_progress`, set `batch_number: 1`
 
-## Section 3: Main Loop (Event-Driven)
+## Section 3: Main Loop
 
-The loop is driven by Agent Teams. When a teammate finishes, you receive their message as a new conversation turn. Each time you receive a teammate message:
+The loop is driven by background agent completion notifications. When a worker finishes (you are notified of its completion), process the result:
 
 ### Step A — Identify Completion
 
-Extract task ID from the teammate's message or idle notification. Check for session summary:
+When notified of a worker's completion, extract the task ID from the worker's name or result. Check for session summary:
 ```bash
 ls docs/session_summaries/<task-id>*.txt 2>/dev/null
 ```
@@ -117,7 +114,7 @@ ls docs/session_summaries/<task-id>*.txt 2>/dev/null
 ### Step B — Reconcile
 
 **If summary exists:**
-Call `/reconcile-summary <task-id> --no-cleanup --yes` via Skill tool.
+Call `/reconcile-summary <task-id> --yes` via Skill tool.
 
 After reconciliation, check if the completed task touched frontend files:
 ```bash
@@ -130,9 +127,9 @@ If frontend files were modified, note for milestone review:
 Frontend changes detected in <task-id> — Playwright browser verification will run during milestone review.
 ```
 
-**If no summary (teammate may have failed):**
-1. Send one follow-up message to the teammate asking for status (SendMessage)
-2. If still stuck after the follow-up: mark as failed
+**If no summary (worker may have failed):**
+1. Check the worker's return value for error information
+2. Mark as failed
 3. Create investigation task:
    ```bash
    bd create --title="Investigate: <task-id> failed" --type=task --priority=1 --parent <epic-id>
@@ -157,15 +154,12 @@ Update checkpoint: move task from `in_progress` to `completed` (or `failed`).
 - Call `/dispatch <specific-task-ids> --no-plan --yes` via Skill tool (pass only in-scope IDs, limited to available_slots)
 - Increment `batch_number` in checkpoint
 - Add dispatched tasks to `in_progress` in checkpoint
-- Check dispatch output for branch isolation failures (same logic as Section 2 step 4a):
-  - Record failures in checkpoint, only count isolated workers as in_progress
-  - Apply circuit breaker for repeated failures (attempts >= 2 → mark failed)
 
 **Completion checks:**
 - If `--through` target task is now closed → all done → go to Section 4 (Completion)
 - If `--epic` and all epic children closed → all done → go to Section 4
 - If no in-scope ready AND no in-progress → all done → go to Section 4
-- If no in-scope ready BUT tasks still in-progress → wait for more completions (do nothing, Agent Teams will deliver the next message)
+- If no in-scope ready BUT tasks still in-progress → wait for more completions (background agents will notify you when they finish)
 
 ### Step E — Context Self-Monitoring
 
@@ -178,7 +172,7 @@ After every 3 reconciliation cycles, assess context health. If you notice degrad
 
 When no ready tasks AND no in-progress tasks (all work done):
 
-1. **Final reconciliation:** Call `/reconcile-summary --yes` via Skill tool (WITHOUT `--no-cleanup` — this triggers team cleanup)
+1. **Final reconciliation:** Call `/reconcile-summary --yes` via Skill tool
 
 ### Step 1.5: Milestone Review Phase
 
@@ -191,11 +185,12 @@ After reconciliation, run an iterative review-fix pass on accumulated branch cha
    ```
 3. If no milestone branch found: skip, log "No milestone branch found — skipping milestone review"
 4. Update checkpoint: `milestone_review.status: "in_progress"`
-5. Dispatch a review worker:
+5. Dispatch a review worker using Agent tool:
+   - `isolation: "worktree"`
    - `mode: "bypassPermissions"`
    - Prompt: Check out the milestone branch, run `/milestone-review --max-iterations <N> --base-branch main` (use `--milestone-review-iterations` value or default 5)
    - The worker pushes fixes directly to the milestone branch (no separate PR — the milestone-to-main PR is the human review checkpoint)
-6. Wait for worker completion (event-driven, same as main loop)
+6. Wait for worker completion
 7. Read the worker's report/session summary
 8. Update checkpoint: `milestone_review.status: "completed"` with stats from the worker's report
 
@@ -210,7 +205,6 @@ Duration: <elapsed time>
 Batches: <count>
 Completed: <count> tasks
 Failed: <count> tasks
-Branch Isolation Failures: <count> (isolation failures across all batches)
 
 MILESTONE REVIEW:
 - Status: <completed|skipped|N/A>
@@ -241,7 +235,7 @@ File: `docs/auto-run-checkpoint.json`
 
 ```json
 {
-  "version": 1,
+  "version": 2,
   "status": "running|completed|paused|errored",
   "start_time": "ISO8601",
   "last_updated": "ISO8601",
@@ -260,15 +254,13 @@ File: `docs/auto-run-checkpoint.json`
   "tasks": {
     "completed": [{ "id": "Proj-abc", "title": "...", "completed_at": "...", "batch": 1 }],
     "failed": [{ "id": "Proj-xyz", "title": "...", "reason": "...", "attempts": 1 }],
-    "in_progress": [{ "id": "Proj-def", "title": "...", "dispatched_at": "...", "batch": 2 }],
-    "branch_isolation_failures": [{ "id": "Proj-abc", "title": "...", "batch": 2, "attempts": 1 }]
+    "in_progress": [{ "id": "Proj-def", "title": "...", "dispatched_at": "...", "batch": 2 }]
   },
   "stats": {
     "total_dispatched": 4,
     "total_completed": 1,
     "total_failed": 0,
-    "total_batches": 2,
-    "total_branch_isolation_failures": 0
+    "total_batches": 2
   },
   "milestone_review": {
     "status": "pending|in_progress|completed|skipped",
@@ -283,7 +275,5 @@ File: `docs/auto-run-checkpoint.json`
 
 - **Failed tasks**: Create investigation tasks in beads, picked up in next dispatch cycle
 - **Circuit breaker**: Same task failing twice → skip and flag for human attention
-- **Stuck teammates**: Send 1 follow-up message, then mark failed if no response
 - **No beads CLI**: Exit with clear error — `bd` must be available
 - **Checkpoint corruption**: If checkpoint can't be parsed, start fresh (warn user)
-- **Branch isolation fails**: `/dispatch` shuts down workers that didn't create task branches and unassigns their tasks. Auto-run records failures in checkpoint `branch_isolation_failures`. Same task failing isolation twice triggers circuit breaker — moved to `failed` list and flagged for human attention.

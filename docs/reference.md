@@ -19,7 +19,7 @@ All workflow capabilities are implemented as skills in `skills/`.
 | `/orient` | Build context, identify parallel work | Session start |
 | `/start-task <id>` | Claim task, gather context, define criteria | Beginning a task |
 | `/finish-task <id>` | Tests, commit, PR, cleanup, close | Task complete |
-| `/dispatch` | Spawn Agent Teams teammates (with isolation verification) | Multiple ready tasks |
+| `/dispatch` | Spawn worktree-isolated workers for parallel execution | Multiple ready tasks |
 | `/auto-run` | Autonomous dispatch-reconcile loop | Batch processing, overnight runs |
 | `/milestone-review` | Iterative review-fix loop for branch changes | After milestone tasks complete, or manually |
 | `/summarize-session <id>` | Progress summary (read-only) | Mid-session checkpoint |

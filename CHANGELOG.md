@@ -2,6 +2,36 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.2.0] - 2026-03-21
+
+### Breaking Changes
+
+- **Agent Teams replaced with subagent worktrees** — `/dispatch` now spawns workers via the `Agent` tool with `isolation: "worktree"` instead of Agent Teams. Each worker gets its own git worktree for true filesystem isolation. No more shared working directory conflicts.
+- **Agent Teams no longer required** — Removed dependency on `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`. All parallel execution uses standard subagent infrastructure.
+- **Checkpoint schema v2** — `branch_isolation_failures` removed from checkpoint schema (the failure category no longer exists with worktree isolation). Old v1 checkpoints are not compatible with `--resume`.
+
+### Changed
+
+- **`/dispatch`** — Complete rewrite. Drops TeamCreate, TaskCreate, TaskUpdate, TaskList, SendMessage. Spawns workers via Agent tool with `isolation: "worktree"` and `run_in_background: true`. Removed Step 2.6 (peer interface detection) and Step 4.5 (branch isolation verification). Added Step 2 (worktree cleanup via `git worktree prune`). Worker prompts include critical contract for session summary enforcement.
+- **`/auto-run`** — Restructured event loop from Agent Teams message delivery to background agent completion notifications. Drops all Agent Teams tools. Simplified checkpoint schema (no `branch_isolation_failures`). Removed team cleanup from completion phase.
+- **`/reconcile-summary`** — Drops SendMessage, TeamDelete, TaskList from allowed-tools. Removed Step 12 (team cleanup). Simplified `--yes` mode defaults.
+- **`/start-task`** — Drops TaskList, SendMessage from allowed-tools. Step 6.1 replaced: sibling awareness via `bd list --status=in_progress` instead of Agent Teams TaskList/SendMessage.
+- **`/finish-task`** — Fixed `git add -A` violation (Step 6 now instructs explicit file staging per CLAUDE.md rules).
+- **`/multi-review`** — Updated autonomous context detection from "dispatched teammate" to "dispatched worker (running in a worktree)".
+- **`hooks/hooks.json`** — Removed `TeammateIdle` and `TaskCompleted` hooks (Agent Teams-specific). Retained PreToolUse, Stop, and SessionStart hooks.
+- **`CLAUDE.md`** — Principles 1, 2, 7 updated to reflect worktree isolation and subagent architecture.
+- **`README.md`** — All Agent Teams references replaced. Removed Agent Teams prerequisite section. Updated FAQ.
+- **`docs/reference.md`**, **`docs/workflow-cheatsheet.md`** — Updated dispatch descriptions.
+- **`scripts/auto-run.sh`** — Updated header comments (Agent Teams dependency note removed).
+
+### Removed
+
+- Agent Teams dependency (TeamCreate, TeamDelete, TaskCreate, TaskUpdate, TaskList, SendMessage)
+- Branch isolation verification (Step 4.5 in `/dispatch`) — unnecessary with worktree isolation
+- Peer interface detection (Step 2.6 in `/dispatch`) — peer messaging not needed
+- Team cleanup step in `/reconcile-summary`
+- `TeammateIdle` and `TaskCompleted` hooks from `hooks/hooks.json`
+
 ## [2.1.0] - 2026-03-08
 
 ### Breaking Changes
