@@ -139,6 +139,17 @@ Update checkpoint: move task from `in_progress` to `completed` (or `failed`).
 
 **Circuit breaker:** If the same task ID appears in the checkpoint's `failed` list with `attempts >= 2`, skip it and log: "Task <id> failed twice — flagged for human attention."
 
+### Step B.5 — Pull and Clean Up
+
+After reconciliation, prune completed worktrees and pull the worker's merged changes so subsequent dispatches see the latest code:
+
+```bash
+git worktree prune
+git checkout -- .beads/issues.jsonl 2>/dev/null
+git pull origin $(git branch --show-current)
+bd sync --import-only 2>/dev/null
+```
+
 ### Step C — Check Limits
 
 - If `--max-batches` reached → write checkpoint with `status: "paused"`, report "Auto-run paused. N tasks remain.", exit.

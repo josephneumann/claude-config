@@ -358,6 +358,10 @@ Use **AskUserQuestion**:
 **Options:**
 - "Yes, decompose into tasks"
 - "No, plan only"
+- "Execute directly — implement this plan now"
+
+**If user selects "Execute directly":**
+Set `decomposed = "execute"`. Proceed to Phase 4.
 
 **If user selects "Yes":**
 Set `decomposed = true`. Create tasks:
@@ -404,6 +408,17 @@ Set `decomposed = false`. Proceed to Phase 4.
 
 Use **AskUserQuestion** to present options:
 
+**If `decomposed = "execute"`:**
+
+Spec complete. Output: "Plan ready at `<path>`. Implementing now."
+
+The `/spec` skill ends here — read the plan file and begin implementation:
+- Use the plan's acceptance criteria as your guide
+- Implement, test, commit
+- No `/start-task` or `/finish-task` needed
+
+Do NOT present the post-plan menu below. Proceed directly to implementation.
+
 **If `decomposed = true`:**
 
 **Question:** "Plan created, reviewed, and decomposed into tasks. What next?"
@@ -417,6 +432,7 @@ Use **AskUserQuestion** to present options:
 6. **Work solo** — Pick a task with `/start-task`
 7. **Create GitHub issue** — `gh issue create --title "<type>: <title>" --body-file <plan_path>`
 8. **Simplify** — Reduce detail level
+9. **Execute now** — Skip dispatch, implement the plan directly in this session
 
 **If `decomposed = false`:**
 
@@ -430,6 +446,7 @@ Use **AskUserQuestion** to present options:
 5. **Create GitHub issue** — `gh issue create --title "<type>: <title>" --body-file <plan_path>`
 6. **Simplify** — Reduce detail level
 7. **Decompose now** — Create beads tasks from this plan
+8. **Execute now** — Implement the plan directly in this session
 
 ---
 
