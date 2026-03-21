@@ -9,6 +9,8 @@ All workflow capabilities are implemented as skills in `skills/`.
 | `/product-review` | Product-taste review: EXPAND / HOLD / REDUCE / DESIGN modes | Before `/spec` for greenfield features, or standalone. Use DESIGN for UI-heavy features. |
 | `/spec` | Research, plan, decompose into tasks | New idea, feature description, or goal |
 | `/spec --deepen` | Enhance plan with parallel research agents | Existing plan needs more depth |
+| `/plan-eng-review` | Interactive engineering plan review: architecture, code quality, tests, performance. One issue per question. | After `/spec` for full-depth review, or standalone on any plan |
+| `/plan-design-review` | Scored design plan review: 7 UI/UX dimensions rated 0-10 with fixes | After `/spec` for UI-heavy plans, or standalone |
 
 ## Execution
 

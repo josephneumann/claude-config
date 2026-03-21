@@ -1,11 +1,18 @@
 # Workflow Cheatsheet
 
 ```bash
-# Plan a new project
-/spec → /spec --deepen (optional) → /orient → /dispatch
+# Plan a new project (Phase 2.5 eng review runs automatically in /spec)
+/spec → /orient → /dispatch
 
-# Plan a new project (with UX)
-/product-review DESIGN → /spec → /orient → /dispatch
+# Plan with full-depth interactive review
+/spec → /plan-eng-review → /orient → /dispatch
+
+# Plan a UI feature (with design review)
+/product-review DESIGN → /spec → /plan-design-review → /orient → /dispatch
+
+# Standalone reviews on existing plans
+/plan-eng-review              # Full interactive engineering review
+/plan-design-review           # Full 7-pass scored design review
 
 # Single session
 /orient → /start-task <id> → implement → /finish-task <id>
