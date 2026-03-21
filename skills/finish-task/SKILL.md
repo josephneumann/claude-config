@@ -277,8 +277,11 @@ cd "$MAIN_REPO"
 # Merge PR and clean up branch
 gh pr merge --squash --delete-branch
 
-# Pull the merged changes
+# Clean up completed worktrees, then pull merged changes
+git worktree prune
+git checkout -- .beads/issues.jsonl 2>/dev/null
 git pull
+bd sync --import-only 2>/dev/null
 ```
 
 If `gh pr merge` fails with "already merged", just delete the branch manually:

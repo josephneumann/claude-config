@@ -196,6 +196,10 @@ bd create --title="<discovered work>" --type=task --priority=2 --parent <epic-id
 bd sync
 ```
 
+> **Note**: After `bd sync`, `.beads/issues.jsonl` may have uncommitted local changes.
+> If you need to `git pull` after this, use the safe pull pattern:
+> `git checkout -- .beads/issues.jsonl 2>/dev/null && git pull && bd sync --import-only 2>/dev/null`
+
 ## 7. Report Reconciliation
 
 Output a reconciliation report:
